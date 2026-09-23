@@ -10,7 +10,6 @@ import {
   Search, 
   Eye, 
   X, 
-  Sparkles, 
   Lock, 
   CheckCircle2, 
   Filter, 

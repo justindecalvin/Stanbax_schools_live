@@ -13,7 +13,6 @@ import {
   RotateCcw, 
   Plus, 
   Trash2, 
-  Sparkles,
   Check
 } from '../../RealIcons';
 
@@ -196,7 +195,7 @@ export const AdminExamManagementModal: React.FC<AdminExamManagementModalProps> =
             <div className="space-y-4 animate-fade-in">
               <div className="bg-amber-50/70 border border-amber-200 rounded-2xl p-4 text-xs text-neutral-800">
                 <p className="font-bold text-amber-950 flex items-center gap-1.5">
-                  <Sparkles className="w-4 h-4 text-amber-600" />
+                  <CheckCircle2 className="w-4 h-4 text-amber-600" />
                   <span>Real-Time Public Sync:</span>
                 </p>
                 <p className="text-[11px] text-neutral-600 mt-1">
@@ -443,9 +442,10 @@ export const AdminExamManagementModal: React.FC<AdminExamManagementModalProps> =
             <button
               type="button"
               onClick={handleApplyToAllApplicants}
-              className="text-xs font-bold text-blue-900 hover:underline flex items-center gap-1 cursor-pointer order-2 sm:order-1"
+              className="text-xs font-bold text-blue-900 hover:underline flex items-center gap-1.5 cursor-pointer order-2 sm:order-1"
             >
-              <span>⚡ Bulk apply this date & venue to all pending candidates</span>
+              <CheckCircle2 className="w-3.5 h-3.5 text-blue-700" />
+              <span>Bulk apply this date & venue to all pending candidates</span>
             </button>
 
             <div className="flex items-center gap-2 w-full sm:w-auto justify-end order-1 sm:order-2">

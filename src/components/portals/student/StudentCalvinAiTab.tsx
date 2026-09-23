@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
-  Sparkles, 
   Crown, 
   Send, 
   Bot, 
@@ -62,7 +61,7 @@ export const StudentCalvinAiTab: React.FC<StudentCalvinAiTabProps> = ({ student 
       {
         id: 'msg-welcome',
         sender: 'calvin',
-        text: `Hello ${student.name.split(' ')[0] || student.name}! 👋 I am **Calvin**, your dedicated AI Academic Tutor for **${student.grade || 'your class'}** at Stanbax Schools.\n\nWhether you need help understanding difficult topics, working through step-by-step solutions, or preparing for exams, I am here for you. What would you like to explore today?`,
+        text: `Hello ${student.name.split(' ')[0] || student.name}! I am **Calvin**, your dedicated Academic Tutor for **${student.grade || 'your class'}** at Stanbax Schools.\n\nWhether you need help understanding difficult topics, working through step-by-step solutions, or preparing for exams, I am here for you. What would you like to explore today?`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       }
     ];
@@ -120,7 +119,7 @@ export const StudentCalvinAiTab: React.FC<StudentCalvinAiTabProps> = ({ student 
         const welcomeTierMsg: ChatMessage = {
           id: `msg-${Date.now()}`,
           sender: 'calvin',
-          text: `🎉 **Congratulations, ${student.name.split(' ')[0]}!** Your **${result.tier === 'premium' ? '👑 Premium Masterclass' : '✨ Regular'}** token has been verified!\n\n${result.tier === 'premium' ? 'You now have access to high-depth derivations, WAEC/JAMB exam secrets, memory mnemonics, and deep academic reasoning!' : 'You have access to fast, class-tailored curriculum explanations!'} How can I assist you with your studies right now?`,
+          text: `**Congratulations, ${student.name.split(' ')[0]}!** Your **${result.tier === 'premium' ? 'Premium Masterclass' : 'Regular'}** token has been verified!\n\n${result.tier === 'premium' ? 'You now have access to high-depth derivations, WAEC/JAMB exam secrets, memory mnemonics, and deep academic reasoning!' : 'You have access to fast, class-tailored curriculum explanations!'} How can I assist you with your studies right now?`,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           tier: result.tier
         };
@@ -251,16 +250,13 @@ export const StudentCalvinAiTab: React.FC<StudentCalvinAiTabProps> = ({ student 
     } else {
       // Early Years / Nursery
       return [
-        "Tell me a fun counting story with fruits 🍎🍌🍇",
-        "What sounds do different farm animals make? 🐮🐶🐱",
-        "Teach me a cheerful rhyme about colors and shapes! 🌈⭐",
-        "Why is it important to wash our hands before eating? 🧼"
+        "Tell me a fun counting story with fruits and numbers",
+        "What sounds do different farm animals make?",
+        "Teach me a cheerful rhyme about colors and shapes",
+        "Why is it important to wash our hands before eating?"
       ];
     }
   };
-
-  // Find unused tokens from super admin for testing demo helper
-  const availableDemoTokens = calvinTokens.filter(t => t.status === 'unused');
 
   return (
     <div className="space-y-6">
@@ -393,7 +389,7 @@ export const StudentCalvinAiTab: React.FC<StudentCalvinAiTabProps> = ({ student 
                             </>
                           ) : (
                             <>
-                              <Sparkles className="w-3 h-3 text-indigo-500" />
+                              <BookOpen className="w-3 h-3 text-indigo-500" />
                               Calvin AI Standard Tutor
                             </>
                           )}
@@ -514,7 +510,7 @@ export const StudentCalvinAiTab: React.FC<StudentCalvinAiTabProps> = ({ student 
                 <div className="flex justify-between">
                   <span className="text-slate-500">Active Tier:</span>
                   <span className="font-bold text-indigo-900 uppercase">
-                    {access?.tier === 'premium' ? '👑 Premium' : '✨ Regular'}
+                    {access?.tier === 'premium' ? 'Premium' : 'Regular'}
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -569,8 +565,8 @@ export const StudentCalvinAiTab: React.FC<StudentCalvinAiTabProps> = ({ student 
           {/* Pitch Banner */}
           <div className="text-center space-y-3">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-100 text-indigo-800 text-xs font-semibold border border-indigo-200">
-              <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
-              <span>Tailored Age & Class-Appropriate AI</span>
+              <BookOpen className="w-3.5 h-3.5 text-indigo-600" />
+              <span>Tailored Age & Class-Appropriate Study</span>
             </div>
             <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">
               Unlock Calvin AI for {student.name}
@@ -588,7 +584,7 @@ export const StudentCalvinAiTab: React.FC<StudentCalvinAiTabProps> = ({ student 
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-lg border border-blue-100">
-                    <Sparkles className="w-6 h-6" />
+                    <BookOpen className="w-6 h-6" />
                   </div>
                   <span className="text-xs font-bold px-3 py-1 rounded-full bg-blue-100 text-blue-800">
                     REGULAR TOKEN
@@ -634,8 +630,9 @@ export const StudentCalvinAiTab: React.FC<StudentCalvinAiTabProps> = ({ student 
                   <div className="w-12 h-12 rounded-xl bg-amber-400/20 text-amber-400 flex items-center justify-center font-bold text-lg border border-amber-400/40">
                     <Crown className="w-6 h-6 fill-amber-400" />
                   </div>
-                  <span className="text-xs font-bold px-3 py-1 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/30">
-                    👑 PREMIUM TOKEN
+                  <span className="text-xs font-bold px-3 py-1 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/30 flex items-center gap-1.5">
+                    <Crown className="w-3.5 h-3.5 fill-amber-300" />
+                    <span>PREMIUM TOKEN</span>
                   </span>
                 </div>
                 <h3 className="text-lg font-bold text-white">Masterclass Deep Reasoning</h3>
@@ -724,40 +721,6 @@ export const StudentCalvinAiTab: React.FC<StudentCalvinAiTabProps> = ({ student 
               <span>Each token can only be used once • Single-student assignment</span>
             </div>
           </div>
-
-          {/* Quick Demo Token Bar (Helper for Evaluation) */}
-          {availableDemoTokens.length > 0 && (
-            <div className="bg-slate-100 rounded-2xl p-5 border border-slate-200 text-xs">
-              <div className="flex items-center justify-between mb-2">
-                <span className="font-bold text-slate-700 flex items-center gap-1.5">
-                  <Zap className="w-3.5 h-3.5 text-amber-600" />
-                  Administrator Issued Vouchers (Ready for Quick Activation):
-                </span>
-                <span className="text-[11px] text-slate-500">Click any code to activate instantly</span>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
-                {availableDemoTokens.slice(0, 4).map(tok => (
-                  <button
-                    key={tok.id}
-                    onClick={() => handleRedeemToken(tok.code)}
-                    className="p-2.5 rounded-xl bg-white border border-slate-200 hover:border-indigo-400 hover:bg-indigo-50/50 flex items-center justify-between text-left transition-all group"
-                  >
-                    <div>
-                      <div className="font-mono font-bold text-slate-800 group-hover:text-indigo-900">
-                        {tok.code}
-                      </div>
-                      <div className="text-[11px] text-slate-500">
-                        {tok.durationLabel} • {tok.tier === 'premium' ? '👑 Premium' : '✨ Regular'}
-                      </div>
-                    </div>
-                    <span className="text-[11px] font-semibold text-indigo-600 group-hover:underline">
-                      Use Token →
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       )}
     </div>

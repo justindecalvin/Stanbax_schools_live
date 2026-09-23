@@ -23,7 +23,6 @@ import {
   RotateCcw,
   Sliders,
   ChevronDown,
-  Sparkles,
   Menu,
   X,
   ChevronRight,
@@ -423,7 +422,7 @@ export const TutorPortal: React.FC<TutorPortalProps> = ({ onBackToWebsite }) => 
       label: 'AI Exam & Assessment Studio', 
       badge: 'Paper-Saving AI',
       badgeColor: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
-      icon: Sparkles,
+      icon: FileText,
       description: 'Personalized AI exam synthesizer: Ages 3-6 pictorial items, Secondary 50 obj + 6 theory on single lines'
     },
     { 
@@ -803,7 +802,7 @@ export const TutorPortal: React.FC<TutorPortalProps> = ({ onBackToWebsite }) => 
                 onClick={() => setTutorTab('ai_exam_creator')}
                 className="px-3 py-1 rounded-xl bg-gradient-to-r from-purple-700 to-indigo-600 hover:from-purple-800 hover:to-indigo-700 text-white text-xs font-black flex items-center gap-1.5 shadow-xs transition-transform active:scale-95 cursor-pointer"
               >
-                <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                <FileText className="w-3.5 h-3.5 text-amber-300" />
                 <span>AI Exam Studio</span>
               </button>
               {(tutor.assignedClasses || []).map((cls, i) => (
@@ -839,9 +838,9 @@ export const TutorPortal: React.FC<TutorPortalProps> = ({ onBackToWebsite }) => 
                 <div>
                   <div className="font-black text-sm sm:text-base flex items-center gap-2">
                     <span>
-                      {isMidTermOnly && '⚡ Mid-Term CA Test Entry Active (CA 1 & 2 Only)'}
-                      {isTerminalExam && '⚡ End-of-Term Examination Active (CA 3 & Exam Entry)'}
-                      {isClosed && '🔒 Assessment Entry Currently Locked by Administration'}
+                      {isMidTermOnly && 'Mid-Term CA Test Entry Active (CA 1 & 2 Only)'}
+                      {isTerminalExam && 'End-of-Term Examination Active (CA 3 & Exam Entry)'}
+                      {isClosed && 'Assessment Entry Currently Locked by Administration'}
                     </span>
                     <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-white/80 border border-current">
                       {assessmentConfig.activeTerm} • {schoolInfo.activeSession}
@@ -857,7 +856,7 @@ export const TutorPortal: React.FC<TutorPortalProps> = ({ onBackToWebsite }) => 
 
               {assessmentConfig.activeTerm === '3rd Term' && (
                 <div className="px-3.5 py-2 rounded-2xl bg-amber-200/60 border border-amber-300/80 text-amber-950 font-black text-xs shrink-0 flex items-center gap-1.5 self-start md:self-auto">
-                  <Sparkles className="w-4 h-4 text-amber-700" />
+                  <Award className="w-4 h-4 text-amber-700" />
                   <span>3rd Term: 3-Term Annual Average Active</span>
                 </div>
               )}

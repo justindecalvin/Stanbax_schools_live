@@ -16,7 +16,7 @@ import {
   Mail, 
   Copy, 
   Check, 
-  Sparkles,
+  UserPlus,
   ArrowRight,
   Image as ImageIcon
 } from './RealIcons';
@@ -704,7 +704,7 @@ export const StudentRegistrationModal: React.FC<StudentRegistrationModalProps> =
                   className="px-6 py-2.5 rounded-xl bg-neutral-900 hover:bg-black text-amber-300 text-xs font-black shadow-md transition flex items-center gap-2 cursor-pointer active:scale-98"
                   id="btn-submit-student-registration"
                 >
-                  <Sparkles className="w-4 h-4 text-amber-400" />
+                  <UserPlus className="w-4 h-4 text-amber-400" />
                   <span>Register Scholar Account</span>
                 </button>
               </div>

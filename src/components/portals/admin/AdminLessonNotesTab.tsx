@@ -18,7 +18,7 @@ import {
   X, 
   Filter, 
   Layers, 
-  Sparkles,
+  Info,
   Calendar,
   Users
 } from '../../RealIcons';
@@ -193,7 +193,7 @@ export const AdminLessonNotesTab: React.FC = () => {
             ) : statusMessage.type === 'error' ? (
               <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
             ) : (
-              <Sparkles className="w-5 h-5 text-blue-600 shrink-0" />
+              <Info className="w-5 h-5 text-blue-600 shrink-0" />
             )}
             <span>{statusMessage.text}</span>
           </div>

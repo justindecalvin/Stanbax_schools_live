@@ -7,7 +7,6 @@ import {
   RotateCcw, 
   Layout, 
   Image as ImageIcon, 
-  Sparkles, 
   Upload, 
   Check, 
   Trash2, 
@@ -1290,7 +1289,7 @@ export const AdminLandingPageTab: React.FC = () => {
                       <option value="BookOpen">BookOpen</option>
                       <option value="ShieldCheck">ShieldCheck</option>
                       <option value="Award">Award</option>
-                      <option value="Sparkles">Sparkles</option>
+                      <option value="School">School</option>
                       <option value="HeartHandshake">HeartHandshake</option>
                       <option value="CheckCircle2">CheckCircle2</option>
                     </select>

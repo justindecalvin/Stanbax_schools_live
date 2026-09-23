@@ -8,7 +8,6 @@ import {
   Calculator, 
   BookOpen, 
   ShieldCheck, 
-  Sparkles,
   Compass,
   School as SchoolIcon
 } from './RealIcons';

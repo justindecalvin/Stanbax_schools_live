@@ -4,7 +4,6 @@ import {
   BookOpen, 
   Download, 
   Search, 
-  Sparkles, 
   CheckCircle2, 
   GraduationCap, 
   FileText, 

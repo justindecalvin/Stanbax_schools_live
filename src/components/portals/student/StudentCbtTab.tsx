@@ -7,7 +7,7 @@ import {
   Award, 
   CheckCircle2, 
   AlertCircle, 
-  Sparkles, 
+  Play, 
   ArrowLeft, 
   RotateCcw, 
   ChevronRight, 
@@ -430,7 +430,7 @@ export const StudentCbtTab: React.FC = () => {
       <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-neutral-900 via-neutral-800 to-[#450A0A] text-white shadow-md relative overflow-hidden border border-neutral-800">
         <div className="relative z-10 max-w-2xl space-y-2">
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-400/20 text-amber-300 text-xs font-black uppercase tracking-wider border border-amber-400/30">
-            <Sparkles className="w-3.5 h-3.5" />
+            <Award className="w-3.5 h-3.5" />
             Stanbax CBT Simulation Vault
           </span>
           <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white">
@@ -511,7 +511,7 @@ export const StudentCbtTab: React.FC = () => {
                 className="w-full py-2.5 px-4 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-black transition flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-98"
                 id={`btn-start-exam-${exam.id}`}
               >
-                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                <Play className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
                 <span>{pastAttempt ? 'Retake Timed Exam' : 'Start Timed Exam'}</span>
               </button>
             </div>

@@ -21,7 +21,6 @@ import {
   Send, 
   Share2, 
   ShieldCheck, 
-  Sparkles, 
   Star, 
   User, 
   Users, 
@@ -181,7 +180,7 @@ export const ProprietressPage: React.FC<ProprietressPageProps> = ({
             </button>
             <div className="h-4 w-px bg-slate-700 hidden sm:block" />
             <div className="hidden sm:flex items-center gap-2 text-xs font-bold text-slate-300">
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <Award className="w-3.5 h-3.5 text-amber-400" />
               <span>Office of the Founder & Executive Proprietress</span>
             </div>
           </div>
@@ -321,7 +320,7 @@ export const ProprietressPage: React.FC<ProprietressPageProps> = ({
                         : 'bg-white/10 hover:bg-white/20 text-white'
                     }`}
                   >
-                    <Sparkles className="w-3.5 h-3.5" />
+                    <BookOpen className="w-3.5 h-3.5" />
                     <span>Lent Term Address</span>
                   </button>
 
@@ -520,7 +519,7 @@ export const ProprietressPage: React.FC<ProprietressPageProps> = ({
 
                 <div className="bg-white p-6 rounded-3xl border border-[#EAE2CE] shadow-xs space-y-3">
                   <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-900 flex items-center justify-center">
-                    <Sparkles className="w-5 h-5" />
+                    <Award className="w-5 h-5 text-amber-700" />
                   </div>
                   <h4 className="text-base font-black text-neutral-900">Institutional Mission</h4>
                   <p className="text-xs sm:text-sm text-neutral-600 leading-relaxed">
@@ -598,7 +597,7 @@ export const ProprietressPage: React.FC<ProprietressPageProps> = ({
               <div className="bg-gradient-to-r from-[#111827] via-neutral-900 to-[#450A0A] rounded-3xl p-6 sm:p-10 text-white shadow-md border border-blue-800">
                 <div className="max-w-3xl">
                   <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-400 text-neutral-950 text-xs font-black uppercase tracking-wider mb-4">
-                    <Sparkles className="w-3.5 h-3.5" />
+                    <Award className="w-3.5 h-3.5" />
                     <span>Current Session: {schoolInfo.activeSession} • {schoolInfo.activeTerm}</span>
                   </div>
                   <h2 className="text-2xl sm:text-4xl font-black text-white tracking-tight">

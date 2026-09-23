@@ -24,7 +24,6 @@ import {
   X,
   Lock,
   ChevronRight,
-  Sparkles,
   School as SchoolIcon,
   Check
 } from '../RealIcons';

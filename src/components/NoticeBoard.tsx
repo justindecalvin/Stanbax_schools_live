@@ -6,7 +6,6 @@ import {
   ChevronRight, 
   AlertCircle, 
   FileText, 
-  Sparkles,
   School as SchoolIcon
 } from './RealIcons';
 

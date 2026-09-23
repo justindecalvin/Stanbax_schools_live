@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { 
   Key, 
   Crown, 
-  Sparkles, 
+  BookOpen, 
   Plus, 
   Copy, 
   Check, 
@@ -216,7 +216,7 @@ export const AdminCalvinTokensTab: React.FC = () => {
                   }`}
                 >
                   <div className="flex items-center gap-1.5 font-black text-xs text-blue-700 mb-0.5">
-                    <Sparkles className="w-3.5 h-3.5" />
+                    <BookOpen className="w-3.5 h-3.5" />
                     <span>Regular</span>
                   </div>
                   <span className="text-[11px] text-slate-500">Standard syllabus clarity</span>
@@ -233,7 +233,7 @@ export const AdminCalvinTokensTab: React.FC = () => {
                 >
                   <div className="flex items-center gap-1.5 font-black text-xs text-purple-700 mb-0.5">
                     <Crown className="w-3.5 h-3.5 text-amber-500" />
-                    <span>👑 Premium</span>
+                    <span>Premium</span>
                   </div>
                   <span className="text-[11px] text-slate-500">High-depth & WAEC secrets</span>
                 </button>
@@ -427,7 +427,7 @@ export const AdminCalvinTokensTab: React.FC = () => {
                               ? 'bg-purple-100 text-purple-800 border border-purple-200'
                               : 'bg-blue-100 text-blue-800 border border-blue-200'
                           }`}>
-                            {tok.tier === 'premium' ? <Crown className="w-3 h-3 text-amber-500" /> : <Sparkles className="w-3 h-3" />}
+                            {tok.tier === 'premium' ? <Crown className="w-3 h-3 text-amber-500" /> : <BookOpen className="w-3 h-3 text-blue-600" />}
                             {tok.tier.toUpperCase()}
                           </span>
                         </td>
@@ -556,7 +556,7 @@ export const AdminCalvinTokensTab: React.FC = () => {
                         : 'border-slate-200 text-slate-600'
                     }`}
                   >
-                    👑 Premium Tier
+                    Premium Tier
                   </button>
                 </div>
               </div>
@@ -627,7 +627,7 @@ export const AdminCalvinTokensTab: React.FC = () => {
                 <div className="flex justify-between">
                   <span>Tier:</span>
                   <span className="font-bold uppercase text-indigo-900">
-                    {voucherToPrint.tier === 'premium' ? '👑 Premium Masterclass' : 'Regular'}
+                    {voucherToPrint.tier === 'premium' ? 'Premium Masterclass' : 'Regular'}
                   </span>
                 </div>
                 <div className="flex justify-between">

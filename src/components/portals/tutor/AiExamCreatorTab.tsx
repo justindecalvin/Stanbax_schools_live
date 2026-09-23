@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useSchool } from '../../../context/SchoolContext';
 import { generateLocalCurriculumAssessment } from '../../../utils/curriculumEngine';
 import { 
-  Sparkles, 
   FileText, 
   Printer, 
   Copy, 
@@ -410,7 +409,7 @@ export const AiExamCreatorTab: React.FC = () => {
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2">
               <span className="px-3 py-1 rounded-full bg-purple-500/30 text-purple-200 border border-purple-400/40 font-black text-xs uppercase tracking-wider flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                <GraduationCap className="w-3.5 h-3.5 text-amber-300" />
                 <span>Personalized AI Exam Synthesizer</span>
               </span>
               <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 font-bold text-xs">
@@ -483,12 +482,12 @@ export const AiExamCreatorTab: React.FC = () => {
           <div className="flex items-center gap-1.5">
             {isEarlyYears && (
               <span className="px-2.5 py-1 rounded-full bg-amber-100 text-amber-900 text-[11px] font-black flex items-center gap-1">
-                <span>🎨 Early Years: Pictorial Mode</span>
+                <span>Early Years: Pictorial Mode</span>
               </span>
             )}
             {isSecondary && (
               <span className="px-2.5 py-1 rounded-full bg-blue-100 text-blue-900 text-[11px] font-black flex items-center gap-1">
-                <span>⚡ Secondary: 50 Obj + 6 Theory</span>
+                <span>Secondary: 50 Obj + 6 Theory</span>
               </span>
             )}
           </div>
@@ -506,13 +505,13 @@ export const AiExamCreatorTab: React.FC = () => {
               onChange={(e) => handleClassChange(e.target.value)}
               className="w-full p-2.5 rounded-xl border border-slate-300 font-bold text-slate-800 bg-white focus:ring-2 focus:ring-purple-500 outline-hidden"
             >
-              <optgroup label="🧸 Early Years (Ages 3–6 • Pictorial Mode)">
+              <optgroup label="Early Years (Ages 3–6 • Pictorial Mode)">
                 <option value="Creche / Pre-Nursery (Age 2-3)">Creche / Pre-Nursery (Age 2–3)</option>
                 <option value="Nursery 1 (Age 3-4)">Nursery 1 (Age 3–4)</option>
                 <option value="Nursery 2 (Age 4-5)">Nursery 2 (Age 4–5)</option>
                 <option value="Kindergarten / Reception (Age 5-6)">Kindergarten / Reception (Age 5–6)</option>
               </optgroup>
-              <optgroup label="🎒 Primary School (Basic 1–6)">
+              <optgroup label="Primary School (Basic 1–6)">
                 <option value="Primary 1 (Basic 1)">Primary 1 (Basic 1)</option>
                 <option value="Primary 2 (Basic 2)">Primary 2 (Basic 2)</option>
                 <option value="Primary 3 (Basic 3)">Primary 3 (Basic 3)</option>
@@ -520,12 +519,12 @@ export const AiExamCreatorTab: React.FC = () => {
                 <option value="Primary 5 (Basic 5)">Primary 5 (Basic 5)</option>
                 <option value="Primary 6 (Basic 6)">Primary 6 (Basic 6)</option>
               </optgroup>
-              <optgroup label="🎓 Junior Secondary (50 Obj + 6 Theory)">
+              <optgroup label="Junior Secondary (50 Obj + 6 Theory)">
                 <option value="JSS 1">JSS 1</option>
                 <option value="JSS 2">JSS 2</option>
                 <option value="JSS 3">JSS 3</option>
               </optgroup>
-              <optgroup label="🏛️ Senior Secondary (50 Obj + 6 Theory)">
+              <optgroup label="Senior Secondary (50 Obj + 6 Theory)">
                 <option value="SSS 1">SSS 1</option>
                 <option value="SSS 2">SSS 2</option>
                 <option value="SSS 3">SSS 3</option>
@@ -558,7 +557,7 @@ export const AiExamCreatorTab: React.FC = () => {
               ) : (
                 <>
                   {tutor.assignedSubjects?.map((s) => (
-                    <option key={s} value={s}>★ {s} (Your Subject)</option>
+                    <option key={s} value={s}>{s} (Your Subject)</option>
                   ))}
                   <option value="Mathematics">Mathematics</option>
                   <option value="English Language">English Language</option>
@@ -679,7 +678,7 @@ export const AiExamCreatorTab: React.FC = () => {
             <div>
               <span className="text-slate-500 block font-bold">Special Formatting:</span>
               <span className="font-black text-purple-900 text-xs">
-                {isEarlyYears ? '🖼️ Visual Symbols & Emojis' : '📄 Single-Line Compact Options'}
+                {isEarlyYears ? 'Visual Symbols & Pictorial Layout' : 'Single-Line Compact Options'}
               </span>
             </div>
           </div>
@@ -691,7 +690,7 @@ export const AiExamCreatorTab: React.FC = () => {
             id="generate-ai-exam-btn"
             className="px-6 py-3 rounded-2xl bg-gradient-to-r from-purple-700 via-indigo-600 to-blue-700 hover:from-purple-800 hover:to-blue-800 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
           >
-            <Sparkles className="w-4 h-4 text-amber-300" />
+            <FileText className="w-4 h-4 text-amber-300" />
             <span>{isGenerating ? 'Generating Exam...' : 'Generate Exam Paper with AI'}</span>
           </button>
         </div>
@@ -794,7 +793,7 @@ export const AiExamCreatorTab: React.FC = () => {
               {/* Paper-saving indicator banner */}
               <div className="mb-6 p-3 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-between gap-3 text-xs text-amber-900">
                 <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
+                  <Printer className="w-4 h-4 text-amber-600 shrink-0" />
                   <span>
                     <strong>Paper-Saving Layout Activated:</strong> Questions and options are placed on the exact same line. This cuts paper usage by ~50-60% when printing or photocopying for school examinations.
                   </span>

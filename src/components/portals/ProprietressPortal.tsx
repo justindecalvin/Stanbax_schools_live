@@ -14,7 +14,9 @@ import {
   X, 
   ChevronRight, 
   Lock, 
-  Sparkles, 
+  LayoutDashboard,
+  Award,
+  Send,
   PlusCircle, 
   GraduationCap, 
   BookOpen, 
@@ -233,7 +235,7 @@ export const ProprietressPortal: React.FC<ProprietressPortalProps> = ({ onBackTo
                   }`}
                 >
                   <div className="flex items-center gap-2.5">
-                    <Sparkles className="w-4 h-4" />
+                    <LayoutDashboard className="w-4 h-4" />
                     <span>Executive Overview</span>
                   </div>
                   <ChevronRight className="w-4 h-4 opacity-60" />
@@ -363,7 +365,7 @@ export const ProprietressPortal: React.FC<ProprietressPortalProps> = ({ onBackTo
               activeTab === 'overview' ? 'bg-blue-900 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
-            <Sparkles className="w-4 h-4" />
+            <LayoutDashboard className="w-4 h-4" />
             <span>Governance Overview</span>
           </button>
 
@@ -428,7 +430,7 @@ export const ProprietressPortal: React.FC<ProprietressPortalProps> = ({ onBackTo
               <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-black uppercase tracking-wider text-slate-500">School Vision</span>
-                  <Sparkles className="w-4 h-4 text-amber-500" />
+                  <Award className="w-4 h-4 text-amber-500" />
                 </div>
                 <p className="text-xs text-slate-700 leading-relaxed font-medium">
                   {schoolInfo.vision || 'To nurture future global leaders grounded in academic brilliance, moral integrity, and technological prowess.'}
@@ -605,7 +607,7 @@ export const ProprietressPortal: React.FC<ProprietressPortalProps> = ({ onBackTo
                     type="submit"
                     className="px-6 py-2.5 rounded-xl bg-blue-900 hover:bg-blue-950 text-white text-xs font-bold shadow-md cursor-pointer transition flex items-center gap-2"
                   >
-                    <Sparkles className="w-4 h-4 text-amber-400" />
+                    <Send className="w-4 h-4 text-amber-400" />
                     <span>Publish Official Directive</span>
                   </button>
                 </div>

@@ -9,7 +9,6 @@ import {
   AlertCircle, 
   Clock, 
   Users, 
-  Sparkles, 
   Award, 
   ChevronRight, 
   Upload,
@@ -311,7 +310,7 @@ export const AdminSchoolSettingsTab: React.FC = () => {
             </div>
             <div>
               <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 text-[10px] font-black uppercase tracking-wider mb-1">
-                <Sparkles className="w-3 h-3 text-amber-600" />
+                <Clock className="w-3 h-3 text-amber-600" />
                 <span>Administrator Attendance Counter Control</span>
               </div>
               <h3 className="text-lg font-black text-stone-900">

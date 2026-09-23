@@ -6,7 +6,7 @@ import {
   Utensils, 
   Users, 
   Calendar, 
-  Sparkles,
+  Award,
   School as SchoolIcon
 } from './RealIcons';
 
@@ -23,7 +23,7 @@ export const StudentLifeSection: React.FC<StudentLifeSectionProps> = ({ onOpenAd
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-3xl mx-auto mb-12">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold uppercase tracking-wider mb-3">
-            <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+            <Award className="w-3.5 h-3.5 text-amber-600" />
             <span>School Life & Holistic Development</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-black text-stone-900 tracking-tight">

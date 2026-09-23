@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users, Award, GraduationCap, PlusCircle, Settings, Sparkles, ArrowRight, Calendar, Lock } from './RealIcons';
+import { Users, Award, GraduationCap, PlusCircle, Settings, ArrowRight, Calendar, Lock } from './RealIcons';
 import { useSchool } from '../context/SchoolContext';
 
 export const FacultyTeam: React.FC = () => {
@@ -29,7 +29,7 @@ export const FacultyTeam: React.FC = () => {
 
             <div className="flex-grow text-center md:text-left space-y-2">
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 text-amber-300 text-xs font-bold uppercase tracking-wider border border-amber-400/20">
-                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                <Award className="w-3.5 h-3.5 text-amber-400" />
                 <span>Executive Leadership & Founder's Desk</span>
               </div>
               <h3 className="text-2xl sm:text-3xl font-black text-white">

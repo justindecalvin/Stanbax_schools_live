@@ -9,7 +9,7 @@ import {
   CheckCircle2, 
   HelpCircle,
   School,
-  Sparkles,
+  UserPlus,
   Phone,
   Mail,
   ShieldCheck,
@@ -368,7 +368,7 @@ export const PortalLoginPage: React.FC<PortalLoginPageProps> = ({
                   className="w-full py-2.5 px-4 rounded-xl bg-amber-400 hover:bg-amber-500 text-neutral-950 font-black text-xs sm:text-sm shadow-sm transition flex items-center justify-center gap-2 cursor-pointer border border-amber-300 active:scale-98"
                   id="btn-open-student-registration"
                 >
-                  <Sparkles className="w-4 h-4 text-red-700" />
+                  <UserPlus className="w-4 h-4 text-red-700" />
                   <span>Register Scholar Account</span>
                 </button>
               </div>
@@ -395,7 +395,7 @@ export const PortalLoginPage: React.FC<PortalLoginPageProps> = ({
             {showHelp && (
               <div className="p-4 rounded-2xl bg-amber-50/90 border border-amber-200 text-neutral-900 text-xs space-y-2.5 animate-fade-in">
                 <div className="font-bold flex items-center gap-1.5 text-neutral-900">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                  <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
                   <span>Institutional Sign-In Guidelines</span>
                 </div>
                 <p className="text-[11px] text-neutral-700 leading-relaxed">

@@ -825,7 +825,7 @@ export const DEFAULT_ACADEMIC_PROGRAMS: AcademicProgram[] = [
     description: 'Gentle, stimulating environments fostering early phonics, sensory exploration, numbers, and social confidence.',
     features: ['Montessori-inspired learning aids', 'Safe infant nap pods & play zones', 'Nutritious pediatric meal plans', 'Experienced toddler caregivers'],
     color: 'amber',
-    iconName: 'Sparkles'
+    iconName: 'School'
   },
   {
     id: 'prog-2',

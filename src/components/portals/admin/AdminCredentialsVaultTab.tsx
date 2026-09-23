@@ -13,7 +13,6 @@ import {
   RotateCcw, 
   AlertCircle, 
   CheckCircle2, 
-  Sparkles, 
   Filter, 
   Users, 
   GraduationCap, 

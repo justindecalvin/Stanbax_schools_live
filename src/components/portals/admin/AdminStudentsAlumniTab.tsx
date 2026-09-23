@@ -6,7 +6,6 @@ import {
   Search, 
   Award, 
   UserCheck, 
-  Sparkles, 
   CheckCircle2, 
   AlertCircle, 
   History, 
@@ -255,7 +254,7 @@ export const AdminStudentsAlumniTab: React.FC = () => {
 
                   {std.isUpgradedTutor && (
                     <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900 text-[10px] font-extrabold uppercase tracking-wide border border-emerald-300 flex items-center gap-1">
-                      <Sparkles className="w-3 h-3 text-emerald-600" />
+                      <Award className="w-3 h-3 text-emerald-600" />
                       Elevated to Faculty Tutor
                     </span>
                   )}
@@ -319,7 +318,7 @@ export const AdminStudentsAlumniTab: React.FC = () => {
           <div className="w-full max-w-lg bg-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-200 space-y-4 animate-fade-in text-slate-900">
             <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
               <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-900 flex items-center justify-center font-black">
-                <Sparkles className="w-5 h-5 text-emerald-600" />
+                <Award className="w-5 h-5 text-emerald-600" />
               </div>
               <div>
                 <h3 className="text-base font-black">Promote Scholar to Faculty Tutor</h3>

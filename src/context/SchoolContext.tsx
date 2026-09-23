@@ -4678,7 +4678,7 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     return {
       success: true,
-      message: `🎉 Success! Activated ${token.tier === 'premium' ? '👑 Premium' : '✨ Regular'} Calvin AI access! Valid for ${token.durationLabel || token.durationHours + ' hours'}.`,
+      message: `Success! Activated ${token.tier === 'premium' ? 'Premium' : 'Regular'} Calvin AI access! Valid for ${token.durationLabel || token.durationHours + ' hours'}.`,
       tier: token.tier,
       expiresAt: expiresAtStr
     };

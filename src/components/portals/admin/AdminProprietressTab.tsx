@@ -12,7 +12,6 @@ import {
   Edit3, 
   Save, 
   RotateCcw,
-  Sparkles,
   ExternalLink
 } from '../../RealIcons';
 

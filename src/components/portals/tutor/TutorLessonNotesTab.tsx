@@ -13,7 +13,7 @@ import {
   Download, 
   Eye, 
   X, 
-  Sparkles, 
+  Send, 
   Clock, 
   Search, 
   Check, 
@@ -517,7 +517,7 @@ export const TutorLessonNotesTab: React.FC = () => {
                 disabled={isUploading}
                 className="px-6 py-2.5 rounded-xl bg-blue-900 hover:bg-blue-800 disabled:opacity-50 text-white font-black text-xs sm:text-sm flex items-center gap-2 shadow-md transition cursor-pointer active:scale-98"
               >
-                <Sparkles className="w-4 h-4 text-amber-400" />
+                <Send className="w-4 h-4 text-amber-400" />
                 <span>Publish Note to Scholars</span>
               </button>
             </div>

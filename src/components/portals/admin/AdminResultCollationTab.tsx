@@ -6,7 +6,7 @@ import {
   Lock, 
   Sliders, 
   TrendingUp, 
-  Sparkles, 
+  GraduationCap, 
   Calendar, 
   Users, 
   AlertCircle,
@@ -169,7 +169,7 @@ export const AdminResultCollationTab: React.FC = () => {
               }`}
             >
               <div className="flex items-center justify-between font-black text-xs">
-                <span>⚡ Mid-Term CA Entry</span>
+                <span>Mid-Term CA Entry</span>
                 {assessmentConfig.activePhase === 'mid_term_ca' && <CheckCircle2 className="w-4 h-4 text-blue-800" />}
               </div>
               <p className="text-[11px] text-slate-500 mt-1 font-normal">
@@ -187,7 +187,7 @@ export const AdminResultCollationTab: React.FC = () => {
               }`}
             >
               <div className="flex items-center justify-between font-black text-xs">
-                <span>🏆 Terminal Examination Entry</span>
+                <span>Terminal Examination Entry</span>
                 {assessmentConfig.activePhase === 'terminal_exam' && <CheckCircle2 className="w-4 h-4 text-amber-700" />}
               </div>
               <p className="text-[11px] text-slate-500 mt-1 font-normal">
@@ -205,7 +205,7 @@ export const AdminResultCollationTab: React.FC = () => {
               }`}
             >
               <div className="flex items-center justify-between font-black text-xs">
-                <span>🔒 Collation Closed / Locked</span>
+                <span>Collation Closed / Locked</span>
                 {assessmentConfig.activePhase === 'closed' && <CheckCircle2 className="w-4 h-4 text-rose-700" />}
               </div>
               <p className="text-[11px] text-slate-500 mt-1 font-normal">
@@ -237,7 +237,7 @@ export const AdminResultCollationTab: React.FC = () => {
               }`}
             >
               <div className="flex items-center justify-between font-black text-xs">
-                <span>📋 Mid-Term Report (CA 1 + CA 2)</span>
+                <span>Mid-Term Report (CA 1 + CA 2)</span>
                 {assessmentConfig.midTermResultsPublished
                   ? <CheckCircle2 className="w-4 h-4 text-emerald-700" />
                   : <Lock className="w-4 h-4 text-slate-400" />}
@@ -259,7 +259,7 @@ export const AdminResultCollationTab: React.FC = () => {
               }`}
             >
               <div className="flex items-center justify-between font-black text-xs">
-                <span>🏅 End-of-Term Report (CA 1–3 + Exam)</span>
+                <span>End-of-Term Report (CA 1–3 + Exam)</span>
                 {assessmentConfig.endTermResultsPublished
                   ? <CheckCircle2 className="w-4 h-4 text-emerald-700" />
                   : <Lock className="w-4 h-4 text-slate-400" />}
@@ -322,7 +322,7 @@ export const AdminResultCollationTab: React.FC = () => {
 
             {assessmentConfig.activeTerm === '3rd Term' && (
               <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-950 font-bold text-[11px] flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
+                <GraduationCap className="w-4 h-4 text-amber-600 shrink-0" />
                 <span>3rd Term calculates the 3-term cumulative annual average for scholar promotion.</span>
               </div>
             )}

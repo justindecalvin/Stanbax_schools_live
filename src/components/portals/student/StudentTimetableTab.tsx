@@ -4,7 +4,6 @@ import {
   Calendar, 
   Clock, 
   BookOpen, 
-  Sparkles, 
   Printer, 
   CheckCircle2, 
   MapPin, 

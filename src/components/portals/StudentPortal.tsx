@@ -19,7 +19,6 @@ import {
   Building2,
   Check,
   Download,
-  Sparkles,
   History,
   Layers,
   ChevronRight,
@@ -493,7 +492,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
       id: 'calvin_ai' as const, 
       label: 'Calvin AI Tutor', 
       badge: student.calvinAiAccess?.active 
-        ? (student.calvinAiAccess.tier === 'premium' ? '👑 Premium' : '✨ Active') 
+        ? (student.calvinAiAccess.tier === 'premium' ? 'Premium' : 'Active') 
         : 'Get Token',
       badgeColor: student.calvinAiAccess?.active 
         ? (student.calvinAiAccess.tier === 'premium' ? 'bg-amber-400/20 text-amber-300 border-amber-400/30' : 'bg-purple-500/20 text-purple-300 border-purple-500/30') 
@@ -514,7 +513,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
       label: 'CBT Examination & Mock Hall', 
       badge: 'Timed Drills',
       badgeColor: 'bg-amber-400/20 text-amber-300 border-amber-400/30',
-      icon: Sparkles,
+      icon: Award,
       description: 'Interactive timed WAEC/NECO multiple-choice tests with instant auto-grading'
     },
     { 
@@ -905,7 +904,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
           <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-emerald-900 via-teal-900 to-blue-950 text-white shadow-md border border-emerald-500/40 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3.5">
               <div className="w-12 h-12 rounded-2xl bg-emerald-400 text-slate-950 flex items-center justify-center font-black shrink-0 shadow-sm">
-                <Sparkles className="w-6 h-6 text-emerald-950" />
+                <GraduationCap className="w-6 h-6 text-emerald-950" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
@@ -1017,7 +1016,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
                     <div className="flex items-center gap-2">
                       <h4 className="font-extrabold text-base text-white">Calvin AI Academic Tutor</h4>
                       <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-400/20 text-indigo-200 border border-indigo-400/30 font-semibold">
-                        {student.calvinAiAccess?.active ? (student.calvinAiAccess.tier === 'premium' ? '👑 Premium Active' : '✨ Regular Active') : 'Token Required'}
+                        {student.calvinAiAccess?.active ? (student.calvinAiAccess.tier === 'premium' ? 'Premium Active' : 'Regular Active') : 'Token Required'}
                       </span>
                     </div>
                     <p className="text-xs text-indigo-200 mt-0.5">

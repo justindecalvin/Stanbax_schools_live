@@ -2,7 +2,6 @@ import React, { useRef } from 'react';
 import { useSchool } from '../../../context/SchoolContext';
 import { 
   Printer, 
-  Sparkles, 
   School, 
   ShieldCheck, 
   QrCode, 

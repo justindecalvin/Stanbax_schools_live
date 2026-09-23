@@ -12,7 +12,6 @@ import {
   AlertCircle,
   Clock,
   ChevronRight,
-  Sparkles,
   Filter,
   ArrowRight,
   Tag

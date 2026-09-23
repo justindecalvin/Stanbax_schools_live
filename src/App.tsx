@@ -19,7 +19,7 @@ import { ApplicationTrackerModal } from './components/ApplicationTrackerModal';
 import { CareerAdvisorModal } from './components/CareerAdvisorModal';
 import { FAQSection } from './components/FAQSection';
 import { UserTourModal } from './components/UserTourModal';
-import { Compass, X, Sparkles } from 'lucide-react';
+import { Compass, X } from 'lucide-react';
 
 // Dedicated Subpages & Portals
 import { ProprietressPage } from './components/ProprietressPage';
@@ -246,7 +246,7 @@ const MainAppContent: React.FC = () => {
               <X className="w-3.5 h-3.5" />
             </button>
             <div className="flex items-center gap-2 pr-4">
-              <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
+              <Compass className="w-4 h-4 text-amber-600 shrink-0" />
               <p className="text-xs font-bold text-slate-900">New to Stanbax Schools?</p>
             </div>
             <p className="text-[11px] text-slate-600 leading-snug">

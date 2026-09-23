@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSchool } from '../../../context/SchoolContext';
 import { TutorProfile, PrincipalRole, PrincipalPrivilege } from '../../../types';
-import { Crown, Sparkles, CheckCircle2, Award as LucideAward } from 'lucide-react';
+import { Crown, CheckCircle2, Award as LucideAward } from 'lucide-react';
 import { 
   UserCheck, 
   BookOpen, 

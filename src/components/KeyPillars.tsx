@@ -5,7 +5,7 @@ import {
   FlaskConical, 
   ShieldCheck, 
   Award,
-  Sparkles,
+  School,
   HeartHandshake,
   CheckCircle2
 } from './RealIcons';
@@ -17,7 +17,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   BookOpen,
   ShieldCheck,
   Award,
-  Sparkles,
+  School,
   HeartHandshake,
   CheckCircle2
 };
