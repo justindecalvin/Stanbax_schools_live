@@ -104,7 +104,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToWebsite }) => 
     { id: 'proprietress', label: 'Executive Council', icon: ShieldCheck },
     { id: 'credentials', label: 'Credentials Vault', icon: Key },
     { id: 'settings', label: 'School Settings & Resumption', icon: Settings },
-    { id: 'landing', label: 'Landing Page CMS', icon: Layout },
+    { id: 'landing', label: 'School Logo & Website CMS', icon: Layout, badge: 'Logo & Media' },
     { id: 'faqs', label: 'FAQ Manager', icon: HelpCircle }
   ];
 
@@ -304,6 +304,16 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToWebsite }) => 
                   Quick Navigation Shortcuts
                 </h3>
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('landing')}
+                    className="p-4 rounded-xl border-2 border-red-200 bg-red-50/40 hover:border-red-500 hover:bg-red-50 text-left transition-all group"
+                  >
+                    <Layout className="w-5 h-5 text-red-600 mb-2 group-hover:scale-110 transition-transform" />
+                    <div className="font-bold text-xs text-stone-900">School Logo & CMS</div>
+                    <div className="text-[11px] text-red-600 font-semibold">Change logo & website</div>
+                  </button>
+
                   <button
                     type="button"
                     onClick={() => setActiveTab('settings')}

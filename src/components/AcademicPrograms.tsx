@@ -49,7 +49,7 @@ export const AcademicPrograms: React.FC<AcademicProgramsProps> = ({ onOpenAdmiss
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
           {progs.map((prog) => {
             const isSelected = selectedProgram?.id === prog.id;
-            const imgSrc = (prog.imageKey && images[prog.imageKey]) || 'https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&w=800&q=80';
+            const imgSrc = prog.imageUrl || (prog.imageKey && images[prog.imageKey]) || 'https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&w=800&q=80';
             return (
               <div
                 key={prog.id}
@@ -109,7 +109,7 @@ export const AcademicPrograms: React.FC<AcademicProgramsProps> = ({ onOpenAdmiss
             <div className="w-full lg:w-1/3">
               <div className="rounded-2xl overflow-hidden shadow-md border border-[#EAE2CE]">
                 <img
-                  src={(selectedProgram.imageKey && images[selectedProgram.imageKey]) || 'https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&w=800&q=80'}
+                  src={selectedProgram.imageUrl || (selectedProgram.imageKey && images[selectedProgram.imageKey]) || 'https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&w=800&q=80'}
                   alt={selectedProgram.title}
                   className="w-full h-56 sm:h-64 object-cover"
                   referrerPolicy="no-referrer"

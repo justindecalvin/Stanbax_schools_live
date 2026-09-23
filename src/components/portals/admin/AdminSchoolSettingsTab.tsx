@@ -9,16 +9,21 @@ import {
   AlertCircle, 
   Clock, 
   Users, 
-  Sparkles,
-  Award,
-  ChevronRight,
-  School as SchoolIcon
+  Sparkles, 
+  Award, 
+  ChevronRight, 
+  Upload,
+  School as SchoolIcon 
 } from '../../RealIcons';
+import { SchoolLogo } from '../../SchoolLogo';
+import { compressImageFile } from '../../../utils/imageUploadHelper';
+import { DEFAULT_IMAGES } from '../../../data/schoolData';
 
 export const AdminSchoolSettingsTab: React.FC = () => {
   const { 
     schoolInfo, 
     updateSchoolInfo, 
+    updateImage,
     assessmentConfig,
     updateAssessmentConfig,
     termResumptionConfig,
@@ -33,7 +38,9 @@ export const AdminSchoolSettingsTab: React.FC = () => {
 
   const [formInfo, setFormInfo] = useState({
     name: schoolInfo.name,
+    shortName: schoolInfo.shortName || 'Stanbax Schools',
     motto: schoolInfo.motto,
+    logoUrl: schoolInfo.logoUrl || '',
     address: schoolInfo.address,
     city: schoolInfo.city,
     state: schoolInfo.state,
@@ -45,6 +52,24 @@ export const AdminSchoolSettingsTab: React.FC = () => {
     resumptionDate: schoolInfo.resumptionDate || termResumptionConfig?.termStartDate || '2026-09-15',
     vacationDate: schoolInfo.vacationDate || termResumptionConfig?.termEndDate || '2026-12-18'
   });
+
+  const logoSettingsInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const dataUrl = await compressImageFile(file, 600, 600, 0.9);
+      setFormInfo(prev => ({ ...prev, logoUrl: dataUrl }));
+      updateSchoolInfo({ logoUrl: dataUrl });
+      updateImage('crest', dataUrl);
+      setStatusMsg('School logo uploaded and updated across the entire institution!');
+      setSavedSuccess(true);
+      setTimeout(() => setSavedSuccess(false), 3500);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   // Dedicated Term Start Date control state
   const [termControlStartDate, setTermControlStartDate] = useState(
@@ -383,6 +408,57 @@ export const AdminSchoolSettingsTab: React.FC = () => {
           <Building2 className="w-4 h-4 text-amber-600" />
           Institutional Profile & Contact Information
         </h3>
+
+        {/* School Logo & Branding Card */}
+        <div className="p-4 sm:p-5 bg-gradient-to-r from-stone-50 via-amber-50/40 to-stone-50 rounded-2xl border border-stone-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="relative group shrink-0">
+              <div className="w-16 h-16 rounded-full overflow-hidden bg-white shadow-md border-2 border-amber-400 flex items-center justify-center p-1">
+                {formInfo.logoUrl ? (
+                  <img src={formInfo.logoUrl} alt="Logo" className="w-full h-full object-contain rounded-full" />
+                ) : (
+                  <SchoolLogo size="lg" showText={false} />
+                )}
+              </div>
+            </div>
+            <div>
+              <div className="text-xs font-black uppercase text-amber-800 tracking-wider">Official Institutional Logo</div>
+              <div className="text-sm font-bold text-stone-900 mt-0.5">{formInfo.name}</div>
+              <div className="text-xs text-stone-500">Visible on Navbar, Footer, Scholar ID Badges, and Terminal Slips.</div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <input 
+              type="file"
+              ref={logoSettingsInputRef}
+              accept="image/*"
+              className="hidden"
+              onChange={handleLogoUpload}
+            />
+            <button
+              type="button"
+              onClick={() => logoSettingsInputRef.current?.click()}
+              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl shadow-xs flex items-center gap-1.5 cursor-pointer"
+            >
+              <Upload className="w-4 h-4" />
+              <span>Upload New Logo</span>
+            </button>
+            {formInfo.logoUrl && (
+              <button
+                type="button"
+                onClick={() => {
+                  setFormInfo(prev => ({ ...prev, logoUrl: '' }));
+                  updateSchoolInfo({ logoUrl: '' });
+                  updateImage('crest', DEFAULT_IMAGES.crest);
+                }}
+                className="px-3 py-2 bg-stone-100 hover:bg-stone-200 text-stone-600 text-xs font-bold rounded-xl"
+              >
+                Reset Crest
+              </button>
+            )}
+          </div>
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>

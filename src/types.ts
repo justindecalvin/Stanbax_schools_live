@@ -332,6 +332,8 @@ export interface SchoolInfo {
   whatsapp: string;
   whatsappNumber?: string;
   shortName?: string;
+  logoUrl?: string;
+  crestUrl?: string;
   activeSession: string;
   activeTerm: string;
   resumptionDate?: string;
@@ -572,6 +574,8 @@ export interface AboutSectionContent {
   establishedYear: string;
   vision: string;
   mission: string;
+  quote?: string;
+  founderPhotoUrl?: string;
 }
 
 export interface FeaturedCourse {
@@ -608,6 +612,7 @@ export interface AcademicProgram {
   color: string;
   iconName?: string;
   imageKey?: string;
+  imageUrl?: string;
   ageGroup?: string;
   category?: string;
   studentCount?: string | number;

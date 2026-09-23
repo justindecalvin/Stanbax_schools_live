@@ -26,7 +26,7 @@ export const AboutSection: React.FC<AboutSectionProps> = ({ onOpenAdmissions }) 
           <div className="lg:col-span-5 relative">
             <div className="relative rounded-3xl overflow-hidden shadow-2xl border-4 border-white">
               <img
-                src={images.founders || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=800&auto=format&fit=crop&q=80'}
+                src={aboutContent.founderPhotoUrl || images.founders || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=800&auto=format&fit=crop&q=80'}
                 alt="Proprietress of Stanbax Schools"
                 className="w-full h-[420px] object-cover object-top"
               />
@@ -37,7 +37,7 @@ export const AboutSection: React.FC<AboutSectionProps> = ({ onOpenAdmissions }) 
                 </div>
                 <div className="text-lg font-black">{aboutContent.founderName || 'Mrs. Adebisi Folashade Bello'}</div>
                 <p className="text-xs text-stone-300 mt-1 italic">
-                  "Excellence is not an accident; it is the habit of dedicated mentors and eager minds."
+                  "{aboutContent.quote || 'Excellence is not an accident; it is the habit of dedicated mentors and eager minds.'}"
                 </p>
               </div>
             </div>
