@@ -244,7 +244,7 @@ export const AdmissionsModal: React.FC<AdmissionsModalProps> = ({ isOpen, onClos
                   </label>
                   <textarea
                     rows={2}
-                    placeholder="e.g. Interested in robotics, needs school bus pickup from Ring Road..."
+                    placeholder="e.g. Interested in robotics club, advanced mathematics, literary & debating society..."
                     value={formData.notes}
                     onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                     className="w-full px-3 py-2 rounded-xl border border-[#EAE2CE] text-xs sm:text-sm font-medium focus:ring-2 focus:ring-red-600 focus:outline-none resize-none"

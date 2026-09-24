@@ -16,8 +16,6 @@ export const TuitionCalculatorModal: React.FC<TuitionCalculatorModalProps> = ({
 }) => {
   const { classes } = useSchool();
   const [selectedClassId, setSelectedClassId] = useState<string>(() => classes[2]?.id || classes[0]?.id || 'cls-3');
-  const [busChoice, setBusChoice] = useState<keyof typeof TUITION_SCHEDULE.addons.busService>("none");
-  const [includeLunch, setIncludeLunch] = useState<boolean>(true);
   const [includeUniform, setIncludeUniform] = useState<boolean>(true);
   const [includeBooks, setIncludeBooks] = useState<boolean>(true);
   const [includeTech, setIncludeTech] = useState<boolean>(true);
@@ -26,13 +24,11 @@ export const TuitionCalculatorModal: React.FC<TuitionCalculatorModalProps> = ({
 
   const currentSelectedClass = classes.find(c => c.id === selectedClassId) || classes[0];
   const baseTuition = currentSelectedClass ? currentSelectedClass.tuitionPerTerm : 250000;
-  const busFee = TUITION_SCHEDULE.addons.busService[busChoice] || 0;
-  const lunchFee = includeLunch ? TUITION_SCHEDULE.addons.mealPlan["Full Term Daily Hot Lunch"] : 0;
   const uniformFee = includeUniform ? TUITION_SCHEDULE.addons.uniformSet["Full School Uniform + Sports Wear (2 pairs)"] : 0;
   const bookFee = includeBooks ? TUITION_SCHEDULE.addons.textbookPack["Standard Ministry Approved Textbook Pack"] : 0;
   const techFee = includeTech ? TUITION_SCHEDULE.addons.techFee["Robotics, ICT & Science Lab Consumables"] : 0;
 
-  const totalEstimate = baseTuition + busFee + lunchFee + uniformFee + bookFee + techFee;
+  const totalEstimate = baseTuition + uniformFee + bookFee + techFee;
 
   const formatNaira = (amount: number) => {
     return `₦${amount.toLocaleString('en-NG')}`;
@@ -99,48 +95,11 @@ export const TuitionCalculatorModal: React.FC<TuitionCalculatorModalProps> = ({
           {/* Optional Add-ons */}
           <div className="space-y-3">
             <label className="block text-xs font-black text-neutral-800 uppercase tracking-wider">
-              2. Optional School Add-ons & Logistics
+              2. Optional Academic Add-ons & Materials
             </label>
 
-            {/* Bus Route */}
-            <div className="p-4 rounded-2xl bg-[#FAF7EE] border border-[#EAE2CE] space-y-2">
-              <span className="text-xs font-bold text-neutral-900 block">School Bus Shuttle Route:</span>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {(Object.keys(TUITION_SCHEDULE.addons.busService) as Array<keyof typeof TUITION_SCHEDULE.addons.busService>).map((route) => (
-                  <button
-                    key={route}
-                    type="button"
-                    onClick={() => setBusChoice(route)}
-                    className={`p-2.5 rounded-xl text-left border text-xs transition-colors cursor-pointer flex items-center justify-between ${
-                      busChoice === route
-                        ? 'border-neutral-900 bg-neutral-900 font-bold text-amber-300'
-                        : 'border-[#EAE2CE] bg-white text-neutral-700'
-                    }`}
-                  >
-                    <span>{route === 'none' ? 'No Bus (Self Drop-off)' : route}</span>
-                    <span className="font-mono text-xs">
-                      {TUITION_SCHEDULE.addons.busService[route] > 0 ? formatNaira(TUITION_SCHEDULE.addons.busService[route]) : '₦0'}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
             {/* Checkbox add-ons */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <label className="p-3 rounded-xl bg-[#FAF7EE] border border-[#EAE2CE] flex items-center gap-3 cursor-pointer hover:bg-white transition-colors">
-                <input
-                  type="checkbox"
-                  checked={includeLunch}
-                  onChange={(e) => setIncludeLunch(e.target.checked)}
-                  className="w-4 h-4 text-red-700 rounded border-[#EAE2CE] focus:ring-red-600"
-                />
-                <div className="text-xs">
-                  <span className="font-bold text-neutral-900 block">Daily Hot Lunch Plan</span>
-                  <span className="text-neutral-500 font-mono">{formatNaira(60000)} / term</span>
-                </div>
-              </label>
-
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <label className="p-3 rounded-xl bg-[#FAF7EE] border border-[#EAE2CE] flex items-center gap-3 cursor-pointer hover:bg-white transition-colors">
                 <input
                   type="checkbox"
@@ -192,7 +151,7 @@ export const TuitionCalculatorModal: React.FC<TuitionCalculatorModalProps> = ({
                 {formatNaira(totalEstimate)}
               </p>
               <p className="text-[11px] text-[#E5DEC9]">
-                Includes all selected tuition, meals, bus logistics, and learning materials.
+                Includes all selected tuition, academic registrations, and learning materials.
               </p>
             </div>
 

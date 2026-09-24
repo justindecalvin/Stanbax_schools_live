@@ -71,8 +71,10 @@ import {
   ParentProfile,
   ParentConsultationRequest,
   FeePaymentRecord,
-  LibraryBookItem
+  LibraryBookItem,
+  SchemeOfWork
 } from '../types';
+import { defaultSchemesOfWork } from '../data/defaultSchemesOfWork';
 import { INITIAL_LESSON_NOTES } from '../data/initialLessonNotes';
 import { DEFAULT_FAQ_ITEMS, DEFAULT_FAQ_CONTENT } from '../data/faqData';
 import { 
@@ -506,6 +508,14 @@ interface SchoolContextType {
   // 26. Staff Photo, Signature & Principal Appointments
   appointPrincipal: (tutorId: string, principalRole: PrincipalRole, privileges: PrincipalPrivilege[]) => void;
   updateTutorPhotoAndSignature: (tutorId: string, data: { photoUrl?: string; signatureUrl?: string }) => void;
+
+  // 27. Subject Schemes of Work & AI Curriculum Grounding
+  schemesOfWork: SchemeOfWork[];
+  addSchemeOfWork: (scheme: Omit<SchemeOfWork, 'id' | 'lastUpdated'>) => SchemeOfWork;
+  updateSchemeOfWork: (id: string, updates: Partial<SchemeOfWork>) => void;
+  deleteSchemeOfWork: (id: string) => boolean;
+  resetSchemesToDefault: () => void;
+  getSchemeForSubjectAndClass: (subjectName: string, classLevel?: string, term?: string) => SchemeOfWork | undefined;
 }
 
 const SchoolContext = createContext<SchoolContextType | undefined>(undefined);
@@ -4933,6 +4943,103 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     });
   };
 
+  // 27. Subject Schemes of Work & AI Curriculum Grounding
+  const [schemesOfWork, setSchemesOfWork] = useState<SchemeOfWork[]>(() => {
+    try {
+      const saved = localStorage.getItem('stanbax_schemes_of_work');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {
+      console.error('Failed to parse saved schemes of work', e);
+    }
+    return defaultSchemesOfWork;
+  });
+
+  const addSchemeOfWork = (schemeData: Omit<SchemeOfWork, 'id' | 'lastUpdated'>): SchemeOfWork => {
+    const newScheme: SchemeOfWork = {
+      ...schemeData,
+      id: `scheme-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      lastUpdated: new Date().toISOString().split('T')[0],
+      isAiLearned: true
+    };
+    setSchemesOfWork(prev => {
+      const filtered = prev.filter(s => !(s.subjectName.toLowerCase() === newScheme.subjectName.toLowerCase() && s.classLevel === newScheme.classLevel && s.term === newScheme.term));
+      const updated = [newScheme, ...filtered];
+      try { localStorage.setItem('stanbax_schemes_of_work', JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+    return newScheme;
+  };
+
+  const updateSchemeOfWork = (id: string, updates: Partial<SchemeOfWork>) => {
+    setSchemesOfWork(prev => {
+      const updated = prev.map(s => {
+        if (s.id === id) {
+          return {
+            ...s,
+            ...updates,
+            lastUpdated: new Date().toISOString().split('T')[0],
+            isAiLearned: true
+          };
+        }
+        return s;
+      });
+      try { localStorage.setItem('stanbax_schemes_of_work', JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+  };
+
+  const deleteSchemeOfWork = (id: string): boolean => {
+    let deleted = false;
+    setSchemesOfWork(prev => {
+      const updated = prev.filter(s => {
+        if (s.id === id) {
+          deleted = true;
+          return false;
+        }
+        return true;
+      });
+      try { localStorage.setItem('stanbax_schemes_of_work', JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+    return deleted;
+  };
+
+  const resetSchemesToDefault = () => {
+    setSchemesOfWork(defaultSchemesOfWork);
+    try { localStorage.setItem('stanbax_schemes_of_work', JSON.stringify(defaultSchemesOfWork)); } catch {}
+  };
+
+  const getSchemeForSubjectAndClass = (subjectName: string, classLevel?: string, term?: string): SchemeOfWork | undefined => {
+    if (!subjectName) return undefined;
+    const sName = subjectName.toLowerCase().trim();
+    // 1. Exact match on subject name + class level + term
+    let found = schemesOfWork.find(s => {
+      const matchSubject = s.subjectName.toLowerCase() === sName || s.subjectName.toLowerCase().includes(sName) || sName.includes(s.subjectName.toLowerCase());
+      const matchClass = !classLevel || s.classLevel.toLowerCase() === classLevel.toLowerCase() || s.classLevel === 'All Levels';
+      const matchTerm = !term || s.term === term || s.term === 'All Terms';
+      return matchSubject && matchClass && matchTerm;
+    });
+
+    if (found) return found;
+
+    // 2. Fallback: match subject and class level regardless of term
+    found = schemesOfWork.find(s => {
+      const matchSubject = s.subjectName.toLowerCase() === sName || s.subjectName.toLowerCase().includes(sName) || sName.includes(s.subjectName.toLowerCase());
+      const matchClass = !classLevel || s.classLevel.toLowerCase() === classLevel.toLowerCase() || s.classLevel === 'All Levels';
+      return matchSubject && matchClass;
+    });
+
+    if (found) return found;
+
+    // 3. Fallback: match subject name only
+    return schemesOfWork.find(s => {
+      return s.subjectName.toLowerCase() === sName || s.subjectName.toLowerCase().includes(sName) || sName.includes(s.subjectName.toLowerCase());
+    });
+  };
+
   // 15B. Dynamic Available Academic Sessions across current & archives
   const availableSessions = Array.from(new Set([
     assessmentConfig.activeSession,
@@ -5217,7 +5324,14 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         acceptTokenPromptAndActivate,
         // 26. Staff Photo, Signature & Principal Appointments
         appointPrincipal,
-        updateTutorPhotoAndSignature
+        updateTutorPhotoAndSignature,
+        // 27. Subject Schemes of Work & AI Curriculum Grounding
+        schemesOfWork,
+        addSchemeOfWork,
+        updateSchemeOfWork,
+        deleteSchemeOfWork,
+        resetSchemesToDefault,
+        getSchemeForSubjectAndClass
       }}
     >
       {children}

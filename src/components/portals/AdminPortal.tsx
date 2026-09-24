@@ -42,7 +42,8 @@ import { AdminSchoolCalendarTab } from './admin/AdminSchoolCalendarTab';
 import { AdminLandingPageTab } from './admin/AdminLandingPageTab';
 import { AdminFaqSubTab } from './admin/AdminFaqSubTab';
 import { AdminCalvinTokensTab } from './admin/AdminCalvinTokensTab';
-import { Bot } from 'lucide-react';
+import { AdminSchemeOfWorkTab } from './admin/AdminSchemeOfWorkTab';
+import { Bot, Sparkles } from 'lucide-react';
 
 interface AdminPortalProps {
   onBackToWebsite: () => void;
@@ -51,6 +52,7 @@ interface AdminPortalProps {
 type AdminTab = 
   | 'overview'
   | 'calvin_tokens'
+  | 'scheme_of_work'
   | 'calendar'
   | 'students'
   | 'faculty'
@@ -93,6 +95,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToWebsite }) => 
   const menuItems: Array<{ id: AdminTab; label: string; icon: React.ElementType; badge?: string | number }> = [
     { id: 'overview', label: 'Dashboard Overview', icon: Layers },
     { id: 'calvin_tokens', label: 'Calvin AI Tokens', icon: Bot, badge: availableTokensCount > 0 ? `${availableTokensCount} Ready` : undefined },
+    { id: 'scheme_of_work', label: 'Schemes of Work (AI Brain)', icon: Sparkles, badge: 'Curriculum' },
     { id: 'calendar', label: 'Term Calendar & Events', icon: Calendar },
     { id: 'students', label: 'Scholars & Alumni', icon: GraduationCap, badge: students.length },
     { id: 'faculty', label: 'Faculty Staff', icon: Users, badge: tutors.length },
@@ -378,6 +381,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToWebsite }) => 
           )}
 
           {activeTab === 'calvin_tokens' && <AdminCalvinTokensTab />}
+          {activeTab === 'scheme_of_work' && <AdminSchemeOfWorkTab />}
           {activeTab === 'calendar' && <AdminSchoolCalendarTab />}
           {activeTab === 'students' && <AdminStudentsAlumniTab />}
           {activeTab === 'faculty' && <AdminFacultyTab />}

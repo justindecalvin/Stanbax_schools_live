@@ -7,8 +7,6 @@ import {
   Award, 
   CheckCircle2, 
   Clock, 
-  Bus, 
-  Utensils, 
   Printer, 
   ArrowLeft,
   UserCheck,
@@ -127,7 +125,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
     );
   }
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'calvin_ai' | 'notes' | 'cbt' | 'library' | 'homework' | 'grades' | 'timetable' | 'sickbay' | 'logistics'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'calvin_ai' | 'notes' | 'cbt' | 'library' | 'homework' | 'grades' | 'timetable' | 'sickbay'>('overview');
   const [isSideMenuOpen, setIsSideMenuOpen] = useState(false);
   const [isIdCardOpen, setIsIdCardOpen] = useState(false);
 
@@ -559,14 +557,6 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
       badgeColor: 'bg-rose-500/20 text-rose-300 border-rose-500/30',
       icon: HeartPulse,
       description: 'Medical history, on-campus clinic attendance, nursing logs & clinic pass'
-    },
-    { 
-      id: 'logistics' as const, 
-      label: 'Bus Pass & Meal Card', 
-      badge: 'Transit & Meals',
-      badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
-      icon: Bus,
-      description: 'Digital school bus route pass, dining hall barcode & boarding access'
     },
   ];
 
@@ -1157,13 +1147,13 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
 
               <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200 space-y-3">
                 <h4 className="font-black text-slate-900 text-sm flex items-center gap-2">
-                  <Bus className="w-4 h-4 text-blue-800" />
-                  <span>Active Logistics Pass</span>
+                  <BookOpen className="w-4 h-4 text-blue-800" />
+                  <span>Academic Library & ICT Pass</span>
                 </h4>
                 <div className="p-3 rounded-xl bg-blue-50 text-blue-950 text-xs space-y-1">
-                  <p className="font-bold">Shuttle Route A (Oluyole / Ring Road)</p>
-                  <p className="text-[11px] text-blue-700">Driver: Mr. Sunday (Bus #04)</p>
-                  <p className="text-[11px] text-blue-700">Morning Pickup: 6:45 AM</p>
+                  <p className="font-bold">Main Digital Learning Resource Bay</p>
+                  <p className="text-[11px] text-blue-700">Clearance: Full E-Library & STEM Access</p>
+                  <p className="text-[11px] text-blue-700">Hours: 7:30 AM – 4:30 PM Daily</p>
                 </div>
               </div>
 
@@ -2067,75 +2057,6 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
         {/* TAB: SICK BAY & CLINIC PASS */}
         {activeTab === 'sickbay' && (
           <StudentSickBayTab />
-        )}
-
-        {/* TAB 5: BUS PASS & MEAL CARD */}
-        {activeTab === 'logistics' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Bus ID card */}
-            <div className="bg-gradient-to-br from-blue-900 to-indigo-950 text-white rounded-3xl p-6 sm:p-8 shadow-md relative overflow-hidden space-y-5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Bus className="w-6 h-6 text-amber-400" />
-                  <span className="font-black text-sm tracking-wider uppercase">STANBAX TRANSIT PASS</span>
-                </div>
-                <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold border border-emerald-400/30">
-                  Valid 2025 Session
-                </span>
-              </div>
-
-              <div className="space-y-1">
-                <h4 className="text-2xl font-black">{student.name}</h4>
-                <p className="text-xs text-blue-200 font-mono">Reg: {student.regNumber} • {student.grade}</p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 pt-3 border-t border-white/10 text-xs">
-                <div>
-                  <span className="text-[10px] text-blue-300 block uppercase font-bold">Assigned Bus</span>
-                  <span className="font-bold">Bus 04 (Air Conditioned)</span>
-                </div>
-                <div>
-                  <span className="text-[10px] text-blue-300 block uppercase font-bold">Designated Route</span>
-                  <span className="font-bold">Route A (Oluyole - Ring Road)</span>
-                </div>
-                <div>
-                  <span className="text-[10px] text-blue-300 block uppercase font-bold">Pickup Time</span>
-                  <span className="font-bold">06:45 AM Sharp</span>
-                </div>
-                <div>
-                  <span className="text-[10px] text-blue-300 block uppercase font-bold">Emergency Line</span>
-                  <span className="font-bold">{student.emergencyPhone}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Meal pass */}
-            <div className="bg-gradient-to-br from-amber-500 to-amber-700 text-blue-950 rounded-3xl p-6 sm:p-8 shadow-md relative overflow-hidden space-y-5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Utensils className="w-6 h-6 text-blue-950" />
-                  <span className="font-black text-sm tracking-wider uppercase">CANTEEN MEAL PASS</span>
-                </div>
-                <span className="px-3 py-1 rounded-full bg-blue-950/20 text-blue-950 text-xs font-black border border-blue-950/30">
-                  Daily Hot Lunch
-                </span>
-              </div>
-
-              <div className="space-y-1">
-                <h4 className="text-2xl font-black text-blue-950">{student.name}</h4>
-                <p className="text-xs text-blue-900 font-bold">Dietary Status: No Known Allergies</p>
-              </div>
-
-              <div className="pt-3 border-t border-blue-950/20 text-xs space-y-2">
-                <p className="font-semibold text-blue-900 leading-relaxed">
-                  Entitled to full-term hot lunches, balanced protein sides, and freshly sliced fruits prepared daily in the Stanbax Hygienic Food Court.
-                </p>
-                <span className="inline-block px-3 py-1 rounded-lg bg-blue-950 text-amber-400 font-black text-[11px]">
-                  Authorized by School Sickbay & Nutrition Bay
-                </span>
-              </div>
-            </div>
-          </div>
         )}
       </main>
 

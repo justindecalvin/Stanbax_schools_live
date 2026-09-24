@@ -55,6 +55,24 @@ interface AssessmentRequest {
   difficulty?: string;
   targetObjectiveCount?: number;
   targetTheoryCount?: number;
+  schemeOfWork?: {
+    id?: string;
+    subjectName?: string;
+    classLevel?: string;
+    term?: string;
+    summary?: string;
+    curriculumStandard?: string;
+    weeklyTopics?: Array<{
+      week: number;
+      topic: string;
+      subtopics?: string[];
+      learningObjectives?: string[];
+      keyFormulasOrTerms?: string[];
+      suggestedActivities?: string;
+    }>;
+  };
+  selectedWeeks?: number[];
+  presetType?: string;
 }
 
 // Structured Assessment Response Interface
@@ -135,7 +153,7 @@ function generateCurriculumFallback(req: AssessmentRequest): AssessmentResponse 
 
     for (let i = 0; i < objCount; i++) {
       const item = pictorialBank[i % pictorialBank.length];
-      const singleLine = `${i + 1}. [${item.sym}] ${item.q}  (A) ${item.a}  (B) ${item.b}  (C) ${item.c}  (D) ${item.d}`;
+      const singleLine = `${i + 1}. [${item.sym}] ${item.q} A) ${item.a} B) ${item.b} C) ${item.c} D) ${item.d}`;
       objectives.push({
         id: i + 1,
         question: `[${item.sym}] ${item.q}`,
@@ -150,10 +168,16 @@ function generateCurriculumFallback(req: AssessmentRequest): AssessmentResponse 
       });
     }
   } else {
-    // Primary or Secondary School Questions (Standard Curriculum)
+    // Primary or Secondary School Questions (Standard Curriculum or Uploaded Scheme)
     const subjectLower = req.subject.toLowerCase();
     
-    // Generate up to 50 Objective questions with options on the SAME LINE
+    // Check if tutor uploaded a Scheme of Work with weekly topics
+    const schemeWeekly = req.schemeOfWork?.weeklyTopics || [];
+    const targetedWeeks = req.selectedWeeks && req.selectedWeeks.length > 0
+      ? schemeWeekly.filter(w => req.selectedWeeks!.includes(w.week))
+      : schemeWeekly;
+
+    // Generate Objective questions with options strictly on the SAME LINE
     for (let i = 1; i <= objCount; i++) {
       let qText = "";
       let optA = "";
@@ -162,7 +186,42 @@ function generateCurriculumFallback(req: AssessmentRequest): AssessmentResponse 
       let optD = "";
       let correct = ["A", "B", "C", "D"][(i * 3 + 1) % 4];
 
-      if (subjectLower.includes("math")) {
+      if (targetedWeeks.length > 0) {
+        // Ground directly in uploaded Scheme of Work!
+        const weekItem = targetedWeeks[(i - 1) % targetedWeeks.length];
+        const subtopic = weekItem.subtopics?.[(i - 1) % (weekItem.subtopics.length || 1)] || weekItem.topic;
+        const objective = weekItem.learningObjectives?.[(i - 1) % (weekItem.learningObjectives.length || 1)];
+
+        if (subjectLower.includes("math")) {
+          qText = `Under Week ${weekItem.week} (${weekItem.topic}), solve the problem regarding ${subtopic}: What is the primary solution?`;
+          optA = `Accurate calculation yielding 12.5 units`;
+          optB = `Empirical derivation of 24.0 units`;
+          optC = `Analytical reduction to 36.8 units`;
+          optD = `Standard factor of 48.2 units`;
+          correct = "B";
+        } else if (subjectLower.includes("bio") || subjectLower.includes("sci")) {
+          qText = `In ${weekItem.topic} (${subtopic}), what is the primary biological mechanism involved?`;
+          optA = `Diffusion and osmotic equilibrium`;
+          optB = `Enzymatic phosphorylation catalysis`;
+          optC = `Active membrane transport`;
+          optD = `Cellular respiration pathway`;
+          correct = "C";
+        } else if (subjectLower.includes("eng") || subjectLower.includes("lit")) {
+          qText = `Regarding the syllabus study of ${weekItem.topic} (${subtopic}), which structural rule applies?`;
+          optA = `Subordinate clause coordination`;
+          optB = `Grammatical concord alignment`;
+          optC = `Contextual rhetorical inflection`;
+          optD = `Morphological vowel harmony`;
+          correct = "B";
+        } else {
+          qText = `In ${req.subject} Week ${weekItem.week} syllabus (${weekItem.topic}), what is the primary significance of ${subtopic}?`;
+          optA = `Empirical foundation and practical application`;
+          optB = `Theoretical standard and benchmark measure`;
+          optC = `Regulatory operational framework`;
+          optD = `Systematic evaluation model`;
+          correct = "A";
+        }
+      } else if (subjectLower.includes("math")) {
         const x = (i * 7) % 30 + 5;
         const y = (i * 3) % 15 + 2;
         if (i % 4 === 1) {
@@ -233,7 +292,9 @@ function generateCurriculumFallback(req: AssessmentRequest): AssessmentResponse 
         correct = ["A", "B", "C", "D"][i % 4];
       }
 
-      const singleLine = `${i}. ${qText}  (A) ${optA}  (B) ${optB}  (C) ${optC}  (D) ${optD}`;
+      // Format strictly on the same line: "1. Question text. A) OptA B) OptB C) OptC D) OptD"
+      const cleanQ = qText.endsWith('?') || qText.endsWith('.') || qText.endsWith(':') ? qText : `${qText}.`;
+      const singleLine = `${i}. ${cleanQ} A) ${optA} B) ${optB} C) ${optC} D) ${optD}`;
       objectives.push({
         id: i,
         question: qText,
@@ -508,7 +569,10 @@ async function startServer() {
       curriculumTopics = "",
       difficulty = "Standard WAEC / Stanbax Standard",
       targetObjectiveCount,
-      targetTheoryCount
+      targetTheoryCount,
+      schemeOfWork,
+      selectedWeeks,
+      presetType
     } = req.body as AssessmentRequest;
 
     const isEarlyYears = 
@@ -526,10 +590,10 @@ async function startServer() {
 
     const expectedObjCount = targetObjectiveCount && targetObjectiveCount > 0 
       ? targetObjectiveCount 
-      : (isSecondary ? 30 : isEarlyYears ? 10 : 20);
+      : (isSecondary ? (presetType === 'jamb' ? 50 : 50) : isEarlyYears ? 12 : 25);
     const expectedTheoryCount = targetTheoryCount !== undefined 
       ? targetTheoryCount 
-      : (isSecondary ? 4 : isEarlyYears ? 0 : 3);
+      : (presetType === 'jamb' ? 0 : isSecondary ? 6 : isEarlyYears ? 0 : 3);
 
     const ai = getGeminiClient();
 
@@ -544,28 +608,40 @@ async function startServer() {
         curriculumTopics,
         difficulty,
         targetObjectiveCount: expectedObjCount,
-        targetTheoryCount: expectedTheoryCount
+        targetTheoryCount: expectedTheoryCount,
+        schemeOfWork,
+        selectedWeeks,
+        presetType
       });
       return res.json({ success: true, source: "curriculum_engine", data: fallback });
     }
 
     try {
-      const systemInstruction = `You are the Senior Chief Examiner and Academic Assessment Officer for Stanbax Schools Ibadan, a premier Nigerian-British curriculum educational institution.
+      const systemInstruction = `You are Calvin AI, Senior Chief Examiner and Academic Assessment Officer for Stanbax Schools Ibadan, a premier Nigerian-British curriculum educational institution.
 Your job is to generate rigorous, authentic, professional exam question papers and tests for teachers.
 
 CRITICAL ARCHITECTURAL RULES:
-1. AGE & CLASS PERSONALIZATION:
-   - If the class is Early Years / Ages 3-6 (Nursery, Kindergarten, KG, Reception): Questions MUST feature vivid, identifiable PICTORIAL representations and visual symbols (e.g. 🍎, 🐶, ⭐, 🔴, 🚗, ✈️) so young children can easily identify, point, or circle answers. Questions must test foundational Phonics, Counting/Number Work, Colors, Shapes, and Everyday Objects.
-   - If the class is Secondary School (JSS 1-3 or SSS 1-3): YOU MUST GENERATE EXACTLY 50 OBJECTIVE MULTIPLE CHOICE QUESTIONS (numbered 1 to 50) AND EXACTLY 6 THEORY QUESTIONS (numbered 1 to 6). Follow WAEC / BECE / NECO syllabus depth.
-   - If Primary School (Basic 1-6): Generate age-appropriate objective questions (25-30) and 4 theory questions.
+1. CURRICULUM GROUNDING (UPLOADED SCHEME OF WORK):
+   - You MUST learn from and ground ALL questions in the provided Scheme of Work uploaded by the tutor.
+   - Use the weekly topics, subtopics, learning objectives, and key terms directly from the scheme.
+   - If specific weeks are targeted (e.g. Weeks 1 to 6 for Mid-Term CA or Week 3 for Topical Quiz), strictly restrict the questions to those weeks.
+   - If WAEC or JAMB is requested, adhere to authentic WAEC WASSCE and JAMB UTME syllabus standards and past-question phrasing styles.
 
-2. STRICT SINGLE-LINE OPTION FORMATTING (PAPER SAVER RULE):
-   - In standard Nigerian schools, exam papers are printed/photocopied on tight paper budgets.
-   - Therefore, ALL multiple choice questions and their options MUST be on the SAME LINE:
-     Format: [Number]. [Question text] (A) [Option A] (B) [Option B] (C) [Option C] (D) [Option D]
-     Example: 1. Which organ pumps blood in human body? (A) Brain  (B) Lungs  (C) Heart  (D) Kidney
+2. AGE & CLASS PERSONALIZATION:
+   - If the class is Early Years / Ages 3-6 (Nursery, Kindergarten, KG, Reception): Questions MUST use simple words suitable for ages 3-6 with vivid visual/pictorial symbols (e.g. 🍎, 🐶, ⭐, 🔴, 🚗, ✈️) so young children can easily identify, point, or circle answers.
+     Example: 1. Which one is an apple? A) 🍎 Apple B) 🚗 Car C) 🐶 Dog D) ⚽ Ball
+   - If the class is Secondary School (JSS 1-3 or SSS 1-3): YOU MUST GENERATE EXACTLY ${expectedObjCount} OBJECTIVE QUESTIONS AND ${expectedTheoryCount} THEORY QUESTIONS. Follow WAEC / BECE / NECO syllabus depth.
+   - If Primary School (Basic 1-6): Generate age-appropriate foundational questions.
 
-3. OUTPUT FORMAT:
+3. STRICT SINGLE-LINE OPTION FORMATTING (PAPER SAVER RULE):
+   - In Nigerian schools, exam papers are printed/photocopied on tight paper budgets.
+   - ALL multiple choice questions and their options MUST be strictly on the SAME LINE:
+     Format: [Number]. [Question text]. A) [Option A] B) [Option B] C) [Option C] D) [Option D]
+     Example: 1. Who is a boy. A) Male B) female C) none D) all.
+   - DO NOT create newlines or multiple paragraphs between the question and options or between options.
+   - Every question and its four options (A, B, C, D) MUST fit on one single line to save printing paper!
+
+4. OUTPUT FORMAT:
    - Return valid, unescaped JSON matching this schema:
    {
      "title": "string",
@@ -586,7 +662,7 @@ CRITICAL ARCHITECTURAL RULES:
          "optionC": "string",
          "optionD": "string",
          "correctOption": "A" | "B" | "C" | "D",
-         "singleLineFormat": "1. Question (A) OptA (B) OptB (C) OptC (D) OptD",
+         "singleLineFormat": "1. Who is a boy. A) Male B) female C) none D) all.",
          "pictorialSymbol": "🍎🍎🍎" (if early years, optional otherwise)
        }
      ],
@@ -604,22 +680,45 @@ CRITICAL ARCHITECTURAL RULES:
      "markingGuide": "Concise key: 1. A, 2. C, 3. B... plus theory rubrics"
    }`;
 
-      const userPrompt = `Generate a complete ${assessmentType} paper for Stanbax Schools Ibadan:
+      let schemeContext = "";
+      if (schemeOfWork && schemeOfWork.weeklyTopics && schemeOfWork.weeklyTopics.length > 0) {
+        const relevantTopics = (selectedWeeks && selectedWeeks.length > 0)
+          ? schemeOfWork.weeklyTopics.filter((w: any) => selectedWeeks.includes(w.week))
+          : schemeOfWork.weeklyTopics;
+
+        schemeContext = `
+CALVIN AI GROUNDED SCHEME OF WORK UPLOADED BY TUTOR:
+- Subject: ${schemeOfWork.subjectName || subject}
+- Level: ${schemeOfWork.classLevel || classLevel} (${schemeOfWork.term || term})
+- Curriculum Standard: ${schemeOfWork.curriculumStandard || 'NERDC / WAEC WASSCE'}
+- Summary: ${schemeOfWork.summary || 'Official Syllabus'}
+- Targeted Weekly Units:
+${relevantTopics.map((w: any) => `  * Week ${w.week}: ${w.topic} | Subtopics: ${w.subtopics?.join(', ') || 'Core units'} | Objectives: ${w.learningObjectives?.join('; ') || 'Competencies'}`).join('\n')}
+
+MANDATORY: Synthesize questions directly testing these weekly topics and objectives!`;
+      }
+
+      const userPrompt = `Generate a complete ${presetType ? presetType.toUpperCase() : assessmentType} paper for Stanbax Schools Ibadan:
 - Subject: ${subject}
 - Class Level: ${classLevel} ${ageGroup ? `(${ageGroup})` : ''}
 - Academic Term: ${term}
-- Specific Topics/Scope: ${curriculumTopics || 'Full term syllabus as per Nigerian curriculum'}
+- Specific Topics/Scope: ${curriculumTopics || (schemeContext ? 'Grounded in uploaded Scheme of Work' : 'Full term syllabus')}
+- Assessment Preset: ${presetType || assessmentType} (WAEC / JAMB / BECE / School Quiz)
 - Difficulty standard: ${difficulty}
-- Required Objective Questions: ${expectedObjCount} ${isSecondary ? '(Full 50 Questions mandated for Secondary)' : isEarlyYears ? '(Pictorial items for Ages 3-6)' : ''}
-- Required Theory Questions: ${expectedTheoryCount} ${isSecondary ? '(Full 6 Questions mandated for Secondary)' : ''}
-- STRICT RULE: Format every single question and its options (A, B, C, D) on the SAME LINE to save paper space when printed.`;
+- Required Objective Questions: ${expectedObjCount} ${presetType === 'waec' ? '(Full 50 WAEC Standard)' : presetType === 'jamb' ? '(JAMB UTME CBT Standard)' : ''}
+- Required Theory Questions: ${expectedTheoryCount} ${presetType === 'waec' ? '(Section B: 6 WAEC Theory Questions, Answer 4)' : presetType === 'jamb' ? '(0 Theory for JAMB CBT)' : ''}
+${schemeContext}
+
+CRITICAL PRINTING SPACE RULE: Format every single question and its options (A, B, C, D) on the SAME LINE:
+Format: 1. Question text. A) OptA B) OptB C) OptC D) OptD
+No separate paragraphs.`;
 
       const { response, model: modelUsed } = await generateWithGemini(ai, {
         contents: userPrompt,
         config: {
           systemInstruction,
           responseMimeType: "application/json",
-          temperature: 0.7,
+          temperature: 0.6,
         }
       });
 
@@ -638,7 +737,10 @@ CRITICAL ARCHITECTURAL RULES:
           curriculumTopics,
           difficulty,
           targetObjectiveCount: expectedObjCount,
-          targetTheoryCount: expectedTheoryCount
+          targetTheoryCount: expectedTheoryCount,
+          schemeOfWork,
+          selectedWeeks,
+          presetType
         });
       }
 
@@ -653,7 +755,10 @@ CRITICAL ARCHITECTURAL RULES:
           curriculumTopics,
           difficulty,
           targetObjectiveCount: expectedObjCount,
-          targetTheoryCount: expectedTheoryCount
+          targetTheoryCount: expectedTheoryCount,
+          schemeOfWork,
+          selectedWeeks,
+          presetType
         });
       }
 
@@ -670,10 +775,238 @@ CRITICAL ARCHITECTURAL RULES:
         curriculumTopics,
         difficulty,
         targetObjectiveCount: expectedObjCount,
-        targetTheoryCount: expectedTheoryCount
+        targetTheoryCount: expectedTheoryCount,
+        schemeOfWork,
+        selectedWeeks,
+        presetType
       });
       return res.json({ success: true, source: "curriculum_engine", data: fallback });
     }
+  });
+
+// Robust sanitization function to guarantee student-friendly formatting
+// Strips all raw '#' symbols, carets '^' (converting to superscripts), and '*' formatting glitches
+function sanitizeStudentFriendlyText(str: string): string {
+  if (!str) return '';
+
+  const superscriptMap: Record<string, string> = {
+    '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴',
+    '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹',
+    '+': '⁺', '-': '⁻', '=': '⁼', '(': '⁽', ')': '⁾',
+    'n': 'ⁿ', 'x': 'ˣ', 'y': 'ʸ', 'a': 'ᵃ', 'b': 'ᵇ', 'i': 'ⁱ', 'k': 'ᵏ', 'm': 'ᵐ'
+  };
+
+  const subscriptMap: Record<string, string> = {
+    '0': '₀', '1': '₁', '2': '₂', '3': '₃', '4': '₄',
+    '5': '₅', '6': '₆', '7': '₇', '8': '₈', '9': '₉',
+    '+': '₊', '-': '₋'
+  };
+
+  let res = str;
+
+  // 1. Remove all markdown hashes (#, ##, ###, ####) at line start or anywhere
+  res = res.replace(/^[ \t]*#{1,6}[ \t]*/gm, '');
+  res = res.replace(/#(\d+)/g, 'No. $1');
+  res = res.replace(/#+/g, '');
+
+  // 2. Clean exponents with carets: e.g. x^2, 10^5, x^(n-1), cm^3, ^2
+  // Handle grouped carets like ^(n+1)
+  res = res.replace(/\^\(([^)]+)\)/g, (_, exp) => {
+    return exp.split('').map((c: string) => superscriptMap[c.toLowerCase()] || c).join('');
+  });
+  // Handle multi-character carets like ^12, ^2, ^3
+  res = res.replace(/\^([0-9+\-nxyabkm]+)/gi, (_, exp) => {
+    return exp.split('').map((c: string) => superscriptMap[c.toLowerCase()] || c).join('');
+  });
+  // Handle space carets like "x ^ 2"
+  res = res.replace(/([a-zA-Z0-9\)])\s*\^\s*([0-9+\-nxyabkm]+)/gi, (_, base, exp) => {
+    const sup = exp.split('').map((c: string) => superscriptMap[c.toLowerCase()] || c).join('');
+    return `${base}${sup}`;
+  });
+  // Strip any solitary remaining carets
+  res = res.replace(/\^/g, '');
+
+  // 3. Convert chemical subscripts like CO_2, H_2O
+  res = res.replace(/_([0-9+\-])/g, (_, sub) => subscriptMap[sub] || sub);
+
+  // 4. Clean asterisks:
+  // Bullet points starting with * -> •
+  res = res.replace(/^[ \t]*\*[ \t]+/gm, '• ');
+  // Math multiplication like "4 * 5" or "x * y" -> "4 × 5" or "x × y"
+  res = res.replace(/(\d+)\s*\*\s*(\d+)/g, '$1 × $2');
+  res = res.replace(/([a-zA-Z0-9\)])\s*\*\s*([a-zA-Z0-9\(])/g, '$1 × $2');
+
+  // 5. Clean LaTeX expressions
+  res = res
+    .replace(/\\text\{([^}]+)\}/g, '$1')
+    .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '($1 / $2)')
+    .replace(/\\sqrt\{([^}]+)\}/g, '√($1)')
+    .replace(/\\pm\b/g, '±')
+    .replace(/\\times\b/g, '×')
+    .replace(/\\rightarrow\b/g, '→')
+    .replace(/\\Delta\b/g, 'Δ')
+    .replace(/\\pi\b/g, 'π')
+    .replace(/\\theta\b/g, 'θ')
+    .replace(/\\alpha\b/g, 'α')
+    .replace(/\\beta\b/g, 'β')
+    .replace(/\$\$/g, '')
+    .replace(/\$/g, '');
+
+  return res;
+}
+
+  // Scheme of Work Parser Endpoint (learns from uploaded PDF/Word/Text or pasted syllabus)
+  app.post("/api/parse-scheme", async (req, res) => {
+    const { 
+      subject = "General Subject",
+      classLevel = "Senior Secondary",
+      term = "2nd Term",
+      fileContentText = "",
+      fileName = "",
+      rawPastedText = ""
+    } = req.body;
+
+    const sourceText = (fileContentText || rawPastedText || "").trim();
+
+    if (!sourceText) {
+      return res.status(400).json({ success: false, error: "No scheme document content was provided." });
+    }
+
+    const ai = getGeminiClient();
+
+    if (ai) {
+      try {
+        const prompt = `You are an expert curriculum specialist for Stanbax Schools Ibadan, Nigeria.
+Analyze and parse the following uploaded Scheme of Work document for:
+Subject: ${subject}
+Class Level: ${classLevel}
+Term: ${term}
+
+RAW UPLOADED DOCUMENT CONTENT:
+"""
+${sourceText.slice(0, 15000)}
+"""
+
+Extract and organize into a clean, comprehensive 10 to 12-week Scheme of Work following Nigerian NERDC / WAEC WASSCE and British Cambridge curriculum standards.
+
+OUTPUT FORMAT: Return a valid JSON object matching this structure:
+{
+  "subjectName": "${subject}",
+  "classLevel": "${classLevel}",
+  "term": "${term}",
+  "curriculumStandard": "NERDC / WAEC WASSCE / Cambridge IGCSE",
+  "summary": "Concise 1-2 sentence overview of the scheme",
+  "weeklyTopics": [
+    {
+      "week": 1,
+      "topic": "Main Topic Title",
+      "subtopics": ["Subtopic 1", "Subtopic 2"],
+      "learningObjectives": ["Objective 1", "Objective 2"],
+      "keyFormulasOrTerms": ["Key Formula / Term 1"],
+      "suggestedActivities": "Activity or experiment"
+    }
+  ]
+}
+
+CRITICAL RULES:
+- Ensure each week from Week 1 to Week 12 is thoroughly represented.
+- If the uploaded document only has partial weeks or raw notes, intelligently fill in the missing curriculum weeks up to Week 12 for ${subject} (${classLevel}).
+- Return ONLY the JSON object. Do not include markdown code block backticks.`;
+
+        const { response } = await generateWithGemini(ai, {
+          contents: [{ role: 'user', parts: [{ text: prompt }] }],
+          config: {
+            temperature: 0.2,
+            responseMimeType: "application/json"
+          }
+        });
+
+        let cleanedJson = (response.text || "{}").trim();
+        if (cleanedJson.startsWith("```json")) cleanedJson = cleanedJson.slice(7);
+        if (cleanedJson.startsWith("```")) cleanedJson = cleanedJson.slice(3);
+        if (cleanedJson.endsWith("```")) cleanedJson = cleanedJson.slice(0, -3);
+
+        const parsed = JSON.parse(cleanedJson.trim());
+        if (parsed.weeklyTopics && Array.isArray(parsed.weeklyTopics) && parsed.weeklyTopics.length > 0) {
+          return res.json({
+            success: true,
+            source: "gemini_curriculum_brain",
+            scheme: {
+              ...parsed,
+              uploadedFileName: fileName || "uploaded_scheme_document.txt",
+              uploadedAt: new Date().toISOString().split('T')[0],
+              rawText: sourceText.slice(0, 3000),
+              isAiLearned: true
+            }
+          });
+        }
+      } catch (err: any) {
+        console.warn("Gemini scheme parsing failed, using rule-based parser:", err?.message || err);
+      }
+    }
+
+    // Rule-based structured extractor fallback
+    const lines = sourceText.split('\n').map((l: string) => l.trim()).filter(Boolean);
+    const weeklyTopics: any[] = [];
+    let currentTopicObj: any = null;
+
+    for (const line of lines) {
+      const weekMatch = line.match(/(?:week|wk)\s*(\d+)[:\-\s]*(.+)?/i);
+      if (weekMatch) {
+        if (currentTopicObj) weeklyTopics.push(currentTopicObj);
+        const wNum = parseInt(weekMatch[1], 10);
+        const title = (weekMatch[2] || `${subject} Unit ${wNum}`).trim();
+        currentTopicObj = {
+          week: wNum,
+          topic: title,
+          subtopics: [],
+          learningObjectives: [`Understand core concepts and applications of ${title}`],
+          keyFormulasOrTerms: [title],
+          suggestedActivities: `Study exercises and practical applications of ${title}`
+        };
+      } else if (currentTopicObj) {
+        const cleanItem = line.replace(/^[-•*]\s*/, '').trim();
+        if (cleanItem.length > 2 && currentTopicObj.subtopics.length < 5) {
+          currentTopicObj.subtopics.push(cleanItem);
+        }
+      }
+    }
+    if (currentTopicObj) weeklyTopics.push(currentTopicObj);
+
+    // If fewer than 10 weeks parsed, populate up to 12 standard weeks
+    if (weeklyTopics.length < 10) {
+      const existingWeeks = new Set(weeklyTopics.map(w => w.week));
+      for (let w = 1; w <= 12; w++) {
+        if (!existingWeeks.has(w)) {
+          weeklyTopics.push({
+            week: w,
+            topic: w === 6 ? 'Mid-Term Review & Continuous Assessment (CA2)' : w === 12 ? 'General Revision & Terminal Examination' : `${subject} Module ${w}`,
+            subtopics: [`Key curriculum themes and syllabus criteria for Week ${w}`],
+            learningObjectives: [`Master the syllabus requirements for Week ${w}`],
+            keyFormulasOrTerms: [`${subject} Week ${w}`],
+            suggestedActivities: 'Workbook problem-solving and class discussions.'
+          });
+        }
+      }
+      weeklyTopics.sort((a, b) => a.week - b.week);
+    }
+
+    return res.json({
+      success: true,
+      source: "curriculum_engine_parser",
+      scheme: {
+        subjectName: subject,
+        classLevel,
+        term,
+        curriculumStandard: "NERDC / WAEC WASSCE / Cambridge IGCSE",
+        summary: `12-week comprehensive Scheme of Work for ${subject} (${classLevel} • ${term}) loaded into Calvin AI.`,
+        weeklyTopics,
+        uploadedFileName: fileName || "manual_entry.txt",
+        uploadedAt: new Date().toISOString().split('T')[0],
+        rawText: sourceText.slice(0, 3000),
+        isAiLearned: true
+      }
+    });
   });
 
   // Student Portal Calvin AI Chat Endpoint
@@ -683,7 +1016,10 @@ CRITICAL ARCHITECTURAL RULES:
       studentName = "Scholar",
       classLevel = "SSS 2",
       tier = "regular",
-      chatHistory = []
+      chatHistory = [],
+      subject = "",
+      schemeOfWork = null,
+      term = "2nd Term"
     } = req.body;
 
     if (!message.trim()) {
@@ -711,9 +1047,34 @@ CRITICAL ARCHITECTURAL RULES:
 
     const isPremium = tier === 'premium';
 
-    // System instruction tailored to age, class, and token tier
+    // Scheme of Work grounding context
+    let schemeGroundingSection = '';
+    if (schemeOfWork && typeof schemeOfWork === 'object') {
+      const s = schemeOfWork;
+      const weeklySummary = Array.isArray(s.weeklyTopics)
+        ? s.weeklyTopics.map((w: any) => `• Week ${w.week}: ${w.topic}${w.subtopics?.length ? ` (Subtopics: ${w.subtopics.join(', ')})` : ''}${w.keyFormulasOrTerms?.length ? ` [Key formulas: ${w.keyFormulasOrTerms.join(', ')}]` : ''}`).join('\n')
+        : '';
+      schemeGroundingSection = `
+OFFICIAL STANBAX SCHOOLS SCHEME OF WORK (GROUNDING & KNOWLEDGE BASE):
+You are strictly grounded on the official Stanbax approved Scheme of Work for ${s.subjectName || subject || 'this subject'} (${s.classLevel || classLevel} - ${s.term || term}).
+Curriculum Standard: ${s.curriculumStandard || 'NERDC / WAEC WASSCE / Cambridge IGCSE'}
+Scheme Summary: ${s.summary || 'Stanbax 12-week official syllabus'}
+
+WEEKLY SCHEME OF WORK TOPICS:
+${weeklySummary}
+
+MANDATORY INSTRUCTIONS FOR THIS SCHEME OF WORK:
+1. Always align your answers with the topics and sequence in this approved Scheme of Work.
+2. In your response, explicitly reference where this topic appears in their Stanbax scheme (e.g., "In Week [X] of your ${classLevel} ${s.subjectName || subject} Scheme of Work, we explore...").
+3. Make sure to fulfill the specific learning objectives and formulas outlined in this syllabus.
+4. If the scholar's question touches multiple weeks, clearly connect the earlier foundational week to the later advanced week.`;
+    }
+
+    // System instruction tailored to age, class, token tier, and uploaded Scheme of Work
     const systemInstruction = `You are Calvin, the personal AI Academic Tutor and Study Companion for Stanbax Schools Ibadan, an esteemed Nigerian-British curriculum school in Ibadan, Oyo State, Nigeria.
 You are interacting with ${studentName}, who is currently enrolled in ${classLevel}.
+${subject ? `Current Subject Area: ${subject}` : ''}
+${schemeGroundingSection}
 
 PEDAGOGICAL PERSONA & CLASS-LEVEL ADAPTATION:
 ${isEarlyYears ? `
@@ -758,6 +1119,7 @@ CRITICAL STUDENT-FRIENDLY FORMATTING RULES (STRICTLY ENFORCED):
 - NEVER use markdown hash symbols (#, ##, ###, ####) for titles or section headings. Simply write clean titles on their own line followed by a blank line, or use simple bold section headers.
 - NEVER use the caret symbol (^) for exponents or powers! Primary and secondary school students find raw carets confusing. Always use standard unicode superscript characters (such as ², ³, ⁴, ⁿ, ⁻¹, ⁻², 10⁵, m/s², cm³) or spell out words like "squared" or "to the power of". Scholars must NEVER see raw '^' characters.
 - NEVER use asterisks (*) for bullet points. Use standard clean bullet dots (•) or numbered lists (1., 2., 3.).
+- In math calculations, NEVER use an asterisk (*) for multiplication. Always use the multiplication sign (×), e.g., "3 × 4 = 12".
 - NEVER output raw LaTeX codes or math delimiters like $$, \\text{}, \\frac{}{}, \\times, or \\pm. Format formulas in clean, natural readable text: e.g., "x = (-b ± √(b² - 4ac)) / (2a)", "Area = πr²", "v = u + at" so students can read and understand immediately without programming syntax.
 - Address the scholar warmly as ${studentName}.
 - Keep answers educational, respectful, inspiring, and aligned with standard Nigerian-British curriculum guidelines.`;
@@ -768,7 +1130,7 @@ CRITICAL STUDENT-FRIENDLY FORMATTING RULES (STRICTLY ENFORCED):
       const fallbackReply = generateCalvinAcademicFallback(message, studentName, classLevel, isPremium);
       return res.json({
         success: true,
-        reply: fallbackReply,
+        reply: sanitizeStudentFriendlyText(fallbackReply),
         tier,
         source: "academic_engine"
       });
@@ -797,7 +1159,9 @@ CRITICAL STUDENT-FRIENDLY FORMATTING RULES (STRICTLY ENFORCED):
         }
       });
 
-      const reply = response.text || "Hello scholar! I am here to help you learn. Please ask your academic question again.";
+      const rawReply = response.text || "Hello scholar! I am here to help you learn. Please ask your academic question again.";
+      const reply = sanitizeStudentFriendlyText(rawReply);
+
       return res.json({
         success: true,
         reply,
@@ -810,7 +1174,7 @@ CRITICAL STUDENT-FRIENDLY FORMATTING RULES (STRICTLY ENFORCED):
       const fallbackReply = generateCalvinAcademicFallback(message, studentName, classLevel, isPremium);
       return res.json({
         success: true,
-        reply: fallbackReply,
+        reply: sanitizeStudentFriendlyText(fallbackReply),
         tier,
         source: "academic_engine"
       });

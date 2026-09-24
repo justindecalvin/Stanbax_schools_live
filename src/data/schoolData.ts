@@ -761,7 +761,7 @@ export const DEFAULT_HERO_SLIDES: HeroSlide[] = [
 
 export const DEFAULT_HERO_HIGHLIGHTS: string[] = [
   '100% WASSCE & NECO Distinction Record',
-  'Air-Conditioned School Bus Transport Across Ibadan',
+  'State-of-the-Art Science & Computing Laboratories',
   'Enriched Hybrid British-Nigerian Curriculum',
   'Robotics, AI & Digital Literacy Labs'
 ];
@@ -823,7 +823,7 @@ export const DEFAULT_ACADEMIC_PROGRAMS: AcademicProgram[] = [
     ageRange: 'Ages 3 Months – 5 Years',
     gradeLevels: 'Creche, Playgroup, Nursery 1 & 2',
     description: 'Gentle, stimulating environments fostering early phonics, sensory exploration, numbers, and social confidence.',
-    features: ['Montessori-inspired learning aids', 'Safe infant nap pods & play zones', 'Nutritious pediatric meal plans', 'Experienced toddler caregivers'],
+    features: ['Montessori-inspired learning aids', 'Safe infant nap pods & play zones', 'Creative developmental play & sensory learning', 'Experienced toddler caregivers'],
     color: 'amber',
     iconName: 'School'
   },

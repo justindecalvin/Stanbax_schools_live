@@ -28,7 +28,8 @@ export const AdminSubjectsGradingTab: React.FC = () => {
     addGradingRule,
     deleteGradingRule,
     resetGradingToDefault,
-    calculateGrade
+    calculateGrade,
+    schemesOfWork
   } = useSchool();
 
   const [activeSubTab, setActiveSubTab] = useState<'subjects' | 'grading'>('subjects');
@@ -441,7 +442,19 @@ export const AdminSubjectsGradingTab: React.FC = () => {
                       </td>
 
                       <td className="py-4 px-4">
-                        <span className="font-bold text-slate-900 text-sm">{s.name}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-slate-900 text-sm">{s.name}</span>
+                          {schemesOfWork.some(sch => sch.subjectName.toLowerCase() === s.name.toLowerCase()) ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-extrabold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-full">
+                              <CheckCircle2 className="w-3 h-3 text-indigo-600" />
+                              <span>AI Scheme Active</span>
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full">
+                              No Scheme
+                            </span>
+                          )}
+                        </div>
                         {s.description && (
                           <p className="text-[11px] text-slate-400 mt-0.5 max-w-sm truncate">
                             {s.description}

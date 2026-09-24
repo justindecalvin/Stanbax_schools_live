@@ -28,8 +28,8 @@ export const DEFAULT_FAQ_ITEMS: FAQItem[] = [
   {
     id: 'faq-4',
     category: 'Facilities',
-    question: 'What safety and transportation facilities are provided?',
-    answer: 'We maintain a fleet of air-conditioned school buses with monitored routes across Ibadan, secure fenced school grounds, CCTV coverage, and a staffed health clinic.'
+    question: 'What safety and campus facilities are provided?',
+    answer: 'We maintain secure fenced school grounds, CCTV coverage, biometric/vetted access gates, round-the-clock trained security personnel, and a fully equipped staffed health clinic.'
   },
   {
     id: 'faq-5',

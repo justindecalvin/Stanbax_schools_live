@@ -2,8 +2,6 @@ import React, { useState } from 'react';
 import { useSchool } from '../context/SchoolContext';
 import { 
   Trophy, 
-  Bus, 
-  Utensils, 
   Users, 
   Calendar, 
   Award,
@@ -15,8 +13,8 @@ interface StudentLifeSectionProps {
 }
 
 export const StudentLifeSection: React.FC<StudentLifeSectionProps> = ({ onOpenAdmissions }) => {
-  const { clubs, houseStandings, busRoutes, mealMenu } = useSchool();
-  const [activeSubTab, setActiveSubTab] = useState<'houses' | 'clubs' | 'transport' | 'meals'>('houses');
+  const { clubs, houseStandings } = useSchool();
+  const [activeSubTab, setActiveSubTab] = useState<'houses' | 'clubs'>('houses');
 
   return (
     <section className="py-20 bg-[#FDFBF7] border-b border-stone-200">
@@ -30,7 +28,7 @@ export const StudentLifeSection: React.FC<StudentLifeSectionProps> = ({ onOpenAd
             Vibrant Student Life at Stanbax Schools
           </h2>
           <p className="text-stone-600 text-sm sm:text-base mt-2">
-            Beyond classroom instruction, our scholars thrive in inter-house sports, STEM clubs, cultural festivities, and secure school transport.
+            Beyond classroom instruction, our scholars thrive in inter-house sports competitions, academic & STEM clubs, cultural festivities, and holistic character development.
           </p>
         </div>
 
@@ -39,7 +37,7 @@ export const StudentLifeSection: React.FC<StudentLifeSectionProps> = ({ onOpenAd
           <button
             type="button"
             onClick={() => setActiveSubTab('houses')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors flex items-center gap-2 ${
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors flex items-center gap-2 cursor-pointer ${
               activeSubTab === 'houses' ? 'bg-red-600 text-white shadow-sm' : 'bg-white text-stone-700 border border-stone-200 hover:bg-stone-50'
             }`}
           >
@@ -49,32 +47,12 @@ export const StudentLifeSection: React.FC<StudentLifeSectionProps> = ({ onOpenAd
           <button
             type="button"
             onClick={() => setActiveSubTab('clubs')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors flex items-center gap-2 ${
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors flex items-center gap-2 cursor-pointer ${
               activeSubTab === 'clubs' ? 'bg-red-600 text-white shadow-sm' : 'bg-white text-stone-700 border border-stone-200 hover:bg-stone-50'
             }`}
           >
             <Users className="w-4 h-4" />
-            <span>Co-Curricular Clubs</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveSubTab('transport')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors flex items-center gap-2 ${
-              activeSubTab === 'transport' ? 'bg-red-600 text-white shadow-sm' : 'bg-white text-stone-700 border border-stone-200 hover:bg-stone-50'
-            }`}
-          >
-            <Bus className="w-4 h-4" />
-            <span>School Bus Routes</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveSubTab('meals')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors flex items-center gap-2 ${
-              activeSubTab === 'meals' ? 'bg-red-600 text-white shadow-sm' : 'bg-white text-stone-700 border border-stone-200 hover:bg-stone-50'
-            }`}
-          >
-            <Utensils className="w-4 h-4" />
-            <span>Daily Nutrition Menu</span>
+            <span>Co-Curricular Clubs & Societies</span>
           </button>
         </div>
 
@@ -123,54 +101,6 @@ export const StudentLifeSection: React.FC<StudentLifeSectionProps> = ({ onOpenAd
                 <p className="text-xs text-stone-600 mt-1 leading-relaxed">{club.description}</p>
                 <div className="text-[11px] text-stone-500 mt-3 font-semibold">
                   Faculty Patron: {club.patron}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {activeSubTab === 'transport' && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {busRoutes.map(route => (
-              <div key={route.id} className="bg-white p-5 rounded-2xl border border-stone-200 shadow-xs">
-                <div className="flex items-center gap-2 mb-2">
-                  <Bus className="w-5 h-5 text-red-600" />
-                  <span className="text-xs font-black text-stone-800">{route.busNumber}</span>
-                </div>
-                <h4 className="font-bold text-stone-900 text-sm">{route.routeName}</h4>
-                <div className="mt-2 space-y-1 text-xs text-stone-600">
-                  <div className="font-medium text-stone-700">Coverage Areas:</div>
-                  <p className="text-stone-500">{route.coverageAreas.join(' • ')}</p>
-                  <div className="pt-2 flex justify-between text-[11px] text-stone-500 border-t border-stone-100">
-                    <span>Departs: {route.morningDeparture}</span>
-                    <span>Returns: {route.afternoonDeparture}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {activeSubTab === 'meals' && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-            {mealMenu.map(menu => (
-              <div key={menu.day} className="bg-white p-4 rounded-2xl border border-stone-200 shadow-xs">
-                <div className="text-xs font-black uppercase text-red-600 mb-2 border-b border-stone-100 pb-1">
-                  {menu.day}
-                </div>
-                <div className="space-y-2 text-xs">
-                  <div>
-                    <span className="font-bold text-stone-700 block text-[10px] uppercase">Breakfast:</span>
-                    <span className="text-stone-600">{menu.breakfast}</span>
-                  </div>
-                  <div>
-                    <span className="font-bold text-stone-700 block text-[10px] uppercase">Lunch:</span>
-                    <span className="text-stone-600">{menu.lunch}</span>
-                  </div>
-                  <div>
-                    <span className="font-bold text-stone-700 block text-[10px] uppercase">Snack:</span>
-                    <span className="text-stone-600">{menu.snack}</span>
-                  </div>
                 </div>
               </div>
             ))}

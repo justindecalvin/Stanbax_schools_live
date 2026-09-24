@@ -374,6 +374,35 @@ export interface Subject {
   applicableCategories?: string[];
   applicableLevels?: string[];
   description?: string;
+  schemeOfWorkId?: string;
+}
+
+export interface SchemeOfWorkWeeklyTopic {
+  week: number;
+  topic: string;
+  subtopics?: string[];
+  learningObjectives?: string[];
+  keyFormulasOrTerms?: string[];
+  suggestedActivities?: string;
+  recommendedTextbook?: string;
+}
+
+export interface SchemeOfWork {
+  id: string;
+  subjectId?: string;
+  subjectName: string;
+  classLevel: string; // e.g. "SSS 2", "JSS 1", "Primary 5", "All Levels"
+  term: '1st Term' | '2nd Term' | '3rd Term' | 'All Terms';
+  session?: string;
+  curriculumStandard?: string; // e.g. "NERDC / WAEC / Cambridge"
+  summary?: string;
+  weeklyTopics: SchemeOfWorkWeeklyTopic[];
+  uploadedFileName?: string;
+  uploadedAt?: string;
+  uploadedBy?: string;
+  rawText?: string;
+  isAiLearned: boolean;
+  lastUpdated: string;
 }
 
 export interface GradeRule {

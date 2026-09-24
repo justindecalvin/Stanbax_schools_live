@@ -18,10 +18,13 @@ import {
   ShieldCheck,
   Zap,
   Bell,
-  Sparkles
+  Sparkles,
+  ChevronDown,
+  ChevronUp,
+  X
 } from 'lucide-react';
 import { useSchool } from '../../../context/SchoolContext';
-import { StudentProfile } from '../../../types';
+import { StudentProfile, SchemeOfWork } from '../../../types';
 
 interface StudentCalvinAiTabProps {
   student: StudentProfile;
@@ -37,22 +40,37 @@ interface ChatMessage {
   modelUsed?: string;
 }
 
-// Converts caret notation like x^2, 10^5, ^(x+1) into proper unicode superscripts
+// Converts caret notation like x^2, 10^5, ^(x+1) into proper unicode superscripts and cleans markdown symbols
 function cleanMathExponents(str: string): string {
+  if (!str) return '';
+
   const superscriptMap: Record<string, string> = {
     '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴',
     '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹',
     '+': '⁺', '-': '⁻', '=': '⁼', '(': '⁽', ')': '⁾',
-    'n': 'ⁿ', 'x': 'ˣ', 'y': 'ʸ', 'a': 'ᵃ', 'b': 'ᵇ', 'i': 'ⁱ'
+    'n': 'ⁿ', 'x': 'ˣ', 'y': 'ʸ', 'a': 'ᵃ', 'b': 'ᵇ', 'i': 'ⁱ', 'k': 'ᵏ', 'm': 'ᵐ'
   };
 
-  // Replace ^(content) or ^word
-  let res = str.replace(/\^([0-9+\-nxyab]+)/gi, (_, exp) => {
+  let res = str;
+
+  // Clean grouped carets like ^(n+1)
+  res = res.replace(/\^\(([^)]+)\)/g, (_, exp) => {
     return exp.split('').map((c: string) => superscriptMap[c.toLowerCase()] || c).join('');
   });
 
-  // Replace single digit exponents
-  res = res.replace(/\^([0-9])/g, (_, digit) => superscriptMap[digit] || digit);
+  // Replace carets with numbers or variables like ^12, ^2, ^n, ^x
+  res = res.replace(/\^([0-9+\-nxyabkm]+)/gi, (_, exp) => {
+    return exp.split('').map((c: string) => superscriptMap[c.toLowerCase()] || c).join('');
+  });
+
+  // Replace base ^ exp like "x ^ 2"
+  res = res.replace(/([a-zA-Z0-9\)])\s*\^\s*([0-9+\-nxyabkm]+)/gi, (_, base, exp) => {
+    const sup = exp.split('').map((c: string) => superscriptMap[c.toLowerCase()] || c).join('');
+    return `${base}${sup}`;
+  });
+
+  // Strip any solitary remaining carets so student never sees '^'
+  res = res.replace(/\^/g, '');
 
   // Clean chemical formulas like CO_2, H_2O
   const subscriptMap: Record<string, string> = {
@@ -61,6 +79,14 @@ function cleanMathExponents(str: string): string {
     '+': '₊', '-': '₋'
   };
   res = res.replace(/_([0-9+\-])/g, (_, sub) => subscriptMap[sub] || sub);
+
+  // Clean math multiplication asterisks: 3 * 4 -> 3 × 4
+  res = res.replace(/(\d+)\s*\*\s*(\d+)/g, '$1 × $2');
+  res = res.replace(/([a-zA-Z0-9\)])\s*\*\s*([a-zA-Z0-9\(])/g, '$1 × $2');
+
+  // Strip raw hash marks: #1 -> No. 1, and remove stray '#'
+  res = res.replace(/#(\d+)/g, 'No. $1');
+  res = res.replace(/#+/g, '');
 
   // Common LaTeX sanitization if any model produced raw LaTeX
   res = res
@@ -231,13 +257,38 @@ export const StudentCalvinAiTab: React.FC<StudentCalvinAiTabProps> = ({ student 
     calvinTokens, 
     recordCalvinQuestionAsked,
     acceptTokenPromptAndActivate,
-    dismissTokenPrompt
+    dismissTokenPrompt,
+    schemesOfWork,
+    getSchemeForSubjectAndClass,
+    subjects
   } = useSchool();
 
   const [inputTokenCode, setInputTokenCode] = useState('');
   const [tokenError, setTokenError] = useState<string | null>(null);
   const [tokenSuccess, setTokenSuccess] = useState<string | null>(null);
   const [isRedeeming, setIsRedeeming] = useState(false);
+
+  // Scheme of Work Curriculum Grounding
+  const [selectedSubject, setSelectedSubject] = useState<string>('All Subjects');
+  const [viewSchemeModal, setViewSchemeModal] = useState<SchemeOfWork | null>(null);
+  const [expandedSyllabusWeek, setExpandedSyllabusWeek] = useState<number | null>(1);
+
+  // Currently active scheme (if subject is selected)
+  const currentScheme = selectedSubject !== 'All Subjects'
+    ? getSchemeForSubjectAndClass(selectedSubject, student.grade, '2nd Term')
+    : undefined;
+
+  // Available subjects list
+  const availableSubjectsList = ['All Subjects', ...Array.from(new Set([
+    ...subjects.map(s => s.name),
+    'Mathematics',
+    'Physics',
+    'Chemistry',
+    'English Language',
+    'Biology',
+    'Economics',
+    'Basic Science'
+  ]))];
 
   // Chat State
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
@@ -356,6 +407,20 @@ export const StudentCalvinAiTab: React.FC<StudentCalvinAiTabProps> = ({ student 
         parts: [{ text: m.text }]
       }));
 
+      // Resolve scheme of work: either explicitly selected or auto-detected from query
+      let activeScheme: SchemeOfWork | undefined = currentScheme;
+      if (!activeScheme) {
+        const qLower = query.toLowerCase();
+        for (const s of schemesOfWork) {
+          const matchSub = qLower.includes(s.subjectName.toLowerCase());
+          const matchTopic = s.weeklyTopics.some(w => qLower.includes(w.topic.toLowerCase()));
+          if (matchSub || matchTopic) {
+            activeScheme = s;
+            break;
+          }
+        }
+      }
+
       const res = await fetch('/api/calvin-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -364,6 +429,9 @@ export const StudentCalvinAiTab: React.FC<StudentCalvinAiTabProps> = ({ student 
           studentName: student.name,
           classLevel: student.grade || 'Senior Secondary',
           tier: access?.tier || 'regular',
+          subject: activeScheme?.subjectName || (selectedSubject !== 'All Subjects' ? selectedSubject : ''),
+          term: activeScheme?.term || '2nd Term',
+          schemeOfWork: activeScheme || null,
           chatHistory
         })
       });
@@ -418,8 +486,15 @@ export const StudentCalvinAiTab: React.FC<StudentCalvinAiTabProps> = ({ student 
     }
   };
 
-  // Class-specific quick prompt ideas
+  // Class-specific quick prompt ideas, prioritized by active scheme of work
   const getPromptSuggestions = () => {
+    // If a subject scheme is active, draw prompt ideas from its weekly curriculum!
+    if (currentScheme && currentScheme.weeklyTopics && currentScheme.weeklyTopics.length > 0) {
+      return currentScheme.weeklyTopics.slice(0, 5).map(w => 
+        `Explain Week ${w.week}: ${w.topic} step-by-step with worked examples`
+      );
+    }
+
     const g = (student.grade || '').toLowerCase();
     if (g.includes('sss') || g.includes('ss 2') || g.includes('ss 3') || g.includes('ss 1')) {
       return [
@@ -621,6 +696,56 @@ export const StudentCalvinAiTab: React.FC<StudentCalvinAiTabProps> = ({ student 
                   <span>Clear</span>
                 </button>
               </div>
+            </div>
+
+            {/* Curriculum Scheme Selector Bar */}
+            <div className="px-4 py-2.5 bg-stone-100/80 border-b border-stone-200/80 flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5 overflow-x-auto py-0.5 max-w-full no-scrollbar">
+                <span className="text-[10px] font-black text-stone-600 uppercase tracking-wider shrink-0 flex items-center gap-1 mr-1">
+                  <Sparkles className="w-3 h-3 text-indigo-600" />
+                  <span>Scheme:</span>
+                </span>
+                {availableSubjectsList.map(subj => {
+                  const isSelected = selectedSubject === subj;
+                  const hasScheme = subj !== 'All Subjects' && !!getSchemeForSubjectAndClass(subj, student.grade, '2nd Term');
+                  return (
+                    <button
+                      key={subj}
+                      type="button"
+                      onClick={() => setSelectedSubject(subj)}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
+                        isSelected
+                          ? 'bg-indigo-600 text-white shadow-xs'
+                          : 'bg-white border border-stone-200 text-stone-700 hover:bg-stone-50'
+                      }`}
+                    >
+                      <span>{subj}</span>
+                      {hasScheme && (
+                        <span className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-amber-300' : 'bg-emerald-500'}`} title="Scheme of work uploaded" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {currentScheme ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setViewSchemeModal(currentScheme);
+                    setExpandedSyllabusWeek(1);
+                  }}
+                  className="inline-flex items-center gap-1 text-[11px] font-extrabold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-2.5 py-1 rounded-lg transition-colors shrink-0 cursor-pointer shadow-2xs"
+                  title="View complete weekly scheme of work"
+                >
+                  <BookOpen className="w-3 h-3 text-indigo-600" />
+                  <span>Inspect {currentScheme.weeklyTopics?.length || 12}-Wk Syllabus</span>
+                </button>
+              ) : (
+                <span className="text-[10px] text-stone-600 font-semibold italic">
+                  Calvin auto-detects subjects from questions
+                </span>
+              )}
             </div>
 
             {/* Message Feed */}
@@ -986,6 +1111,141 @@ export const StudentCalvinAiTab: React.FC<StudentCalvinAiTabProps> = ({ student 
             <div className="mt-6 flex items-center justify-center gap-2 text-[11px] text-slate-400">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
               <span>Each token can only be used once • Single-student assignment</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Syllabus Breakdown Inspection Modal */}
+      {viewSchemeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
+          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-2xl overflow-hidden my-8 animate-in fade-in zoom-in-95 duration-150">
+            <div className="bg-slate-900 text-white p-5 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-indigo-600 flex items-center justify-center text-white shadow-md">
+                  <BookOpen className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider">
+                    {viewSchemeModal.classLevel} • {viewSchemeModal.term}
+                  </span>
+                  <h3 className="font-extrabold text-base text-white">
+                    {viewSchemeModal.subjectName} Scheme of Work
+                  </h3>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setViewSchemeModal(null)}
+                className="text-slate-400 hover:text-white p-1.5 rounded-xl hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
+              <div className="p-3.5 rounded-2xl bg-indigo-50/70 border border-indigo-100 flex items-center justify-between gap-2">
+                <div className="text-xs text-indigo-950 font-medium">
+                  Calvin AI teaches and answers questions according to this exact curriculum.
+                </div>
+                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-white text-indigo-700 border border-indigo-200 shrink-0">
+                  {viewSchemeModal.curriculumStandard || 'NERDC / WAEC'}
+                </span>
+              </div>
+
+              {viewSchemeModal.summary && (
+                <p className="text-xs text-slate-600 italic bg-amber-50/50 p-2.5 rounded-xl border border-amber-100">
+                  "{viewSchemeModal.summary}"
+                </p>
+              )}
+
+              <div className="space-y-2">
+                {viewSchemeModal.weeklyTopics?.map((w) => {
+                  const isExpanded = expandedSyllabusWeek === w.week;
+                  return (
+                    <div 
+                      key={w.week}
+                      className={`rounded-2xl border transition-all ${
+                        isExpanded ? 'border-indigo-300 bg-indigo-50/30' : 'border-slate-200 bg-white hover:border-slate-300'
+                      }`}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => setExpandedSyllabusWeek(isExpanded ? null : w.week)}
+                        className="w-full p-3.5 flex items-center justify-between gap-3 text-left"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <span className="w-7 h-7 rounded-xl bg-slate-900 text-white font-extrabold text-xs flex items-center justify-center shrink-0">
+                            W{w.week}
+                          </span>
+                          <div>
+                            <div className="font-bold text-xs text-slate-900">{w.topic}</div>
+                            {w.subtopics && w.subtopics.length > 0 && (
+                              <div className="text-[11px] text-slate-500 truncate max-w-sm">
+                                {w.subtopics.join(' • ')}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        {isExpanded ? (
+                          <ChevronUp className="w-4 h-4 text-slate-400 shrink-0" />
+                        ) : (
+                          <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" />
+                        )}
+                      </button>
+
+                      {isExpanded && (
+                        <div className="px-3.5 pb-3.5 pt-1 border-t border-indigo-100/60 space-y-2 text-xs">
+                          {w.subtopics && w.subtopics.length > 0 && (
+                            <div>
+                              <span className="font-bold text-slate-700">Subtopics:</span>
+                              <div className="text-slate-600 mt-0.5">{w.subtopics.join(', ')}</div>
+                            </div>
+                          )}
+
+                          {w.learningObjectives && w.learningObjectives.length > 0 && (
+                            <div>
+                              <span className="font-bold text-emerald-800">Objectives:</span>
+                              <ul className="list-disc list-inside mt-0.5 space-y-0.5 text-slate-600 pl-1">
+                                {w.learningObjectives.map((obj, idx) => (
+                                  <li key={idx}>{obj}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          {w.keyFormulasOrTerms && w.keyFormulasOrTerms.length > 0 && (
+                            <div>
+                              <span className="font-bold text-indigo-700">Key Formulas & Terms:</span>
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {w.keyFormulasOrTerms.map((term, idx) => (
+                                  <span key={idx} className="px-2 py-0.5 rounded-md bg-white text-indigo-700 font-mono text-[10px] border border-indigo-200">
+                                    {term}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="pt-1.5 flex justify-end">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                handleSendMessage(`Explain Week ${w.week}: ${w.topic} step-by-step with examples.`);
+                                setViewSchemeModal(null);
+                              }}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[11px] shadow-xs cursor-pointer"
+                            >
+                              <Bot className="w-3.5 h-3.5" />
+                              <span>Ask Calvin About This Week</span>
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>

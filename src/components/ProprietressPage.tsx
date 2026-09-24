@@ -73,7 +73,7 @@ export const ProprietressPage: React.FC<ProprietressPageProps> = ({
   const [letterSenderRole, setLetterSenderRole] = useState<'Parent / Guardian' | 'Current Student' | 'Alumni' | 'Faculty / Staff Member' | 'Well-Wisher / Prospective Parent'>('Parent / Guardian');
   const [letterEmail, setLetterEmail] = useState('');
   const [letterPhone, setLetterPhone] = useState('');
-  const [letterCategory, setLetterCategory] = useState<'Commendation & Praise' | 'Scholar Welfare & Care' | 'Academic Suggestion' | 'Facility & Bus Feedback' | 'Confidential Matter' | 'Pastoral Prayer Request'>('Commendation & Praise');
+  const [letterCategory, setLetterCategory] = useState<'Commendation & Praise' | 'Scholar Welfare & Care' | 'Academic Suggestion' | 'School Facilities & Campus Feedback' | 'Confidential Matter' | 'Pastoral Prayer Request'>('Commendation & Praise');
   const [letterIsConfidential, setLetterIsConfidential] = useState(true);
   const [letterSubject, setLetterSubject] = useState('');
   const [letterContent, setLetterContent] = useState('');
@@ -1100,7 +1100,7 @@ export const ProprietressPage: React.FC<ProprietressPageProps> = ({
                         <option value="Commendation & Praise">Commendation & Praise</option>
                         <option value="Scholar Welfare & Care">Scholar Welfare & Care</option>
                         <option value="Academic Suggestion">Academic Suggestion</option>
-                        <option value="Facility & Bus Feedback">Facility & Bus Feedback</option>
+                        <option value="School Facilities & Campus Feedback">School Facilities & Campus Feedback</option>
                         <option value="Confidential Matter">Confidential Matter</option>
                         <option value="Pastoral Prayer Request">Pastoral Prayer Request</option>
                       </select>

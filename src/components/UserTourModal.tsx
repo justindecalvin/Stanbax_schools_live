@@ -46,7 +46,7 @@ export const UserTourModal: React.FC<UserTourModalProps> = ({
     },
     {
       title: 'Tuition & Transparent Fee Calculator',
-      description: 'Use our interactive fee calculator to review tuition rates per term, school bus transportation routes across Ibadan, and lunch meal plans.',
+      description: 'Use our interactive fee calculator to review tuition rates per term, textbook packages, and STEM laboratory resources.',
       icon: Calculator,
       targetText: 'Clear & Predictable Investments'
     },

@@ -8,6 +8,24 @@ export interface LocalAssessmentRequest {
   difficulty?: string;
   targetObjectiveCount?: number;
   targetTheoryCount?: number;
+  schemeOfWork?: {
+    id?: string;
+    subjectName?: string;
+    classLevel?: string;
+    term?: string;
+    summary?: string;
+    curriculumStandard?: string;
+    weeklyTopics?: Array<{
+      week: number;
+      topic: string;
+      subtopics?: string[];
+      learningObjectives?: string[];
+      keyFormulasOrTerms?: string[];
+      suggestedActivities?: string;
+    }>;
+  };
+  selectedWeeks?: number[];
+  presetType?: string;
 }
 
 export interface LocalAssessmentResponse {
@@ -85,7 +103,7 @@ export function generateLocalCurriculumAssessment(req: LocalAssessmentRequest): 
 
     for (let i = 0; i < objCount; i++) {
       const item = pictorialBank[i % pictorialBank.length];
-      const singleLine = `${i + 1}. [${item.sym}] ${item.q}  (A) ${item.a}  (B) ${item.b}  (C) ${item.c}  (D) ${item.d}`;
+      const singleLine = `${i + 1}. [${item.sym}] ${item.q} A) ${item.a} B) ${item.b} C) ${item.c} D) ${item.d}`;
       objectives.push({
         id: i + 1,
         question: `[${item.sym}] ${item.q}`,
@@ -101,6 +119,10 @@ export function generateLocalCurriculumAssessment(req: LocalAssessmentRequest): 
     }
   } else {
     const subjectLower = req.subject.toLowerCase();
+    const schemeWeekly = req.schemeOfWork?.weeklyTopics || [];
+    const targetedWeeks = req.selectedWeeks && req.selectedWeeks.length > 0
+      ? schemeWeekly.filter(w => req.selectedWeeks!.includes(w.week))
+      : schemeWeekly;
     
     for (let i = 1; i <= objCount; i++) {
       let qText = "";
@@ -110,7 +132,42 @@ export function generateLocalCurriculumAssessment(req: LocalAssessmentRequest): 
       let optD = "";
       let correct = ["A", "B", "C", "D"][(i * 3 + 1) % 4];
 
-      if (subjectLower.includes("math")) {
+      if (targetedWeeks.length > 0) {
+        // Ground in uploaded Scheme of Work
+        const weekItem = targetedWeeks[(i - 1) % targetedWeeks.length];
+        const subtopic = weekItem.subtopics?.[(i - 1) % (weekItem.subtopics.length || 1)] || weekItem.topic;
+        const objective = weekItem.learningObjectives?.[(i - 1) % (weekItem.learningObjectives.length || 1)];
+
+        if (subjectLower.includes("math")) {
+          qText = `Under Week ${weekItem.week} (${weekItem.topic}), solve the problem regarding ${subtopic}: What is the primary solution?`;
+          optA = `Accurate calculation yielding 12.5 units`;
+          optB = `Empirical derivation of 24.0 units`;
+          optC = `Analytical reduction to 36.8 units`;
+          optD = `Standard factor of 48.2 units`;
+          correct = "B";
+        } else if (subjectLower.includes("bio") || subjectLower.includes("sci")) {
+          qText = `In ${weekItem.topic} (${subtopic}), what is the primary biological mechanism involved?`;
+          optA = `Diffusion and osmotic equilibrium`;
+          optB = `Enzymatic phosphorylation catalysis`;
+          optC = `Active membrane transport`;
+          optD = `Cellular respiration pathway`;
+          correct = "C";
+        } else if (subjectLower.includes("eng") || subjectLower.includes("lit")) {
+          qText = `Regarding the syllabus study of ${weekItem.topic} (${subtopic}), which structural rule applies?`;
+          optA = `Subordinate clause coordination`;
+          optB = `Grammatical concord alignment`;
+          optC = `Contextual rhetorical inflection`;
+          optD = `Morphological vowel harmony`;
+          correct = "B";
+        } else {
+          qText = `In ${req.subject} Week ${weekItem.week} syllabus (${weekItem.topic}), what is the primary significance of ${subtopic}?`;
+          optA = `Empirical foundation and practical application`;
+          optB = `Theoretical standard and benchmark measure`;
+          optC = `Regulatory operational framework`;
+          optD = `Systematic evaluation model`;
+          correct = "A";
+        }
+      } else if (subjectLower.includes("math")) {
         const mathQuestions = [
           { q: `Solve for x in the linear equation: 3x + 12 = 36`, a: `x = 6`, b: `x = 8`, c: `x = 10`, d: `x = 12`, ans: "B" },
           { q: `Calculate the simple interest on ₦15,000 invested for 3 years at 5% per annum.`, a: `₦1,850`, b: `₦2,250`, c: `₦2,500`, d: `₦3,000`, ans: "B" },
@@ -205,7 +262,8 @@ export function generateLocalCurriculumAssessment(req: LocalAssessmentRequest): 
         correct = item.ans;
       }
 
-      const singleLine = `${i}. ${qText}  (A) ${optA}  (B) ${optB}  (C) ${optC}  (D) ${optD}`;
+      const cleanQ = qText.endsWith('?') || qText.endsWith('.') || qText.endsWith(':') ? qText : `${qText}.`;
+      const singleLine = `${i}. ${cleanQ} A) ${optA} B) ${optB} C) ${optC} D) ${optD}`;
       objectives.push({
         id: i,
         question: qText,
