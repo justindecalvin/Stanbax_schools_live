@@ -1,17 +1,17 @@
 import React, { useState } from 'react';
 import { useSchool } from '../context/SchoolContext';
+import { SchoolLogo } from './SchoolLogo';
 import { PageSection } from '../types';
-import { 
-  School as SchoolIcon, 
-  Menu, 
-  X, 
-  Phone, 
-  Calendar, 
-  UserCheck, 
-  Calculator, 
-  Compass, 
-  GraduationCap, 
-  BookOpen, 
+import {
+  Menu,
+  X,
+  Phone,
+  Calendar,
+  UserCheck,
+  Calculator,
+  Compass,
+  GraduationCap,
+  BookOpen,
   Lock,
   ChevronDown
 } from './RealIcons';
@@ -82,9 +82,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           onClick={() => onNavigate('home')}
           className="flex items-center gap-3 text-left group"
         >
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-red-600 to-amber-600 text-white flex items-center justify-center font-black text-lg shadow-md group-hover:scale-105 transition-transform">
-            S
-          </div>
+          <SchoolLogo size="sm" showText={false} className="shrink-0" />
           <div>
             <div className="text-lg font-black text-stone-900 tracking-tight leading-none group-hover:text-red-700 transition-colors">
               {schoolInfo.name}
