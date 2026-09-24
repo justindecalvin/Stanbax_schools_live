@@ -499,6 +499,9 @@ interface SchoolContextType {
   revokeCalvinToken: (tokenId: string) => void;
   grantDirectCalvinAccess: (studentId: string, tier: 'regular' | 'premium', durationHours: number) => void;
   recordCalvinQuestionAsked: (studentId: string) => void;
+  sendTokenActivationPrompt: (studentIds: string[], options: { tokenCode?: string; tier?: 'regular' | 'premium'; durationLabel?: string; customMessage?: string; autoAllocateToken?: boolean; durationHours?: number }) => { success: boolean; count: number; message: string };
+  dismissTokenPrompt: (studentId: string) => void;
+  acceptTokenPromptAndActivate: (studentId: string) => { success: boolean; message: string; tier?: 'regular' | 'premium' };
 
   // 26. Staff Photo, Signature & Principal Appointments
   appointPrincipal: (tutorId: string, principalRole: PrincipalRole, privileges: PrincipalPrivilege[]) => void;
@@ -4740,6 +4743,159 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     });
   };
 
+  const sendTokenActivationPrompt = (
+    studentIds: string[], 
+    options: { 
+      tokenCode?: string; 
+      tier?: 'regular' | 'premium'; 
+      durationLabel?: string; 
+      customMessage?: string; 
+      autoAllocateToken?: boolean;
+      durationHours?: number;
+    }
+  ) => {
+    if (!studentIds || studentIds.length === 0) {
+      return { success: false, count: 0, message: 'No scholars selected.' };
+    }
+
+    const tier = options.tier || 'regular';
+    const durationHours = options.durationHours || 720; // 30 days default
+    const durationLabel = options.durationLabel || (durationHours >= 720 ? `${Math.round(durationHours / 720)} Month(s)` : `${durationHours} Hours`);
+
+    let allocatedCodes: string[] = [];
+    if (options.autoAllocateToken) {
+      const generated = createCalvinTokens(tier, durationHours, studentIds.length, 0, durationLabel);
+      allocatedCodes = generated.map(g => g.code);
+    } else if (options.tokenCode) {
+      allocatedCodes = [options.tokenCode];
+    }
+
+    let modifiedCount = 0;
+    setStudents(prev => {
+      const updated = prev.map(s => {
+        const targetIdx = studentIds.indexOf(s.id);
+        if (targetIdx !== -1) {
+          modifiedCount++;
+          const assignedCode = allocatedCodes[targetIdx] || (allocatedCodes.length === 1 ? allocatedCodes[0] : undefined);
+          const studentFirstName = s.name.split(' ')[0] || s.name;
+          const defaultMsg = assignedCode 
+            ? `Dear ${studentFirstName}, your Stanbax School Administrator has issued a ${tier === 'premium' ? 'Premium Masterclass' : 'Regular'} Calvin AI Token Voucher (${assignedCode}) for your ${s.grade || 'class'} syllabus. Tap below to activate your interactive study pass!`
+            : `Dear ${studentFirstName}, you are prompted to activate your Calvin AI Academic Tutor pass for your ${s.grade || 'class'} studies. Please contact the School Bursary or Admin to obtain your voucher.`;
+
+          return {
+            ...s,
+            tokenPrompt: {
+              id: `prompt-${Date.now()}-${s.id}`,
+              tokenCode: assignedCode,
+              tier,
+              durationLabel,
+              message: options.customMessage?.trim() || defaultMsg,
+              senderName: 'School Administrator',
+              sentAt: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+              status: 'pending' as const
+            }
+          };
+        }
+        return s;
+      });
+      try { localStorage.setItem('stanbax_students', JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+
+    return {
+      success: true,
+      count: modifiedCount || studentIds.length,
+      message: `Token activation prompt sent successfully to ${studentIds.length} scholar(s)!`
+    };
+  };
+
+  const dismissTokenPrompt = (studentId: string) => {
+    setStudents(prev => {
+      const updated = prev.map(s => {
+        if (s.id === studentId && s.tokenPrompt) {
+          return {
+            ...s,
+            tokenPrompt: {
+              ...s.tokenPrompt,
+              status: 'viewed' as const
+            }
+          };
+        }
+        return s;
+      });
+      try { localStorage.setItem('stanbax_students', JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+  };
+
+  const acceptTokenPromptAndActivate = (studentId: string) => {
+    const student = students.find(s => s.id === studentId);
+    if (!student || !student.tokenPrompt) {
+      return { success: false, message: 'No pending token prompt found' };
+    }
+
+    if (student.tokenPrompt.tokenCode) {
+      const result = redeemCalvinToken(studentId, student.tokenPrompt.tokenCode);
+      if (result.success) {
+        setStudents(prev => {
+          const updated = prev.map(s => {
+            if (s.id === studentId && s.tokenPrompt) {
+              return {
+                ...s,
+                tokenPrompt: {
+                  ...s.tokenPrompt,
+                  status: 'activated' as const
+                }
+              };
+            }
+            return s;
+          });
+          try { localStorage.setItem('stanbax_students', JSON.stringify(updated)); } catch {}
+          return updated;
+        });
+        return result;
+      } else {
+        grantDirectCalvinAccess(studentId, student.tokenPrompt.tier || 'regular', 720);
+        setStudents(prev => {
+          const updated = prev.map(s => {
+            if (s.id === studentId && s.tokenPrompt) {
+              return {
+                ...s,
+                tokenPrompt: {
+                  ...s.tokenPrompt,
+                  status: 'activated' as const
+                }
+              };
+            }
+            return s;
+          });
+          try { localStorage.setItem('stanbax_students', JSON.stringify(updated)); } catch {}
+          return updated;
+        });
+        return { success: true, message: 'Token activated directly by Administrative Authority!', tier: student.tokenPrompt.tier };
+      }
+    } else {
+      grantDirectCalvinAccess(studentId, student.tokenPrompt.tier || 'regular', 720);
+      setStudents(prev => {
+        const updated = prev.map(s => {
+          if (s.id === studentId && s.tokenPrompt) {
+            return {
+              ...s,
+              tokenPrompt: {
+                ...s.tokenPrompt,
+                status: 'activated' as const
+              }
+            };
+          }
+          return s;
+        });
+        try { localStorage.setItem('stanbax_students', JSON.stringify(updated)); } catch {}
+        return updated;
+      });
+      return { success: true, message: 'Token access activated successfully!', tier: student.tokenPrompt.tier };
+    }
+  };
+
   // 26. Staff Photo, Digital Signature & Principal Appointments
   const appointPrincipal = (tutorId: string, principalRole: PrincipalRole, privileges: PrincipalPrivilege[]) => {
     setTutors(prev => {
@@ -5056,6 +5212,9 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         revokeCalvinToken,
         grantDirectCalvinAccess,
         recordCalvinQuestionAsked,
+        sendTokenActivationPrompt,
+        dismissTokenPrompt,
+        acceptTokenPromptAndActivate,
         // 26. Staff Photo, Signature & Principal Appointments
         appointPrincipal,
         updateTutorPhotoAndSignature

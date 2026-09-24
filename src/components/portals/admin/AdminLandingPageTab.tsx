@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useSchool } from '../../../context/SchoolContext';
 import { compressImageFile } from '../../../utils/imageUploadHelper';
 import { SchoolLogo } from '../../SchoolLogo';
@@ -119,6 +119,19 @@ export const AdminLandingPageTab: React.FC = () => {
     admissionsPhone: schoolInfo.admissionsPhone || schoolInfo.phone || ''
   });
 
+  // Keep logoForm and contactForm in sync when schoolInfo changes
+  useEffect(() => {
+    setLogoForm(prev => ({
+      ...prev,
+      logoUrl: schoolInfo.logoUrl || (images.crest && !images.crest.includes('photo-1546410531-bb4caa6b424d') ? images.crest : ''),
+      name: schoolInfo.name || prev.name,
+      shortName: schoolInfo.shortName || prev.shortName,
+      motto: schoolInfo.motto || prev.motto,
+      city: schoolInfo.city || prev.city,
+      state: schoolInfo.state || prev.state
+    }));
+  }, [schoolInfo, images.crest]);
+
   // Highlight state
   const [highlightsList, setHighlightsList] = useState<string[]>(heroHighlights || []);
   const [newHighlightText, setNewHighlightText] = useState('');
@@ -161,9 +174,7 @@ export const AdminLandingPageTab: React.FC = () => {
       city: logoForm.city,
       state: logoForm.state
     });
-    if (logoForm.logoUrl) {
-      updateImage('crest', logoForm.logoUrl);
-    }
+    updateImage('crest', logoForm.logoUrl || DEFAULT_IMAGES.crest);
     updateAboutContent({
       establishedYear: logoForm.establishedYear
     });

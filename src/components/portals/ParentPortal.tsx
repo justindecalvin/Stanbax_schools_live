@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useSchool } from '../../context/SchoolContext';
+import { SchoolLogo } from '../SchoolLogo';
 import { 
   Users, 
   GraduationCap, 
@@ -200,9 +201,7 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({ onBackToWebsite }) =
       {/* Top Universal Navbar */}
       <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-stone-200 px-4 sm:px-8 py-3.5 flex items-center justify-between shadow-xs">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-600 to-amber-600 text-white flex items-center justify-center font-black text-sm shadow-md">
-            STX
-          </div>
+          <SchoolLogo size="sm" showText={false} />
           <div>
             <div className="flex items-center gap-2">
               <span className="text-sm sm:text-base font-black text-stone-900 leading-tight">

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useSchool } from '../context/SchoolContext';
+import { SchoolLogo } from './SchoolLogo';
 import { 
   ArrowLeft, 
   Lock, 
@@ -186,20 +187,9 @@ export const PortalLoginPage: React.FC<PortalLoginPageProps> = ({
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#111827] via-neutral-900 to-[#450A0A] text-neutral-100 flex flex-col justify-between font-['Nunito',sans-serif]">
       {/* Top Header Bar */}
-      <header className="w-full border-b border-white/10 bg-black/60 backdrop-blur-md px-4 sm:px-8 py-3.5 flex items-center justify-between">
+      <header className="w-full border-b border-white/10 bg-black/60 backdrop-blur-md px-4 sm:px-8 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          {images.schoolLogo ? (
-            <img 
-              src={images.schoolLogo} 
-              alt={schoolInfo.name} 
-              className="w-10 h-10 object-contain rounded-xl"
-              referrerPolicy="no-referrer" 
-            />
-          ) : (
-            <div className="w-10 h-10 rounded-xl bg-amber-400 text-neutral-950 flex items-center justify-center font-black shadow-md border border-amber-300">
-              <School className="w-5 h-5 text-neutral-950" />
-            </div>
-          )}
+          <SchoolLogo size="sm" showText={false} />
           <div>
             <div className="flex items-center gap-2">
               <span className="font-black text-sm sm:text-base tracking-tight text-white">
@@ -210,7 +200,7 @@ export const PortalLoginPage: React.FC<PortalLoginPageProps> = ({
               </span>
             </div>
             <p className="text-[11px] text-[#FAF7EE]/70 hidden sm:block">
-              {schoolInfo.location}
+              {schoolInfo.location || `${schoolInfo.city}, ${schoolInfo.state}`}
             </p>
           </div>
         </div>

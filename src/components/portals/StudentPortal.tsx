@@ -45,6 +45,7 @@ import { StudentTimetableTab } from './student/StudentTimetableTab';
 import { StudentSickBayTab } from './student/StudentSickBayTab';
 import { StudentIdCardModal } from './student/StudentIdCardModal';
 import { StudentCalvinAiTab } from './student/StudentCalvinAiTab';
+import { SchoolLogo } from '../SchoolLogo';
 import { Bot, Crown } from 'lucide-react';
 
 interface StudentPortalProps {
@@ -68,7 +69,9 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
     changePassword,
     updateStudentPassport,
     lessonNotes,
-    getClassRankings
+    getClassRankings,
+    acceptTokenPromptAndActivate,
+    dismissTokenPrompt
   } = useSchool();
 
   // Automatic class ranking calculation
@@ -282,6 +285,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
   const handleDownloadHtmlResult = () => {
     const totalScoreSum = displayGrades.reduce((acc, g) => acc + g.total, 0);
     const termAvg = Math.round(totalScoreSum / (displayGrades.length || 1));
+    const effectiveLogo = schoolInfo.logoUrl || (images.crest && !images.crest.includes('photo-1546410531-bb4caa6b424d') ? images.crest : (images.schoolLogo || ''));
 
     const htmlContent = `<!DOCTYPE html>
 <html lang="en">
@@ -325,7 +329,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
 </head>
 <body>
   <div class="header">
-    <img src="${images.schoolLogo}" alt="Stanbax Logo" class="header-logo" onerror="this.style.display='none'" />
+    ${effectiveLogo ? `<img src="${effectiveLogo}" alt="Stanbax Logo" class="header-logo" onerror="this.style.display='none'" />` : '<div style="width:85px;height:85px;border-radius:50%;background:#1e3a8a;color:white;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:24px;">STX</div>'}
     <div class="header-info">
       <h1 class="school-title">${schoolInfo.name}</h1>
       <p class="school-sub">${schoolInfo.location}</p>
@@ -1006,6 +1010,65 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
                 </div>
               </div>
 
+              {/* Admin Calvin AI Token Activation Prompt Banner */}
+              {student.tokenPrompt && student.tokenPrompt.status === 'pending' && (
+                <div className="bg-gradient-to-r from-amber-500/15 via-indigo-500/15 to-purple-500/15 border-2 border-indigo-400/80 rounded-3xl p-5 sm:p-6 shadow-md relative overflow-hidden animate-in fade-in slide-in-from-top-3">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="px-3 py-1 rounded-full bg-indigo-700 text-white text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 shadow-xs">
+                          <Bot className="w-3.5 h-3.5 text-amber-300" />
+                          <span>Administrative Token Activation Prompt</span>
+                        </span>
+                        {student.tokenPrompt.tier && (
+                          <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
+                            {student.tokenPrompt.tier === 'premium' ? '👑 Premium Masterclass' : '✨ Regular Pass'}
+                          </span>
+                        )}
+                        {student.tokenPrompt.durationLabel && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-900 border border-blue-200">
+                            {student.tokenPrompt.durationLabel}
+                          </span>
+                        )}
+                      </div>
+                      <h4 className="font-black text-slate-900 text-sm sm:text-base">
+                        Calvin AI Access Prompt from the School Administration
+                      </h4>
+                      <p className="text-xs sm:text-sm text-slate-700 leading-relaxed max-w-2xl font-medium">
+                        {student.tokenPrompt.message}
+                      </p>
+                      {student.tokenPrompt.tokenCode && (
+                        <div className="flex items-center gap-2 text-xs pt-1">
+                          <span className="text-slate-500 font-bold">Allocated Voucher:</span>
+                          <code className="bg-white px-3 py-1 rounded-xl border border-indigo-200 font-mono font-black text-indigo-700 text-xs shadow-xs">
+                            {student.tokenPrompt.tokenCode}
+                          </code>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2.5 shrink-0 w-full sm:w-auto">
+                      <button
+                        onClick={() => {
+                          const res = acceptTokenPromptAndActivate(student.id);
+                          setActiveTab('calvin_ai');
+                        }}
+                        className="flex-1 sm:flex-none px-5 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs shadow-md shadow-indigo-600/30 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+                      >
+                        <Bot className="w-4 h-4 text-emerald-300" />
+                        <span>Activate & Launch Calvin AI →</span>
+                      </button>
+                      <button
+                        onClick={() => dismissTokenPrompt(student.id)}
+                        className="px-3.5 py-3 rounded-2xl text-slate-500 hover:text-slate-800 hover:bg-white/60 text-xs font-bold transition-all cursor-pointer"
+                      >
+                        Dismiss
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Calvin AI Companion Banner */}
               <div className="bg-gradient-to-r from-indigo-900 via-purple-900 to-blue-950 text-white rounded-3xl p-5 sm:p-6 shadow-sm border border-purple-500/20 relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="relative z-10 flex items-center gap-4">
@@ -1496,17 +1559,8 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
                     <div className="flex items-center gap-4">
                       {/* School Logo */}
-                      <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-white/10 p-2 backdrop-blur-sm border border-white/20 flex items-center justify-center shrink-0 shadow-inner">
-                        {images?.schoolLogo ? (
-                          <img
-                            src={images.schoolLogo}
-                            alt="Stanbax Schools Logo"
-                            className="w-full h-full object-contain"
-                            referrerPolicy="no-referrer"
-                          />
-                        ) : (
-                          <GraduationCap className="w-10 h-10 text-amber-400" />
-                        )}
+                      <div className="shrink-0">
+                        <SchoolLogo size="lg" showText={false} />
                       </div>
                       <div className="space-y-1">
                         <span className="text-[10px] sm:text-[11px] font-black tracking-widest uppercase text-amber-400">

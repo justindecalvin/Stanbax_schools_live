@@ -16,7 +16,9 @@ import {
   Lightbulb, 
   HelpCircle,
   ShieldCheck,
-  Zap
+  Zap,
+  Bell,
+  Sparkles
 } from 'lucide-react';
 import { useSchool } from '../../../context/SchoolContext';
 import { StudentProfile } from '../../../types';
@@ -35,11 +37,201 @@ interface ChatMessage {
   modelUsed?: string;
 }
 
+// Converts caret notation like x^2, 10^5, ^(x+1) into proper unicode superscripts
+function cleanMathExponents(str: string): string {
+  const superscriptMap: Record<string, string> = {
+    '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴',
+    '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹',
+    '+': '⁺', '-': '⁻', '=': '⁼', '(': '⁽', ')': '⁾',
+    'n': 'ⁿ', 'x': 'ˣ', 'y': 'ʸ', 'a': 'ᵃ', 'b': 'ᵇ', 'i': 'ⁱ'
+  };
+
+  // Replace ^(content) or ^word
+  let res = str.replace(/\^([0-9+\-nxyab]+)/gi, (_, exp) => {
+    return exp.split('').map((c: string) => superscriptMap[c.toLowerCase()] || c).join('');
+  });
+
+  // Replace single digit exponents
+  res = res.replace(/\^([0-9])/g, (_, digit) => superscriptMap[digit] || digit);
+
+  // Clean chemical formulas like CO_2, H_2O
+  const subscriptMap: Record<string, string> = {
+    '0': '₀', '1': '₁', '2': '₂', '3': '₃', '4': '₄',
+    '5': '₅', '6': '₆', '7': '₇', '8': '₈', '9': '₉',
+    '+': '₊', '-': '₋'
+  };
+  res = res.replace(/_([0-9+\-])/g, (_, sub) => subscriptMap[sub] || sub);
+
+  // Common LaTeX sanitization if any model produced raw LaTeX
+  res = res
+    .replace(/\\text\{([^}]+)\}/g, '$1')
+    .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '($1 / $2)')
+    .replace(/\\sqrt\{([^}]+)\}/g, '√($1)')
+    .replace(/\\pm\b/g, '±')
+    .replace(/\\times\b/g, '×')
+    .replace(/\\rightarrow\b/g, '→')
+    .replace(/\\xrightarrow\[[^\]]*\]\{[^}]*\}/g, '──>')
+    .replace(/\\Delta\b/g, 'Δ')
+    .replace(/\\pi\b/g, 'π')
+    .replace(/\\theta\b/g, 'θ')
+    .replace(/\\alpha\b/g, 'α')
+    .replace(/\\beta\b/g, 'β')
+    .replace(/\$\$/g, '')
+    .replace(/\$/g, '');
+
+  return res;
+}
+
+// Parses inline bold (**text** or __text__), italics (*text* or _text_), and clean math
+function renderInlineFormatted(text: string, isUser: boolean = false): React.ReactNode[] {
+  const cleaned = cleanMathExponents(text);
+  
+  // Split by bold (**...** or __...__)
+  const boldParts = cleaned.split(/(\*\*[^*]+\*\*|__[^_]+__)/g);
+  
+  return boldParts.map((part, idx) => {
+    if ((part.startsWith('**') && part.endsWith('**')) || (part.startsWith('__') && part.endsWith('__'))) {
+      const inner = part.slice(2, -2);
+      return (
+        <strong key={idx} className={isUser ? 'font-bold text-white' : 'font-extrabold text-slate-900'}>
+          {inner}
+        </strong>
+      );
+    }
+    // Check italics (*...* or _..._)
+    const italicParts = part.split(/(\*[^*]+\*|_[^_]+_)/g);
+    if (italicParts.length > 1) {
+      return (
+        <React.Fragment key={idx}>
+          {italicParts.map((subPart, subIdx) => {
+            if ((subPart.startsWith('*') && subPart.endsWith('*')) || (subPart.startsWith('_') && subPart.endsWith('_'))) {
+              return (
+                <em key={subIdx} className="italic text-indigo-900 font-medium">
+                  {subPart.slice(1, -1)}
+                </em>
+              );
+            }
+            return subPart;
+          })}
+        </React.Fragment>
+      );
+    }
+    return <React.Fragment key={idx}>{part}</React.Fragment>;
+  });
+}
+
+// StudentFriendlyMessageContent component
+export const StudentFriendlyMessageContent: React.FC<{ text: string; isUser?: boolean }> = ({ text, isUser = false }) => {
+  if (isUser) {
+    return <div className="whitespace-pre-wrap font-normal break-words">{text}</div>;
+  }
+
+  // Pre-process lines
+  const lines = text.split('\n');
+  const elements: React.ReactNode[] = [];
+  let currentList: string[] = [];
+
+  const flushList = (keyPrefix: string) => {
+    if (currentList.length > 0) {
+      elements.push(
+        <ul key={`${keyPrefix}-list-${elements.length}`} className="my-2 space-y-1.5 pl-1">
+          {currentList.map((item, i) => (
+            <li key={i} className="flex items-start gap-2 text-slate-700 leading-relaxed">
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-2 shrink-0" />
+              <div className="flex-1">{renderInlineFormatted(item, false)}</div>
+            </li>
+          ))}
+        </ul>
+      );
+      currentList = [];
+    }
+  };
+
+  for (let i = 0; i < lines.length; i++) {
+    const rawLine = lines[i];
+    const trimmed = rawLine.trim();
+
+    if (!trimmed) {
+      flushList(`line-${i}`);
+      if (elements.length > 0 && i < lines.length - 1 && lines[i + 1].trim()) {
+        elements.push(<div key={`spacer-${i}`} className="h-2" />);
+      }
+      continue;
+    }
+
+    // Check for markdown headings (#, ##, ###, ####)
+    const headingMatch = trimmed.match(/^#{1,6}\s*(.+)$/);
+    if (headingMatch) {
+      flushList(`heading-${i}`);
+      const headingText = headingMatch[1];
+      elements.push(
+        <div key={`heading-${i}`} className="mt-3.5 mb-1.5 pt-2 first:pt-0 border-t first:border-t-0 border-slate-100">
+          <div className="font-extrabold text-indigo-950 text-sm flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-indigo-600 inline-block" />
+            <span>{renderInlineFormatted(headingText, false)}</span>
+          </div>
+        </div>
+      );
+      continue;
+    }
+
+    // Check for bullet items (* item, - item, • item)
+    const bulletMatch = trimmed.match(/^[*•\-]\s+(.+)$/);
+    if (bulletMatch) {
+      currentList.push(bulletMatch[1]);
+      continue;
+    }
+
+    // Check for numbered items (1. item, 2. item)
+    const numMatch = trimmed.match(/^(\d+)\.\s+(.+)$/);
+    if (numMatch) {
+      flushList(`num-${i}`);
+      elements.push(
+        <div key={`num-${i}`} className="flex items-start gap-2.5 my-1.5 pl-1">
+          <span className="w-5 h-5 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5">
+            {numMatch[1]}
+          </span>
+          <div className="flex-1 text-slate-800 leading-relaxed">
+            {renderInlineFormatted(numMatch[2], false)}
+          </div>
+        </div>
+      );
+      continue;
+    }
+
+    flushList(`plain-${i}`);
+
+    // If it's a prominent formula or chemical/math equation
+    const isFormulaLine = (trimmed.includes('→') || trimmed.includes('──>') || trimmed.includes('=') || trimmed.includes('±') || trimmed.includes('√')) && 
+      (trimmed.includes('²') || trimmed.includes('³') || trimmed.includes('CO') || trimmed.includes('H₂') || trimmed.includes('Δ') || trimmed.startsWith('x =') || trimmed.startsWith('f(') || (trimmed.length < 65 && trimmed.includes('=')));
+
+    if (isFormulaLine && !trimmed.endsWith('.')) {
+      elements.push(
+        <div key={`formula-${i}`} className="my-2 p-2.5 bg-slate-50 border border-slate-200/80 rounded-xl font-mono text-xs text-slate-900 overflow-x-auto text-center font-bold tracking-wide shadow-xs">
+          {cleanMathExponents(trimmed)}
+        </div>
+      );
+    } else {
+      elements.push(
+        <p key={`p-${i}`} className="leading-relaxed text-slate-800 my-1 font-normal break-words">
+          {renderInlineFormatted(trimmed, false)}
+        </p>
+      );
+    }
+  }
+
+  flushList('end');
+
+  return <div className="space-y-1">{elements}</div>;
+};
+
 export const StudentCalvinAiTab: React.FC<StudentCalvinAiTabProps> = ({ student }) => {
   const { 
     redeemCalvinToken, 
     calvinTokens, 
-    recordCalvinQuestionAsked 
+    recordCalvinQuestionAsked,
+    acceptTokenPromptAndActivate,
+    dismissTokenPrompt
   } = useSchool();
 
   const [inputTokenCode, setInputTokenCode] = useState('');
@@ -97,6 +289,12 @@ export const StudentCalvinAiTab: React.FC<StudentCalvinAiTabProps> = ({ student 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isLoading]);
+
+  useEffect(() => {
+    if (!inputTokenCode && student.tokenPrompt?.status === 'pending' && student.tokenPrompt.tokenCode) {
+      setInputTokenCode(student.tokenPrompt.tokenCode);
+    }
+  }, [student.tokenPrompt, inputTokenCode]);
 
   const handleRedeemToken = (codeToRedeem?: string) => {
     const code = (codeToRedeem || inputTokenCode).trim();
@@ -324,6 +522,75 @@ export const StudentCalvinAiTab: React.FC<StudentCalvinAiTabProps> = ({ student 
         </div>
       </div>
 
+      {/* Admin Token Activation Prompt Banner */}
+      {student.tokenPrompt && student.tokenPrompt.status === 'pending' && (
+        <div className="bg-gradient-to-r from-amber-500/15 via-indigo-500/15 to-blue-500/15 border-2 border-indigo-400 rounded-3xl p-5 shadow-sm relative overflow-hidden animate-in fade-in slide-in-from-top-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="space-y-1.5 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="px-3 py-1 rounded-full bg-indigo-700 text-white text-[11px] font-black uppercase tracking-wider flex items-center gap-1.5 shadow-xs">
+                  <Bell className="w-3.5 h-3.5 text-amber-300" />
+                  <span>Admin Token Activation Prompt</span>
+                </span>
+                {student.tokenPrompt.tier && (
+                  <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-950 border border-amber-300 flex items-center gap-1">
+                    <Sparkles className="w-3 h-3 text-amber-600" />
+                    <span>{student.tokenPrompt.tier === 'premium' ? 'Premium Masterclass' : 'Regular Pass'}</span>
+                  </span>
+                )}
+                {student.tokenPrompt.durationLabel && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-900 border border-blue-200">
+                    {student.tokenPrompt.durationLabel}
+                  </span>
+                )}
+              </div>
+              <p className="text-xs sm:text-sm text-slate-800 font-medium leading-relaxed max-w-2xl pt-0.5">
+                {student.tokenPrompt.message}
+              </p>
+              {student.tokenPrompt.tokenCode && (
+                <div className="pt-1 flex items-center gap-2 text-xs">
+                  <span className="text-slate-600 font-bold">Assigned Voucher:</span>
+                  <code className="bg-white px-2.5 py-1 rounded-lg border border-indigo-200 font-mono font-black text-indigo-700 text-xs shadow-xs">
+                    {student.tokenPrompt.tokenCode}
+                  </code>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
+              <button
+                type="button"
+                onClick={() => {
+                  const res = acceptTokenPromptAndActivate(student.id);
+                  if (res.success) {
+                    setTokenSuccess(res.message);
+                    const welcomeMsg: ChatMessage = {
+                      id: `msg-${Date.now()}`,
+                      sender: 'calvin',
+                      text: `Congratulations, ${student.name.split(' ')[0]}! Your Calvin AI access is now unlocked via your Administrator activation pass! What topic in your ${student.grade} syllabus shall we explore?`,
+                      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                      tier: res.tier
+                    };
+                    setMessages(prev => [...prev, welcomeMsg]);
+                  }
+                }}
+                className="flex-1 sm:flex-none px-5 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-black text-xs shadow-md shadow-indigo-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <CheckCircle2 className="w-4 h-4 text-emerald-300" />
+                <span>Activate My Token Pass</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => dismissTokenPrompt(student.id)}
+                className="px-3.5 py-3 rounded-2xl text-slate-600 hover:text-slate-800 hover:bg-white/60 text-xs font-bold transition-all cursor-pointer"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Main Content Area */}
       {isAccessValid ? (
         /* ACTIVE CHAT WORKSPACE */
@@ -411,8 +678,8 @@ export const StudentCalvinAiTab: React.FC<StudentCalvinAiTabProps> = ({ student 
                     )}
 
                     {/* Formatted Text */}
-                    <div className="whitespace-pre-wrap font-normal break-words">
-                      {msg.text}
+                    <div className="font-normal break-words">
+                      <StudentFriendlyMessageContent text={msg.text} isUser={msg.sender === 'user'} />
                     </div>
 
                     <div className={`text-[10px] mt-2 text-right ${msg.sender === 'user' ? 'text-blue-100' : 'text-slate-400'}`}>

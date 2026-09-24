@@ -126,7 +126,7 @@ export function generateLocalCurriculumAssessment(req: LocalAssessmentRequest): 
           { q: `In a right triangle, if sin θ = 3/5, what is the value of cos θ?`, a: `4/5`, b: `5/4`, c: `3/4`, d: `4/3`, ans: "A" },
           { q: `Simplify the algebraic expression: 5(2a - 3b) - 2(3a - 4b):`, a: `4a - 7b`, b: `4a - 23b`, c: `16a - 7b`, d: `4a + 7b`, ans: "A" },
           { q: `A trader bought an article for ₦4,000 and sold it for ₦5,200. Calculate percentage profit:`, a: `25%`, b: `30%`, c: `35%`, d: `40%`, ans: "B" },
-          { q: `Find the value of x if 2^(x + 3) = 64:`, a: `x = 2`, b: `x = 3`, c: `x = 4`, d: `x = 5`, ans: "B" },
+          { q: `Find the value of x if 2ˣ⁺³ = 64:`, a: `x = 2`, b: `x = 3`, c: `x = 4`, d: `x = 5`, ans: "B" },
           { q: `What is the sum of interior angles of a regular hexagon?`, a: `540°`, b: `720°`, c: `900°`, d: `1080°`, ans: "B" },
           { q: `A bag contains 5 red balls and 3 green balls. What is the probability of picking a green ball?`, a: `3/8`, b: `5/8`, c: `1/3`, d: `1/5`, ans: "A" },
           { q: `Find the gradient (slope) of the straight line passing through (2, 3) and (6, 11):`, a: `1.5`, b: `2.0`, c: `2.5`, d: `3.0`, ans: "B" },

@@ -223,6 +223,16 @@ export interface StudentProfile {
     durationHours: number;
     questionsCount?: number;
   };
+  tokenPrompt?: {
+    id: string;
+    tokenCode?: string;
+    tier?: 'regular' | 'premium';
+    durationLabel?: string;
+    message: string;
+    senderName: string;
+    sentAt: string;
+    status: 'pending' | 'viewed' | 'activated';
+  };
 }
 
 export type PrincipalRole = 'none' | 'principal_admin' | 'principal_administrator' | 'principal_academics';

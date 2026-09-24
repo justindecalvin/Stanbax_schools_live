@@ -1,6 +1,7 @@
 import React from 'react';
 import { useSchool } from '../context/SchoolContext';
 import { PageSection } from '../types';
+import { SchoolLogo } from './SchoolLogo';
 import { 
   School as SchoolIcon, 
   MapPin, 
@@ -36,18 +37,8 @@ export const Footer: React.FC<FooterProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 pb-12 border-b border-stone-800">
           {/* Col 1 & 2: School Bio */}
           <div className="lg:col-span-2 space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-red-600 to-amber-600 text-white flex items-center justify-center font-black text-xl shadow-md">
-                S
-              </div>
-              <div>
-                <div className="text-xl font-black text-white tracking-tight leading-none">
-                  {schoolInfo.name}
-                </div>
-                <div className="text-xs font-bold text-amber-400 mt-1">
-                  {schoolInfo.motto}
-                </div>
-              </div>
+            <div>
+              <SchoolLogo size="md" variant="light" showText={true} />
             </div>
             <p className="text-xs text-stone-400 leading-relaxed max-w-sm">
               Dedicated to academic rigour, high moral character, and innovative technology literacy. Accredited British-Nigerian curriculum from Early Years to Senior Secondary in Ibadan.

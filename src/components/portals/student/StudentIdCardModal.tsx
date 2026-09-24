@@ -1,5 +1,6 @@
 import React, { useRef } from 'react';
 import { useSchool } from '../../../context/SchoolContext';
+import { SchoolLogo } from '../../SchoolLogo';
 import { 
   Printer, 
   School, 
@@ -53,18 +54,7 @@ export const StudentIdCardModal: React.FC<{ isOpen: boolean; onClose: () => void
           <div className="w-full h-80 rounded-3xl overflow-hidden shadow-xl border-2 border-amber-400 bg-gradient-to-b from-neutral-950 via-[#1e1b4b] to-neutral-900 text-white p-5 flex flex-col justify-between relative">
             {/* Top School Branding */}
             <div className="flex items-center gap-3 border-b border-white/15 pb-3">
-              {images.schoolLogo ? (
-                <img 
-                  src={images.schoolLogo} 
-                  alt="Logo" 
-                  className="w-10 h-10 rounded-xl object-contain bg-white/10 p-1" 
-                  referrerPolicy="no-referrer"
-                />
-              ) : (
-                <div className="w-10 h-10 rounded-xl bg-amber-400 text-neutral-950 flex items-center justify-center font-black text-xs">
-                  STX
-                </div>
-              )}
+              <SchoolLogo size="sm" showText={false} />
               <div className="flex-1">
                 <h3 className="text-xs font-black uppercase tracking-wider text-amber-300">{schoolInfo.name}</h3>
                 <p className="text-[9px] text-neutral-300 uppercase tracking-widest">Scholar Identity Card</p>

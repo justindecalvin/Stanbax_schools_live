@@ -18,7 +18,15 @@ import {
   ShieldCheck,
   Calendar,
   XCircle,
-  GraduationCap
+  GraduationCap,
+  Send,
+  SendHorizontal,
+  Users,
+  CheckSquare,
+  Square,
+  Bell,
+  Sparkles,
+  MessageSquare
 } from 'lucide-react';
 import { useSchool } from '../../../context/SchoolContext';
 import { CalvinToken } from '../../../types';
@@ -29,6 +37,7 @@ export const AdminCalvinTokensTab: React.FC = () => {
     createCalvinTokens, 
     revokeCalvinToken, 
     grantDirectCalvinAccess,
+    sendTokenActivationPrompt,
     students,
     schoolInfo 
   } = useSchool();
@@ -47,6 +56,20 @@ export const AdminCalvinTokensTab: React.FC = () => {
   const [directTier, setDirectTier] = useState<'regular' | 'premium'>('premium');
   const [directDurationHours, setDirectDurationHours] = useState<number>(720);
   const [directSuccess, setDirectSuccess] = useState<string | null>(null);
+
+  // Send Token Activation Prompt Modal state
+  const [showPromptModal, setShowPromptModal] = useState(false);
+  const [promptSelectedStudentIds, setPromptSelectedStudentIds] = useState<string[]>([]);
+  const [promptClassFilter, setPromptClassFilter] = useState<string>('all');
+  const [promptStudentSearch, setPromptStudentSearch] = useState<string>('');
+  const [promptStatusFilter, setPromptStatusFilter] = useState<'all' | 'without_token' | 'with_token'>('without_token');
+  const [promptMode, setPromptMode] = useState<'auto_mint' | 'pick_unused' | 'reminder_only'>('auto_mint');
+  const [promptTier, setPromptTier] = useState<'regular' | 'premium'>('premium');
+  const [promptDurationHours, setPromptDurationHours] = useState<number>(720);
+  const [promptSelectedTokenCode, setPromptSelectedTokenCode] = useState<string>('');
+  const [promptCustomMessage, setPromptCustomMessage] = useState<string>('');
+  const [promptFeedback, setPromptFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [isSendingPrompt, setIsSendingPrompt] = useState(false);
 
   // Filter & Search
   const [searchQuery, setSearchQuery] = useState('');
@@ -118,6 +141,92 @@ export const AdminCalvinTokensTab: React.FC = () => {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
+  // Unique classes from students list
+  const availableClasses = Array.from(new Set(students.map(s => s.grade).filter(Boolean))).sort();
+
+  // Filtered students for the prompt modal
+  const filteredPromptStudents = students.filter(s => {
+    const matchesClass = promptClassFilter === 'all' || s.grade === promptClassFilter;
+    const matchesSearch = !promptStudentSearch.trim() || 
+      s.name.toLowerCase().includes(promptStudentSearch.toLowerCase()) || 
+      (s.regNumber && s.regNumber.toLowerCase().includes(promptStudentSearch.toLowerCase()));
+    const hasActiveToken = s.calvinAiAccess?.active && (!s.calvinAiAccess.expiresAt || new Date(s.calvinAiAccess.expiresAt) > new Date());
+    const matchesStatus = promptStatusFilter === 'all' || 
+      (promptStatusFilter === 'without_token' && !hasActiveToken) || 
+      (promptStatusFilter === 'with_token' && hasActiveToken);
+    return matchesClass && matchesSearch && matchesStatus;
+  });
+
+  const toggleSelectStudent = (id: string) => {
+    setPromptSelectedStudentIds(prev => 
+      prev.includes(id) ? prev.filter(sId => sId !== id) : [...prev, id]
+    );
+  };
+
+  const selectAllFilteredStudents = () => {
+    const ids = filteredPromptStudents.map(s => s.id);
+    setPromptSelectedStudentIds(Array.from(new Set([...promptSelectedStudentIds, ...ids])));
+  };
+
+  const clearSelectedStudents = () => {
+    setPromptSelectedStudentIds([]);
+  };
+
+  const handleOpenPromptModal = () => {
+    setPromptMode('auto_mint');
+    setPromptSelectedTokenCode('');
+    setPromptFeedback(null);
+    setShowPromptModal(true);
+  };
+
+  const handleOpenPromptModalWithToken = (tok: CalvinToken) => {
+    setPromptMode('pick_unused');
+    setPromptSelectedTokenCode(tok.code);
+    setPromptTier(tok.tier);
+    setPromptDurationHours(tok.durationHours);
+    setPromptSelectedStudentIds([]);
+    setPromptFeedback(null);
+    setShowPromptModal(true);
+  };
+
+  const handleSendPromptSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (promptSelectedStudentIds.length === 0) {
+      setPromptFeedback({ type: 'error', message: 'Please select at least one scholar recipient.' });
+      return;
+    }
+
+    setIsSendingPrompt(true);
+    setPromptFeedback(null);
+
+    try {
+      const res = sendTokenActivationPrompt(promptSelectedStudentIds, {
+        autoAllocateToken: promptMode === 'auto_mint',
+        tokenCode: promptMode === 'pick_unused' ? promptSelectedTokenCode : undefined,
+        tier: promptTier,
+        durationHours: promptDurationHours,
+        customMessage: promptCustomMessage.trim() || undefined
+      });
+
+      if (res.success) {
+        setPromptFeedback({ type: 'success', message: res.message });
+        setTimeout(() => {
+          setShowPromptModal(false);
+          setPromptSelectedStudentIds([]);
+          setPromptCustomMessage('');
+        }, 1800);
+      } else {
+        setPromptFeedback({ type: 'error', message: res.message });
+      }
+    } catch (err: any) {
+      setPromptFeedback({ type: 'error', message: err.message || 'Failed to send prompt.' });
+    } finally {
+      setIsSendingPrompt(false);
+    }
+  };
+
+  const scholarsWithPrompts = students.filter(s => s.tokenPrompt);
+
   const filteredTokens = calvinTokens.filter(t => {
     const matchesSearch = t.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (t.usedByStudentName && t.usedByStudentName.toLowerCase().includes(searchQuery.toLowerCase())) ||
@@ -152,18 +261,28 @@ export const AdminCalvinTokensTab: React.FC = () => {
             </h1>
             <p className="text-slate-300 text-sm max-w-2xl leading-relaxed">
               Mint, sell, and manage one-time access tokens for students to unlock Calvin AI. 
-              Configure durations (hours, days, or full academic terms), set official bursary prices, 
-              and grant direct academic access.
+              Send direct token activation prompts to specific scholars, configure durations, 
+              and monitor scholar activations in real-time.
             </p>
           </div>
 
-          <button
-            onClick={() => setShowDirectGrantModal(true)}
-            className="px-5 py-3 rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg transition-all shrink-0 cursor-pointer"
-          >
-            <UserCheck className="w-4 h-4 text-slate-950" />
-            <span>Grant Direct Scholar Access</span>
-          </button>
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <button
+              onClick={handleOpenPromptModal}
+              className="px-5 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg transition-all shrink-0 cursor-pointer active:scale-95"
+            >
+              <Send className="w-4 h-4 text-white" />
+              <span>Send Token Activation Prompt</span>
+            </button>
+
+            <button
+              onClick={() => setShowDirectGrantModal(true)}
+              className="px-5 py-3 rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg transition-all shrink-0 cursor-pointer active:scale-95"
+            >
+              <UserCheck className="w-4 h-4 text-slate-950" />
+              <span>Grant Direct Scholar Access</span>
+            </button>
+          </div>
         </div>
 
         {/* Quick Stats Grid */}
@@ -494,6 +613,77 @@ export const AdminCalvinTokensTab: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Active Prompts Monitoring Panel */}
+      {scholarsWithPrompts.length > 0 && (
+        <div className="bg-white rounded-3xl p-6 shadow-sm border border-indigo-200 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold">
+                <Bell className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-sm font-black text-slate-900">
+                  Active Token Activation Prompts ({scholarsWithPrompts.length})
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Live status of prompt notifications delivered to scholars
+                </p>
+              </div>
+            </div>
+            <span className="px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 text-[11px] font-bold border border-indigo-200">
+              {scholarsWithPrompts.filter(s => s.tokenPrompt?.status === 'pending').length} Pending Activation
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {scholarsWithPrompts.map(scholar => {
+              const prompt = scholar.tokenPrompt!;
+              const isPending = prompt.status === 'pending';
+              const isActivated = prompt.status === 'activated';
+              return (
+                <div 
+                  key={scholar.id} 
+                  className={`p-3.5 rounded-2xl border text-xs space-y-2 transition-all ${
+                    isPending 
+                      ? 'border-indigo-200 bg-indigo-50/40' 
+                      : isActivated 
+                      ? 'border-emerald-200 bg-emerald-50/30' 
+                      : 'border-slate-200 bg-slate-50/50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-extrabold text-slate-900 truncate">{scholar.name}</span>
+                    <span className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase ${
+                      isPending ? 'bg-amber-100 text-amber-900' : isActivated ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-700'
+                    }`}>
+                      {prompt.status}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-[11px] text-slate-600">
+                    <span className="font-bold text-slate-800">{scholar.grade}</span>
+                    <span>•</span>
+                    <span className="font-mono">{scholar.regNumber}</span>
+                  </div>
+                  {prompt.tokenCode && (
+                    <div className="text-[11px] flex items-center gap-1.5">
+                      <span className="text-slate-500">Token:</span>
+                      <code className="font-mono font-black text-indigo-700 bg-white px-1.5 py-0.5 rounded border border-indigo-200">
+                        {prompt.tokenCode}
+                      </code>
+                    </div>
+                  )}
+                  {prompt.message && (
+                    <p className="text-[11px] text-slate-600 line-clamp-2 italic">
+                      "{prompt.message}"
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* DIRECT ACCESS GRANT MODAL */}
       {showDirectGrantModal && (

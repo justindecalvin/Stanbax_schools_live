@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useSchool } from '../context/SchoolContext';
 import { PageSection } from '../types';
+import { SchoolLogo } from './SchoolLogo';
 import { 
   School as SchoolIcon, 
   Menu, 
@@ -75,24 +76,14 @@ export const Navbar: React.FC<NavbarProps> = ({
       </div>
 
       {/* Main Nav Bar */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between gap-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4">
         {/* Brand Logo */}
         <button
           type="button"
           onClick={() => onNavigate('home')}
-          className="flex items-center gap-3 text-left group"
+          className="flex items-center text-left group cursor-pointer focus:outline-hidden"
         >
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-red-600 to-amber-600 text-white flex items-center justify-center font-black text-lg shadow-md group-hover:scale-105 transition-transform">
-            S
-          </div>
-          <div>
-            <div className="text-lg font-black text-stone-900 tracking-tight leading-none group-hover:text-red-700 transition-colors">
-              {schoolInfo.name}
-            </div>
-            <div className="text-[11px] font-bold text-amber-700 uppercase tracking-wider mt-1">
-              Ibadan, Oyo State
-            </div>
-          </div>
+          <SchoolLogo size="sm" showText={true} />
         </button>
 
         {/* Desktop Nav Links */}

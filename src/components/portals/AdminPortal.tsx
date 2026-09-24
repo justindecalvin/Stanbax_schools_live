@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useSchool } from '../../context/SchoolContext';
+import { SchoolLogo } from '../SchoolLogo';
 import { 
   Building2, 
   Users, 
@@ -122,9 +123,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToWebsite }) => 
             {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-red-600 text-white flex items-center justify-center font-black text-sm shadow-sm">
-              STX
-            </div>
+            <SchoolLogo size="sm" showText={false} />
             <div>
               <div className="text-sm font-black text-stone-900 leading-tight">
                 {schoolInfo.name} Administration

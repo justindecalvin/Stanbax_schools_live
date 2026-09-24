@@ -375,30 +375,110 @@ function generateCurriculumFallback(req: AssessmentRequest): AssessmentResponse 
 function generateCalvinAcademicFallback(question: string, studentName: string, classLevel: string, isPremium: boolean): string {
   const qLower = question.toLowerCase();
   const isEarly = classLevel.toLowerCase().includes('nursery') || classLevel.toLowerCase().includes('kg') || classLevel.toLowerCase().includes('reception');
-  const isPrimary = classLevel.toLowerCase().includes('primary') || classLevel.toLowerCase().includes('basic');
 
   if (isEarly) {
-    return `Hello little star, ${studentName}! 🌟\n\nI love your wonderful question! In our ${classLevel} class at Stanbax Schools, we learn that:\n\n🍎 Everything around us has a name and a special purpose!\n✨ God made our world full of colorful shapes, sounds, and friendly animals.\n\nKeep asking questions and smiling today! You did great! 🎈⭐`;
+    return `Hello little star, ${studentName}!
+
+I love your wonderful question! In our ${classLevel} class at Stanbax Schools, we learn that:
+
+• Everything around us has a name and a special purpose!
+• God made our world full of colorful shapes, sounds, and friendly animals.
+
+Keep asking questions and smiling today! You did great!`;
   }
 
   if (qLower.includes('photo') || qLower.includes('plant') || qLower.includes('leaf')) {
     if (isPremium) {
-      return `### 🌿 Photosynthesis: Masterclass Academic Breakdown\n*Tailored for ${studentName} (${classLevel}) • Calvin Premium*\n\n#### 1. 🎯 Definition & Overall Equation\nPhotosynthesis is the fundamental biochemical process whereby green plants, algae, and certain cyanobacteria synthesize organic food (glucose) from inorganic carbon dioxide ($CO_2$) and water ($H_2O$), utilizing solar radiant energy trapped by chlorophyll, with the liberation of oxygen gas as a byproduct.\n\n$$\\text{6CO}_2 + \\text{6H}_2\\text{O} \\xrightarrow[\\text{Chlorophyll}]{\\text{Light Energy}} \\text{C}_6\\text{H}_{12}\\text{O}_6 + \\text{6O}_2$$\n\n#### 2. 🔬 The Two Crucial Phases (WAEC / Cambridge Focus):\n- **Light-Dependent Phase (Thylakoid Grana):** Solar photons strike Photosystems II and I. Water undergoes photolysis ($2H_2O \\rightarrow 4H^+ + 4e^- + O_2$), generating ATP and reduced NADPH.\n- **Light-Independent Phase / Calvin-Benson Cycle (Stroma):** Carbon fixation mediated by the enzyme RuBisCO. $CO_2$ combines with Ribulose 1,5-bisphosphate (RuBP) to yield 3-phosphoglycerate (PGA), subsequently reduced to glyceraldehyde-3-phosphate (G3P) and glucose.\n\n#### 3. 💡 Mnemonic Device to Remember Inputs & Outputs:\n**C-W-S-O** -> **C**arbon dioxide + **W**ater + **S**unlight = **S**ugar + **O**xygen!\n\n#### 4. 📝 Stanbax Senior Examiner Tip:\n*Beware of confusion between Photosynthesis and Respiration!* In WAEC Section B, remember to state that light reactions occur in the **thylakoids/grana** while dark reactions take place in the **stroma**.\n\n#### 🚀 Quick Practice Drill for You, ${studentName}:\n*What happens to the rate of photosynthesis when temperature exceeds 45°C?* (Hint: Think about what happens to plant protein enzymes like RuBisCO at high temperatures!)`;
+      return `Photosynthesis: Masterclass Academic Breakdown
+Tailored for ${studentName} (${classLevel}) • Calvin Premium Masterclass
+
+1. Concept Summary & Definition
+Photosynthesis is the fundamental biochemical process whereby green plants, algae, and certain cyanobacteria synthesize organic food (glucose) from inorganic carbon dioxide (CO₂) and water (H₂O), utilizing solar radiant energy trapped by chlorophyll, releasing oxygen gas as a byproduct.
+
+Chemical Word & Symbol Equation:
+6CO₂ + 6H₂O  ──(Sunlight / Chlorophyll)──>  C₆H₁₂O₆ + 6O₂
+Carbon Dioxide + Water  ──>  Glucose + Oxygen
+
+2. The Two Crucial Phases (WAEC / Cambridge Focus):
+• Light-Dependent Phase (Thylakoid Grana): Solar photons strike Photosystems II and I. Water undergoes photolysis (2H₂O → 4H⁺ + 4e⁻ + O₂), generating ATP and reduced NADPH.
+• Light-Independent Phase / Calvin-Benson Cycle (Stroma): Carbon fixation mediated by the enzyme RuBisCO. CO₂ combines with Ribulose 1,5-bisphosphate (RuBP) to yield 3-phosphoglycerate (PGA), subsequently reduced to glyceraldehyde-3-phosphate (G3P) and glucose.
+
+3. Mnemonic Trick to Remember Inputs & Outputs:
+C-W-S-O → Carbon dioxide + Water + Sunlight = Sugar + Oxygen!
+
+4. Stanbax Senior Examiner Tip:
+Beware of confusion between Photosynthesis and Respiration! In WAEC Section B, remember to state that light reactions occur in the thylakoids/grana while dark reactions take place in the stroma.
+
+Quick Practice Drill for You, ${studentName}:
+What happens to the rate of photosynthesis when temperature exceeds 45°C? (Hint: Think about what happens to plant protein enzymes like RuBisCO at high temperatures!)`;
     } else {
-      return `### 🌿 Understanding Photosynthesis\n*Hello ${studentName}! Here is your guide for ${classLevel}:*\n\n**Photosynthesis** is the process by which green plants manufacture their own food (glucose) using:\n1. **Carbon Dioxide ($CO_2$)** from the air through microscopic stomata.\n2. **Water ($H_2O$)** absorbed by roots from the soil.\n3. **Sunlight** absorbed by green pigment called **chlorophyll** in chloroplasts.\n\n**Chemical Equation:**\n$$\\text{Carbon Dioxide} + \\text{Water} \\xrightarrow{\\text{Sunlight + Chlorophyll}} \\text{Glucose} + \\text{Oxygen}$$\n\nOxygen is released into the air for humans and animals to breathe! Feel free to ask if you need further practice questions.`;
+      return `Understanding Photosynthesis
+Hello ${studentName}! Here is your guide for ${classLevel}:
+
+Photosynthesis is the process by which green plants manufacture their own food (glucose) using:
+1. Carbon Dioxide (CO₂) from the air through microscopic stomata.
+2. Water (H₂O) absorbed by roots from the soil.
+3. Sunlight absorbed by the green pigment called chlorophyll in chloroplasts.
+
+Chemical Equation:
+Carbon Dioxide + Water  ──(Sunlight + Chlorophyll)──>  Glucose + Oxygen
+6CO₂ + 6H₂O  ──>  C₆H₁₂O₆ + 6O₂
+
+Oxygen is released into the air for humans and animals to breathe! Feel free to ask if you need further practice questions.`;
     }
   }
 
   if (qLower.includes('quadratic') || qLower.includes('solve') || qLower.includes('math') || qLower.includes('equation')) {
     if (isPremium) {
-      return `### 📐 Quadratic Equations: Comprehensive Solution Method\n*Personalized for ${studentName} (${classLevel}) • Calvin Premium*\n\n#### 1. 🎯 Standard General Form\nAny second-degree polynomial equation takes the form:\n$$ax^2 + bx + c = 0 \\quad (a \\neq 0)$$\n\n#### 2. 🔬 The Quadratic Formula Derivation (By Completing the Square):\n$$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$\n\n**Worked Example:** Solve $2x^2 - 5x + 2 = 0$\n- Identify coefficients: $a = 2, b = -5, c = 2$.\n- Calculate discriminant: $\\Delta = b^2 - 4ac = (-5)^2 - 4(2)(2) = 25 - 16 = 9$.\n- Substitute into formula:\n$$x = \\frac{-(-5) \\pm \\sqrt{9}}{2(2)} = \\frac{5 \\pm 3}{4}$$\n- Solution 1: $x = \\frac{5 + 3}{4} = \\frac{8}{4} = 2$\n- Solution 2: $x = \\frac{5 - 3}{4} = \\frac{2}{4} = \\frac{1}{2}$ or $0.5$\n\n#### 3. 📝 WAEC & JAMB Marking Guide Note:\nAlways verify your roots by factorizing: $(2x - 1)(x - 2) = 0$. In theory papers, showing the substitution step earns 2 method marks before the final answer!`;
+      return `Quadratic Equations: Comprehensive Solution Method
+Personalized for ${studentName} (${classLevel}) • Calvin Premium Masterclass
+
+1. Standard General Form
+Any second-degree polynomial equation takes the form:
+ax² + bx + c = 0  (where a ≠ 0)
+
+2. The Quadratic Formula:
+x = (-b ± √(b² - 4ac)) / (2a)
+
+Worked Example: Solve 2x² - 5x + 2 = 0
+• Step 1: Identify coefficients: a = 2, b = -5, c = 2.
+• Step 2: Calculate the discriminant:
+  Δ = b² - 4ac = (-5)² - 4(2)(2) = 25 - 16 = 9.
+• Step 3: Substitute into the quadratic formula:
+  x = (-(-5) ± √9) / (2 × 2) = (5 ± 3) / 4
+• First Solution: x = (5 + 3) / 4 = 8 / 4 = 2
+• Second Solution: x = (5 - 3) / 4 = 2 / 4 = 1/2 (or 0.5)
+
+3. WAEC & JAMB Marking Guide Note:
+Always verify your roots by factorizing: (2x - 1)(x - 2) = 0. In theory papers, showing the substitution step earns 2 method marks before the final answer!`;
     } else {
-      return `### 📐 Solving Quadratic Equations\n*Hello ${studentName}! Here is the standard method for ${classLevel}:*\n\nTo solve any quadratic equation in the form **$ax^2 + bx + c = 0$**, use the Almighty Formula:\n$$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$\n\n**Steps:**\n1. Rearrange equation so one side equals zero.\n2. Write down the values of **$a$**, **$b$**, and **$c$**.\n3. Compute the term inside square root: $b^2 - 4ac$.\n4. Calculate the two possible answers using $+$ and $-$.\n\nTry sending me an equation like $x^2 - 5x + 6 = 0$ and I'll walk through it with you!`;
+      return `Solving Quadratic Equations
+Hello ${studentName}! Here is the standard method for ${classLevel}:
+
+To solve any quadratic equation in the form ax² + bx + c = 0, use the quadratic formula:
+x = (-b ± √(b² - 4ac)) / (2a)
+
+Steps:
+1. Rearrange the equation so that one side equals zero.
+2. Write down the values of a, b, and c.
+3. Compute the term inside the square root: b² - 4ac.
+4. Calculate the two possible answers using + and -.
+
+Try sending me an equation like x² - 5x + 6 = 0 and I will walk through it with you!`;
     }
   }
 
   // General academic response
-  return `### 📚 Academic Guidance from Calvin\n*Hello ${studentName}! Here is your ${isPremium ? 'Premium ' : ''}tutor explanation for ${classLevel}:*\n\nRegarding your question: **"${question}"**\n\n1. **Core Concept:** At Stanbax Schools Ibadan, our curriculum emphasizes foundational understanding first. Review the relevant chapter in your term syllabus.\n2. **Key Principle:** Break complex questions down into smaller parts. Define key terms clearly before applying formulas or constructing arguments.\n3. **Study Habit:** Write out key terms and definitions in your notebook, and practice active recall after 24 hours.\n\n${isPremium ? '\n💡 **Calvin Premium Perk:** You can ask me to write a full step-by-step WAEC/NECO worked solution, generate practice questions, or test your memory on this topic!' : '\nAsk me any follow-up question and I will explain it step by step!'}`;
+  return `Academic Guidance from Calvin
+Hello ${studentName}! Here is your ${isPremium ? 'Premium ' : ''}tutor explanation for ${classLevel}:
+
+Regarding your question: "${question}"
+
+1. Core Concept: At Stanbax Schools Ibadan, our curriculum emphasizes foundational understanding first. Review the relevant chapter in your term syllabus.
+2. Key Principle: Break complex questions down into smaller parts. Define key terms clearly before applying formulas or constructing arguments.
+3. Study Habit: Write out key terms and definitions in your notebook, and practice active recall after 24 hours.
+
+${isPremium ? 'Calvin Premium Masterclass Perk: You can ask me to write a full step-by-step WAEC/NECO worked solution, generate practice questions, or test your memory on this topic!' : 'Ask me any follow-up question and I will explain it step by step!'}`;
 }
 
 async function startServer() {
@@ -659,25 +739,28 @@ ${isEarlyYears ? `
 - STYLE: Academic precision. When answering science/math problems, provide formula statements, SI units, algebraic substitutions, and final answers with units clearly highlighted. For humanities/commercial, provide structured points, legal/economic definitions, and analytical depth.
 `}
 
-TOKEN TIER CAPABILITY LEVEL (${isPremium ? '👑 PREMIUM TIER' : '✨ REGULAR TIER'}):
+TOKEN TIER CAPABILITY LEVEL (${isPremium ? 'PREMIUM MASTERCLASS' : 'REGULAR TIER'}):
 ${isPremium ? `
-- The student is using a **PREMIUM TOKEN** purchased from the Super Administrator.
-- Provide the HIGHEST QUALITY, IN-DEPTH, MASTERCLASS responses.
-- Break down explanations into clear, structured sections:
-  1. 🎯 Direct Concept Summary / Definition
-  2. 🔬 Step-by-Step Derivation / Detailed Explanation / Worked Examples
-  3. 💡 Mnemonic / Memory Trick to remember this easily
-  4. 📝 WAEC/NECO/JAMB Exam Tip & Common Pitfalls to avoid
-  5. 🚀 Practice Mini-Question for the student to test themselves!
+- The student is using a PREMIUM TOKEN authorized by the School Administrator.
+- Provide the HIGHEST QUALITY, IN-DEPTH, MASTERCLASS explanations.
+- Structure explanations into clear, organized sections:
+  1. Direct Concept Summary / Definition
+  2. Step-by-Step Derivation / Worked Examples
+  3. Mnemonic / Memory Trick to recall concepts easily
+  4. WAEC / NECO / JAMB / Cambridge Exam Secrets & Pitfalls to avoid
+  5. Quick Practice Question for self-testing!
 ` : `
-- The student is using a **REGULAR TOKEN**.
-- Provide concise, accurate, clear, and encouraging explanations that answer the question directly and appropriately for their class level.
+- The student is using a REGULAR TOKEN.
+- Provide concise, accurate, clear, and encouraging explanations tailored to their class syllabus.
 `}
 
-FORMATTING:
-- Use clean Markdown with bolding, lists, and clear line breaks.
+CRITICAL STUDENT-FRIENDLY FORMATTING RULES (STRICTLY ENFORCED):
+- NEVER use markdown hash symbols (#, ##, ###, ####) for titles or section headings. Simply write clean titles on their own line followed by a blank line, or use simple bold section headers.
+- NEVER use the caret symbol (^) for exponents or powers! Primary and secondary school students find raw carets confusing. Always use standard unicode superscript characters (such as ², ³, ⁴, ⁿ, ⁻¹, ⁻², 10⁵, m/s², cm³) or spell out words like "squared" or "to the power of". Scholars must NEVER see raw '^' characters.
+- NEVER use asterisks (*) for bullet points. Use standard clean bullet dots (•) or numbered lists (1., 2., 3.).
+- NEVER output raw LaTeX codes or math delimiters like $$, \\text{}, \\frac{}{}, \\times, or \\pm. Format formulas in clean, natural readable text: e.g., "x = (-b ± √(b² - 4ac)) / (2a)", "Area = πr²", "v = u + at" so students can read and understand immediately without programming syntax.
 - Address the scholar warmly as ${studentName}.
-- Keep answers educational, respectful, safe, and aligned with standard curriculum principles.`;
+- Keep answers educational, respectful, inspiring, and aligned with standard Nigerian-British curriculum guidelines.`;
 
     const ai = getGeminiClient();
 
