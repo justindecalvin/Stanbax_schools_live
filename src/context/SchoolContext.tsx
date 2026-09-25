@@ -74,8 +74,12 @@ import {
   LibraryBookItem,
   SchemeOfWork,
   ChatChannel,
-  SchoolChatMessage
+  SchoolChatMessage,
+  GalleryPhoto,
+  UserEphemeralStatus
 } from '../types';
+import { cleanExpiredStatuses, create16HourStatus, INITIAL_EPHEMERAL_STATUSES } from '../data/defaultEphemeralStatuses';
+import { DEFAULT_GALLERY_PHOTOS } from '../data/defaultGalleryPhotos';
 import { defaultSchemesOfWork } from '../data/defaultSchemesOfWork';
 import { INITIAL_LESSON_NOTES } from '../data/initialLessonNotes';
 import { DEFAULT_FAQ_ITEMS, DEFAULT_FAQ_CONTENT } from '../data/faqData';
@@ -532,6 +536,23 @@ interface SchoolContextType {
   deleteChatMessage: (id: string) => void;
   flagChatMessage: (id: string, flagged?: boolean) => void;
   resetChatToDefault: () => void;
+
+  // 29. Campus Gallery Photos (Facilities & Events)
+  galleryPhotos: GalleryPhoto[];
+  addGalleryPhoto: (photo: Omit<GalleryPhoto, 'id' | 'uploadedAt'>) => void;
+  updateGalleryPhoto: (id: string, updates: Partial<GalleryPhoto>) => void;
+  deleteGalleryPhoto: (id: string) => void;
+  resetGalleryPhotosToDefault: () => void;
+
+  // 30. Prefects, Club Leaders & Ephemeral 16-Hour Statuses
+  assignClassPrefects: (classId: string, prefectStudentId?: string, assistantPrefectStudentId?: string) => void;
+  assignClubLeaders: (clubId: string, presidentStudentId?: string, vicePresidentStudentId?: string, memberStudentIds?: string[]) => void;
+  assignStudentPrefectBadge: (studentId: string, prefectRole?: string, prefectBadge?: string) => void;
+  updateStudentChatSettings: (studentId: string, settings: { showOnlineStatus?: boolean; allowDirectMessages?: boolean }) => void;
+  ephemeralStatuses: UserEphemeralStatus[];
+  postEphemeralStatus: (status: Omit<UserEphemeralStatus, 'id' | 'createdAt' | 'expiresAt' | 'views'>) => void;
+  deleteEphemeralStatus: (id: string) => void;
+  markEphemeralStatusViewed: (statusId: string, viewerId: string) => void;
 }
 
 const SchoolContext = createContext<SchoolContextType | undefined>(undefined);
@@ -5123,8 +5144,38 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   const sendChatMessage = (msgData: Omit<SchoolChatMessage, 'id' | 'timestamp'>): SchoolChatMessage => {
+    let resolvedBadge = msgData.senderBadge;
+    if (!resolvedBadge && msgData.senderRole === 'student') {
+      const studentObj = students.find(s => s.id === msgData.senderId);
+      const chanObj = chatChannels.find(c => c.id === msgData.channelId);
+      if (studentObj) {
+        if (chanObj?.type === 'class') {
+          const matchedClass = classes.find(c => c.id === chanObj.classId || c.name.toLowerCase() === chanObj.name.toLowerCase() || (chanObj.className && c.name.toLowerCase() === chanObj.className.toLowerCase()));
+          if (matchedClass?.prefectStudentId === studentObj.id || studentObj.classLeadershipRole === 'prefect') {
+            resolvedBadge = '⭐ Class Prefect';
+          } else if (matchedClass?.assistantPrefectStudentId === studentObj.id || studentObj.classLeadershipRole === 'assistant_prefect') {
+            resolvedBadge = '⭐ Assistant Class Prefect';
+          } else if (studentObj.prefectRole) {
+            resolvedBadge = `🏅 ${studentObj.prefectRole}`;
+          }
+        } else if (chanObj?.type === 'club') {
+          const matchedClub = clubsList.find(c => c.id === chanObj.clubId || c.name.toLowerCase() === chanObj.name.toLowerCase() || (chanObj.clubName && c.name.toLowerCase() === chanObj.clubName.toLowerCase()));
+          if (matchedClub?.presidentStudentId === studentObj.id || studentObj.clubLeadershipRoles?.[matchedClub?.id || ''] === 'president') {
+            resolvedBadge = '👑 President';
+          } else if (matchedClub?.vicePresidentStudentId === studentObj.id || studentObj.clubLeadershipRoles?.[matchedClub?.id || ''] === 'vice_president') {
+            resolvedBadge = '⭐ Vice President';
+          } else if (studentObj.prefectRole) {
+            resolvedBadge = `🏅 ${studentObj.prefectRole}`;
+          }
+        } else if (studentObj.prefectRole) {
+          resolvedBadge = `🏅 ${studentObj.prefectRole}`;
+        }
+      }
+    }
+
     const newMsg: SchoolChatMessage = {
       ...msgData,
+      senderBadge: resolvedBadge,
       id: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
       timestamp: new Date().toISOString()
     };
@@ -5159,6 +5210,224 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       localStorage.setItem('stanbax_chat_channels', JSON.stringify(DEFAULT_CHAT_CHANNELS));
       localStorage.setItem('stanbax_chat_messages', JSON.stringify(DEFAULT_CHAT_MESSAGES));
     } catch {}
+  };
+
+  // 29. Campus Gallery Photos (Facilities & Events)
+  const [galleryPhotos, setGalleryPhotos] = useState<GalleryPhoto[]>(() => {
+    try {
+      const saved = localStorage.getItem('stanbax_campus_gallery_photos');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+    } catch {}
+    return DEFAULT_GALLERY_PHOTOS;
+  });
+
+  const addGalleryPhoto = (photo: Omit<GalleryPhoto, 'id' | 'uploadedAt'>) => {
+    const newPhoto: GalleryPhoto = {
+      ...photo,
+      id: `photo-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      uploadedAt: new Date().toISOString().split('T')[0]
+    };
+    setGalleryPhotos(prev => {
+      const next = [newPhoto, ...prev];
+      try {
+        localStorage.setItem('stanbax_campus_gallery_photos', JSON.stringify(next));
+      } catch (err) {
+        console.warn('Storage error on gallery photo', err);
+      }
+      return next;
+    });
+  };
+
+  const updateGalleryPhoto = (id: string, updates: Partial<GalleryPhoto>) => {
+    setGalleryPhotos(prev => {
+      const next = prev.map(p => p.id === id ? { ...p, ...updates } : p);
+      try {
+        localStorage.setItem('stanbax_campus_gallery_photos', JSON.stringify(next));
+      } catch (err) {
+        console.warn('Storage error updating photo', err);
+      }
+      return next;
+    });
+  };
+
+  const deleteGalleryPhoto = (id: string) => {
+    setGalleryPhotos(prev => {
+      const next = prev.filter(p => p.id !== id);
+      try {
+        localStorage.setItem('stanbax_campus_gallery_photos', JSON.stringify(next));
+      } catch (err) {}
+      return next;
+    });
+  };
+
+  const resetGalleryPhotosToDefault = () => {
+    setGalleryPhotos(DEFAULT_GALLERY_PHOTOS);
+    try {
+      localStorage.removeItem('stanbax_campus_gallery_photos');
+    } catch {}
+  };
+
+  // 30. Prefects, Club Leaders & Ephemeral 16-Hour Statuses
+  const assignClassPrefects = (classId: string, prefectStudentId?: string, assistantPrefectStudentId?: string) => {
+    setClasses(prev => {
+      const updated = prev.map(c => c.id === classId ? { ...c, prefectStudentId, assistantPrefectStudentId } : c);
+      try { localStorage.setItem('stanbax_classes', JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+
+    setStudents(prev => {
+      const targetClass = classes.find(c => c.id === classId);
+      const updated = prev.map(s => {
+        const inThisClass = s.classId === classId || (targetClass && s.grade.toLowerCase() === targetClass.name.toLowerCase());
+        if (s.id === prefectStudentId) {
+          return { ...s, classLeadershipRole: 'prefect' as const };
+        }
+        if (s.id === assistantPrefectStudentId) {
+          return { ...s, classLeadershipRole: 'assistant_prefect' as const };
+        }
+        if (inThisClass && (s.classLeadershipRole === 'prefect' || s.classLeadershipRole === 'assistant_prefect')) {
+          return { ...s, classLeadershipRole: null };
+        }
+        return s;
+      });
+      try { localStorage.setItem('stanbax_students', JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+  };
+
+  const assignClubLeaders = (
+    clubId: string,
+    presidentStudentId?: string,
+    vicePresidentStudentId?: string,
+    memberStudentIds?: string[]
+  ) => {
+    setClubsList(prev => {
+      const updated = prev.map(c => c.id === clubId ? {
+        ...c,
+        presidentStudentId,
+        vicePresidentStudentId,
+        memberStudentIds: memberStudentIds || c.memberStudentIds || []
+      } : c);
+      try { localStorage.setItem('stanbax_clubs_list', JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+
+    setStudents(prev => {
+      const targetClub = clubsList.find(c => c.id === clubId);
+      const clubName = targetClub?.name;
+      const updated = prev.map(s => {
+        let clubs = s.clubs ? [...s.clubs] : [];
+        let leadership = { ...(s.clubLeadershipRoles || {}) };
+
+        const isPresident = s.id === presidentStudentId;
+        const isVice = s.id === vicePresidentStudentId;
+        const isMember = memberStudentIds?.includes(s.id) || isPresident || isVice;
+
+        if (clubName) {
+          if (isMember && !clubs.includes(clubName)) {
+            clubs.push(clubName);
+          } else if (memberStudentIds && !isMember && clubs.includes(clubName)) {
+            clubs = clubs.filter(cn => cn !== clubName);
+          }
+        }
+
+        if (isPresident) {
+          leadership[clubId] = 'president';
+        } else if (isVice) {
+          leadership[clubId] = 'vice_president';
+        } else {
+          delete leadership[clubId];
+        }
+
+        return { ...s, clubs, clubLeadershipRoles: leadership };
+      });
+      try { localStorage.setItem('stanbax_students', JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+  };
+
+  const assignStudentPrefectBadge = (studentId: string, prefectRole?: string, prefectBadge?: string) => {
+    setStudents(prev => {
+      const updated = prev.map(s => s.id === studentId ? {
+        ...s,
+        prefectRole: prefectRole || undefined,
+        prefectBadge: prefectBadge || (prefectRole ? 'School Prefect' : undefined)
+      } : s);
+      try { localStorage.setItem('stanbax_students', JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+  };
+
+  const updateStudentChatSettings = (studentId: string, settings: { showOnlineStatus?: boolean; allowDirectMessages?: boolean }) => {
+    setStudents(prev => {
+      const updated = prev.map(s => s.id === studentId ? {
+        ...s,
+        chatSettings: { ...(s.chatSettings || { showOnlineStatus: true, allowDirectMessages: true }), ...settings }
+      } : s);
+      try { localStorage.setItem('stanbax_students', JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+  };
+
+  const [ephemeralStatuses, setEphemeralStatuses] = useState<UserEphemeralStatus[]>(() => {
+    try {
+      const saved = localStorage.getItem('stanbax_ephemeral_statuses');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        const active = cleanExpiredStatuses(parsed);
+        return active.length > 0 ? active : cleanExpiredStatuses(INITIAL_EPHEMERAL_STATUSES);
+      }
+    } catch {}
+    return cleanExpiredStatuses(INITIAL_EPHEMERAL_STATUSES);
+  });
+
+  // Purge expired statuses periodically every 60s
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setEphemeralStatuses(prev => {
+        const active = cleanExpiredStatuses(prev);
+        if (active.length !== prev.length) {
+          try { localStorage.setItem('stanbax_ephemeral_statuses', JSON.stringify(active)); } catch {}
+        }
+        return active;
+      });
+    }, 60000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const postEphemeralStatus = (statusData: Omit<UserEphemeralStatus, 'id' | 'createdAt' | 'expiresAt' | 'views'>) => {
+    const newStatus = create16HourStatus(statusData);
+    setEphemeralStatuses(prev => {
+      const active = cleanExpiredStatuses([newStatus, ...prev]);
+      try { localStorage.setItem('stanbax_ephemeral_statuses', JSON.stringify(active)); } catch {}
+      return active;
+    });
+  };
+
+  const deleteEphemeralStatus = (id: string) => {
+    setEphemeralStatuses(prev => {
+      const updated = prev.filter(s => s.id !== id);
+      try { localStorage.setItem('stanbax_ephemeral_statuses', JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+  };
+
+  const markEphemeralStatusViewed = (statusId: string, viewerId: string) => {
+    setEphemeralStatuses(prev => {
+      const updated = prev.map(s => {
+        if (s.id === statusId && !s.views?.includes(viewerId)) {
+          return { ...s, views: [...(s.views || []), viewerId] };
+        }
+        return s;
+      });
+      try { localStorage.setItem('stanbax_ephemeral_statuses', JSON.stringify(updated)); } catch {}
+      return updated;
+    });
   };
 
   // 15B. Dynamic Available Academic Sessions across current & archives
@@ -5462,7 +5731,22 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         sendChatMessage,
         deleteChatMessage,
         flagChatMessage,
-        resetChatToDefault
+        resetChatToDefault,
+        // 29. Campus Gallery Photos (Facilities & Events)
+        galleryPhotos,
+        addGalleryPhoto,
+        updateGalleryPhoto,
+        deleteGalleryPhoto,
+        resetGalleryPhotosToDefault,
+        // 30. Prefects, Club Leaders & Ephemeral 16-Hour Statuses
+        assignClassPrefects,
+        assignClubLeaders,
+        assignStudentPrefectBadge,
+        updateStudentChatSettings,
+        ephemeralStatuses,
+        postEphemeralStatus,
+        deleteEphemeralStatus,
+        markEphemeralStatusViewed
       }}
     >
       {children}

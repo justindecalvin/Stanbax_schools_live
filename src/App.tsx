@@ -19,6 +19,7 @@ import { ApplicationTrackerModal } from './components/ApplicationTrackerModal';
 import { CareerAdvisorModal } from './components/CareerAdvisorModal';
 import { FAQSection } from './components/FAQSection';
 import { UserTourModal } from './components/UserTourModal';
+import { CampusGallery } from './components/CampusGallery';
 import { Compass, X } from 'lucide-react';
 
 // Dedicated Subpages & Portals
@@ -193,6 +194,10 @@ const MainAppContent: React.FC = () => {
 
         <div id="student-life">
           <StudentLifeSection onOpenAdmissions={() => setIsAdmissionsOpen(true)} />
+        </div>
+
+        <div id="gallery">
+          <CampusGallery onOpenAdmissions={() => setIsAdmissionsOpen(true)} />
         </div>
 
         <div id="faculty">

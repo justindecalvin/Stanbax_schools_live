@@ -12,11 +12,22 @@ import {
   DollarSign, 
   Search,
   BookOpen,
-  HelpCircle
+  HelpCircle,
+  Star
 } from '../../RealIcons';
 
 export const AdminClassesFeesTab: React.FC = () => {
-  const { classes, tutors, addClass, updateClass, deleteClass, resetClassesToDefault, assignClassTeacher } = useSchool();
+  const { 
+    classes, 
+    tutors, 
+    students,
+    addClass, 
+    updateClass, 
+    deleteClass, 
+    resetClassesToDefault, 
+    assignClassTeacher,
+    assignClassPrefects 
+  } = useSchool();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
@@ -347,6 +358,7 @@ export const AdminClassesFeesTab: React.FC = () => {
                 <th className="py-3.5 px-4 sm:px-6">Class Name</th>
                 <th className="py-3.5 px-4">Category</th>
                 <th className="py-3.5 px-4">Class Teacher (Form Master)</th>
+                <th className="py-3.5 px-4">Class Prefects</th>
                 <th className="py-3.5 px-4">Description</th>
                 <th className="py-3.5 px-4 text-right">Termly Tuition Fee</th>
                 <th className="py-3.5 px-4 sm:px-6 text-center">Actions</th>
@@ -416,6 +428,60 @@ export const AdminClassesFeesTab: React.FC = () => {
                           </div>
                         )}
                       </div>
+                    </td>
+
+                    <td className="py-4 px-4">
+                      {(() => {
+                        const classStudents = students.filter(s => 
+                          s.classId === c.id || s.grade === c.name || (s.grade && c.name.includes(s.grade))
+                        );
+
+                        return (
+                          <div className="space-y-1.5 min-w-[200px]">
+                            {/* Prefect Select */}
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[10px] font-black text-amber-700 shrink-0">⭐ Prefect:</span>
+                              <select
+                                value={c.prefectStudentId || ''}
+                                onChange={e => {
+                                  const newPrefectId = e.target.value;
+                                  assignClassPrefects(c.id, newPrefectId || undefined, c.assistantPrefectStudentId);
+                                  const stName = students.find(s => s.id === newPrefectId)?.name || 'None';
+                                  setStatusMessage(`Assigned ${stName} as Class Prefect for ${c.name}.`);
+                                  setTimeout(() => setStatusMessage(''), 3500);
+                                }}
+                                className="text-[11px] font-semibold py-1 px-2 rounded-lg border border-slate-200 bg-white hover:border-amber-400 focus:outline-none flex-1 truncate"
+                              >
+                                <option value="">-- Unassigned --</option>
+                                {classStudents.map(s => (
+                                  <option key={s.id} value={s.id}>{s.name}</option>
+                                ))}
+                              </select>
+                            </div>
+
+                            {/* Assistant Prefect Select */}
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[10px] font-black text-blue-700 shrink-0">⭐ Asst:</span>
+                              <select
+                                value={c.assistantPrefectStudentId || ''}
+                                onChange={e => {
+                                  const newAsstId = e.target.value;
+                                  assignClassPrefects(c.id, c.prefectStudentId, newAsstId || undefined);
+                                  const stName = students.find(s => s.id === newAsstId)?.name || 'None';
+                                  setStatusMessage(`Assigned ${stName} as Assistant Prefect for ${c.name}.`);
+                                  setTimeout(() => setStatusMessage(''), 3500);
+                                }}
+                                className="text-[11px] font-semibold py-1 px-2 rounded-lg border border-slate-200 bg-white hover:border-blue-400 focus:outline-none flex-1 truncate"
+                              >
+                                <option value="">-- Unassigned --</option>
+                                {classStudents.map(s => (
+                                  <option key={s.id} value={s.id}>{s.name}</option>
+                                ))}
+                              </select>
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </td>
 
                     <td className="py-4 px-4 text-slate-500 max-w-xs truncate">

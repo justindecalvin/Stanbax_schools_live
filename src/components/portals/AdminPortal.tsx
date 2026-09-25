@@ -25,7 +25,8 @@ import {
   HelpCircle,
   Layout,
   MessageSquare,
-  School as SchoolIcon
+  School as SchoolIcon,
+  Camera
 } from '../RealIcons';
 
 import { AdminStudentsAlumniTab } from './admin/AdminStudentsAlumniTab';
@@ -44,7 +45,9 @@ import { AdminLandingPageTab } from './admin/AdminLandingPageTab';
 import { AdminFaqSubTab } from './admin/AdminFaqSubTab';
 import { AdminCalvinTokensTab } from './admin/AdminCalvinTokensTab';
 import { AdminSchemeOfWorkTab } from './admin/AdminSchemeOfWorkTab';
+import { AdminCampusGalleryTab } from './admin/AdminCampusGalleryTab';
 import { SchoolChatSystem } from '../chat/SchoolChatSystem';
+import { SchoolPrefectBadgesModal } from '../chat/ChatLeadershipModals';
 import { Bot, Sparkles } from 'lucide-react';
 
 interface AdminPortalProps {
@@ -57,6 +60,7 @@ type AdminTab =
   | 'calvin_tokens'
   | 'scheme_of_work'
   | 'calendar'
+  | 'gallery'
   | 'students'
   | 'faculty'
   | 'assignments'
@@ -78,6 +82,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToWebsite }) => 
     tutors, 
     classes, 
     calvinTokens,
+    galleryPhotos,
     logoutAdmin,
     attendanceRecords,
     termResumptionConfig,
@@ -89,6 +94,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToWebsite }) => 
 
   const [activeTab, setActiveTab] = useState<AdminTab>('overview');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showPrefectModal, setShowPrefectModal] = useState(false);
 
   const handleLogout = () => {
     logoutAdmin();
@@ -101,6 +107,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToWebsite }) => 
     { id: 'calvin_tokens', label: 'Calvin AI Tokens', icon: Bot, badge: availableTokensCount > 0 ? `${availableTokensCount} Ready` : undefined },
     { id: 'scheme_of_work', label: 'Schemes of Work (AI Brain)', icon: Sparkles, badge: 'Curriculum' },
     { id: 'calendar', label: 'Term Calendar & Events', icon: Calendar },
+    { id: 'gallery', label: 'Campus Gallery & Photos', icon: Camera, badge: `${galleryPhotos?.length || 0} Photos` },
     { id: 'students', label: 'Scholars & Alumni', icon: GraduationCap, badge: students.length },
     { id: 'faculty', label: 'Faculty Staff', icon: Users, badge: tutors.length },
     { id: 'assignments', label: 'Tutor & Principal Roles', icon: BookOpen },
@@ -143,6 +150,15 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToWebsite }) => 
         </div>
 
         <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setShowPrefectModal(true)}
+            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-black text-amber-950 bg-amber-100 hover:bg-amber-200 border border-amber-300 rounded-xl transition-colors cursor-pointer shadow-2xs"
+            title="Appoint & confer official school prefect badges"
+          >
+            <Award className="w-3.5 h-3.5 text-amber-700" />
+            <span>Prefect Badges</span>
+          </button>
           <button
             type="button"
             onClick={onBackToWebsite}
@@ -410,6 +426,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToWebsite }) => 
           {activeTab === 'calvin_tokens' && <AdminCalvinTokensTab />}
           {activeTab === 'scheme_of_work' && <AdminSchemeOfWorkTab />}
           {activeTab === 'calendar' && <AdminSchoolCalendarTab />}
+          {activeTab === 'gallery' && <AdminCampusGalleryTab />}
           {activeTab === 'students' && <AdminStudentsAlumniTab />}
           {activeTab === 'faculty' && <AdminFacultyTab />}
           {activeTab === 'assignments' && <AdminTutorAssignmentsTab />}

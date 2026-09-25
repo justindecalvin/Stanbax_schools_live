@@ -79,6 +79,8 @@ export const AdminLandingPageTab: React.FC = () => {
     addClub, 
     deleteClub, 
     resetClubsToDefault,
+    students,
+    assignClubLeaders,
     houseStandings, 
     updateHouseStanding, 
     addHouseStanding,
@@ -1551,6 +1553,37 @@ export const AdminLandingPageTab: React.FC = () => {
                       onChange={(e) => updateClub(c.id, { description: e.target.value })}
                       className="w-full text-xs bg-white border border-stone-300 rounded-lg p-2"
                     />
+
+                    {/* President & Vice President Selectors */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 border-t border-stone-200">
+                      <div>
+                        <label className="block text-[10px] font-black text-amber-700 mb-0.5">👑 President:</label>
+                        <select
+                          value={c.presidentStudentId || ''}
+                          onChange={(e) => assignClubLeaders(c.id, e.target.value || undefined, c.vicePresidentStudentId, c.memberStudentIds)}
+                          className="w-full text-[11px] bg-white border border-stone-300 rounded-lg px-2 py-1 font-semibold"
+                        >
+                          <option value="">-- No President --</option>
+                          {students.map(s => (
+                            <option key={s.id} value={s.id}>{s.name} ({s.grade})</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-black text-emerald-700 mb-0.5">👑 Vice President:</label>
+                        <select
+                          value={c.vicePresidentStudentId || ''}
+                          onChange={(e) => assignClubLeaders(c.id, c.presidentStudentId, e.target.value || undefined, c.memberStudentIds)}
+                          className="w-full text-[11px] bg-white border border-stone-300 rounded-lg px-2 py-1 font-semibold"
+                        >
+                          <option value="">-- No Vice President --</option>
+                          {students.map(s => (
+                            <option key={s.id} value={s.id}>{s.name} ({s.grade})</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
                   </div>
                 </div>
               ))}

@@ -739,17 +739,66 @@ Try sending me an equation like x² - 5x + 6 = 0 and I will walk through it with
     }
   }
 
-  // General academic response
-  return `Academic Guidance from Calvin
-Hello ${studentName}! Here is your ${isPremium ? 'Premium ' : ''}tutor explanation for ${classLevel}:
+  // General academic response tailored strictly to class level and subject domain
+  const isPrimary = classLevel.toLowerCase().includes('primary') || classLevel.toLowerCase().includes('basic') || classLevel.toLowerCase().includes('grade');
+  const isJunior = classLevel.toLowerCase().includes('jss') || classLevel.toLowerCase().includes('junior');
+  const isSenior = classLevel.toLowerCase().includes('sss') || classLevel.toLowerCase().includes('ss ') || classLevel.toLowerCase().includes('senior');
 
-Regarding your question: "${question}"
+  if (isPrimary) {
+    return `Hello ${studentName}! Here is your Primary School guide for ${classLevel}:
 
-1. Core Concept: At Stanbax Schools Ibadan, our curriculum emphasizes foundational understanding first. Review the relevant chapter in your term syllabus.
-2. Key Principle: Break complex questions down into smaller parts. Define key terms clearly before applying formulas or constructing arguments.
-3. Study Habit: Write out key terms and definitions in your notebook, and practice active recall after 24 hours.
+Topic: "${question}"
 
-${isPremium ? 'Calvin Premium Masterclass Perk: You can ask me to write a full step-by-step WAEC/NECO worked solution, generate practice questions, or test your memory on this topic!' : 'Ask me any follow-up question and I will explain it step by step!'}`;
+1. What this means in simple terms:
+Think of this concept like something we see every day at school or at home. When we break it down into small, easy steps, it becomes much simpler to understand!
+
+2. Step-by-Step Breakdown:
+• Step 1: Read the problem carefully and pick out the most important words or numbers.
+• Step 2: Remember our classroom rule—always write down what you are given first before finding the answer.
+• Step 3: Check your work slowly to make sure you did not skip any small step.
+
+3. Fun Classroom Memory Tip:
+Practice explaining this in your own words to your study partner or parent today! Teaching someone else is the fastest way to become a superstar in your class. ⭐
+
+Keep up the wonderful curiosity, ${studentName}! What part would you like us to practice together next?`;
+  }
+
+  if (isJunior) {
+    return `Hello ${studentName}! Here is your Junior Secondary academic breakdown for ${classLevel} (BECE & Cambridge Checkpoint Standard):
+
+Subject Investigation: "${question}"
+
+1. Conceptual Overview:
+In Junior Secondary, mastering this topic requires understanding the core definitions and how they connect to the Nigerian National Curriculum (NERDC) and British Checkpoint specifications.
+
+2. Structured Academic Methodology:
+• Identify the core subject principles involved.
+• If this is a calculation: state the standard formula, show all numerical substitutions clearly, and compute step-by-step with proper SI units.
+• If this is a descriptive or theoretical topic: define the main terms clearly, outline 3 distinct characteristics or functions, and provide a relatable Nigerian or everyday example.
+
+3. Junior WAEC / BECE Examination Tip:
+Examiners always award separate marks for showing your working steps. Never write down just a final answer—secure your full method marks by showing each intermediate line!
+
+Feel free to ask a follow-up drill or give me a specific problem to solve together, ${studentName}!`;
+  }
+
+  // Default: Senior Secondary (SSS 1 - 3 / WASSCE / NECO / JAMB / IGCSE)
+  return `${isPremium ? 'Calvin Premium Masterclass • ' : ''}Academic Guidance for ${studentName} (${classLevel})
+Syllabus Inquiry: "${question}"
+
+1. Conceptual Definition & Foundational Principles:
+At the Senior Secondary level, this topic represents a foundational building block for WAEC WASSCE, NECO SSCE, JAMB UTME, and Cambridge IGCSE syllabi. Approach it by first articulating the exact scientific, mathematical, or literary definition.
+
+2. Systematic Analytical Approach:
+• Parameter Identification: Extract given variables, boundary conditions, or textual references.
+• Theoretical Framework: State the governing law, mathematical relation, or analytical model before executing calculations or constructing arguments.
+• Sequential Execution: Solve or analyze systematically, maintaining dimensional consistency and standard SI units throughout.
+• Result Verification: Cross-check your answer using alternative methods (e.g. dimensional analysis or inverse operations).
+
+3. Stanbax Senior Examiner Insights:
+WAEC and Cambridge markers specifically look for clear technical terminology, standard mathematical notation (never omit intermediate lines), and correct units in final values.
+
+${isPremium ? '✨ Premium Masterclass Privilege: Would you like me to generate a 5-question WAEC past-paper drill, a step-by-step derivation, or an exam mnemonic for this exact topic?' : 'Ask me any follow-up question or share a specific past paper question and I will break it down for you step by step!'}`;
 }
 
 async function startServer() {
@@ -1456,17 +1505,40 @@ CRITICAL STUDENT-FRIENDLY FORMATTING RULES (STRICTLY ENFORCED):
 
     try {
       // Build conversation contents including history
-      const formattedHistory = Array.isArray(chatHistory) 
-        ? chatHistory.slice(-8).map(h => ({
-            role: h.role === 'model' ? 'model' : 'user',
-            parts: [{ text: typeof h.text === 'string' ? h.text : (h.parts?.[0]?.text || '') }]
-          })).filter(h => h.parts[0].text)
-        : [];
+      // Critical Gemini requirement: contents[0].role MUST be 'user' and roles must alternate!
+      const rawHistory = Array.isArray(chatHistory) ? chatHistory.slice(-8) : [];
+      const formattedHistory: Array<{ role: 'user' | 'model'; parts: Array<{ text: string }> }> = [];
 
-      formattedHistory.push({
-        role: 'user',
-        parts: [{ text: message }]
-      });
+      for (const h of rawHistory) {
+        const text = typeof h.text === 'string' ? h.text : (h.parts?.[0]?.text || '');
+        if (!text || !text.trim()) continue;
+        const role: 'user' | 'model' = h.role === 'model' ? 'model' : 'user';
+
+        // Discard leading model turns until we have seen a user turn
+        if (formattedHistory.length === 0 && role === 'model') {
+          continue;
+        }
+
+        // Merge consecutive turns with the same role
+        if (formattedHistory.length > 0 && formattedHistory[formattedHistory.length - 1].role === role) {
+          formattedHistory[formattedHistory.length - 1].parts[0].text += `\n\n${text}`;
+        } else {
+          formattedHistory.push({
+            role,
+            parts: [{ text }]
+          });
+        }
+      }
+
+      // Now add the current user message
+      if (formattedHistory.length > 0 && formattedHistory[formattedHistory.length - 1].role === 'user') {
+        formattedHistory[formattedHistory.length - 1].parts[0].text += `\n\n${message}`;
+      } else {
+        formattedHistory.push({
+          role: 'user',
+          parts: [{ text: message }]
+        });
+      }
 
       const { response, model: modelUsed } = await generateWithGemini(ai, {
         contents: formattedHistory,

@@ -7,6 +7,7 @@ export type PageSection =
   | 'calendar'
   | 'notices'
   | 'contact'
+  | 'gallery'
   | 'proprietress'
   | 'portal-login'
   | 'admin-portal'
@@ -16,6 +17,21 @@ export type PageSection =
   | 'parent-portal';
 
 export type UserRole = 'admin' | 'proprietress' | 'tutor' | 'student' | 'parent';
+
+export type GalleryCategory = 'all' | 'facilities' | 'events' | 'sports' | 'academics' | 'arts';
+
+export interface GalleryPhoto {
+  id: string;
+  title: string;
+  category: 'facilities' | 'events' | 'sports' | 'academics' | 'arts';
+  imageUrl: string;
+  caption: string;
+  date?: string;
+  location?: string;
+  featured?: boolean;
+  uploadedBy?: string;
+  uploadedAt?: string;
+}
 
 export interface AppImages {
   crest: string;
@@ -233,6 +249,14 @@ export interface StudentProfile {
     sentAt: string;
     status: 'pending' | 'viewed' | 'activated';
   };
+  prefectRole?: string;
+  prefectBadge?: string;
+  classLeadershipRole?: 'prefect' | 'assistant_prefect' | null;
+  clubLeadershipRoles?: Record<string, 'president' | 'vice_president' | 'secretary' | 'member'>;
+  chatSettings?: {
+    showOnlineStatus?: boolean;
+    allowDirectMessages?: boolean;
+  };
 }
 
 export type PrincipalRole = 'none' | 'principal_admin' | 'principal_administrator' | 'principal_academics';
@@ -363,6 +387,8 @@ export interface SchoolClass {
   description?: string;
   isActive?: boolean;
   classTeacherId?: string;
+  prefectStudentId?: string;
+  assistantPrefectStudentId?: string;
 }
 
 export interface Subject {
@@ -700,6 +726,9 @@ export interface Club {
   meetingDay: string;
   patron: string;
   description: string;
+  presidentStudentId?: string;
+  vicePresidentStudentId?: string;
+  memberStudentIds?: string[];
 }
 
 export interface HouseStanding {
@@ -967,6 +996,7 @@ export interface SchoolChatMessage {
   senderRole: 'student' | 'parent' | 'tutor' | 'admin';
   senderAvatar?: string;
   senderSubtext?: string; // e.g. "SSS 2 Scholar", "JETS Patron", "Parent of Tiwa", "School Admin"
+  senderBadge?: string; // e.g. "⭐ Class Prefect", "👑 President", "🏅 Head Girl"
   content: string;
   timestamp: string;
   attachments?: Array<{
@@ -976,5 +1006,21 @@ export interface SchoolChatMessage {
   }>;
   flaggedByAdmin?: boolean;
   deletedByAdmin?: boolean;
+}
+
+export interface UserEphemeralStatus {
+  id: string;
+  userId: string;
+  userName: string;
+  userRole: 'student' | 'tutor' | 'admin' | 'parent';
+  userAvatar?: string;
+  userGradeOrTitle?: string;
+  userBadge?: string;
+  text: string;
+  mediaUrl?: string;
+  backgroundColor?: string;
+  createdAt: string; // ISO string
+  expiresAt: string; // ISO string (16 hours after createdAt)
+  views?: string[]; // IDs of users who viewed this status
 }
 

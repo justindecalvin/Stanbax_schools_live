@@ -45,6 +45,7 @@ import { StudentSickBayTab } from './student/StudentSickBayTab';
 import { StudentIdCardModal } from './student/StudentIdCardModal';
 import { StudentCalvinAiTab } from './student/StudentCalvinAiTab';
 import { SchoolChatSystem } from '../chat/SchoolChatSystem';
+import { CampusGallery } from '../CampusGallery';
 import { SchoolLogo } from '../SchoolLogo';
 import { Bot, Crown } from 'lucide-react';
 
@@ -128,7 +129,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
     );
   }
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'chat' | 'calvin_ai' | 'notes' | 'cbt' | 'library' | 'homework' | 'grades' | 'timetable' | 'sickbay'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'chat' | 'calvin_ai' | 'notes' | 'cbt' | 'library' | 'homework' | 'grades' | 'timetable' | 'sickbay' | 'gallery'>('overview');
   const [isSideMenuOpen, setIsSideMenuOpen] = useState(false);
   const [isIdCardOpen, setIsIdCardOpen] = useState(false);
 
@@ -568,6 +569,14 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
       badgeColor: 'bg-rose-500/20 text-rose-300 border-rose-500/30',
       icon: HeartPulse,
       description: 'Medical history, on-campus clinic attendance, nursing logs & clinic pass'
+    },
+    { 
+      id: 'gallery' as const, 
+      label: 'Campus & Events Gallery', 
+      badge: 'Photos',
+      badgeColor: 'bg-teal-500/20 text-teal-300 border-teal-500/30',
+      icon: Camera,
+      description: 'Explore campus facilities, STEM laboratories, sports pavilions & school events'
     },
   ];
 
@@ -1253,14 +1262,13 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
                 </span>
                 <h2 className="text-xl font-black">Stanbax Scholar Discussion & Society Hub</h2>
                 <p className="text-xs text-blue-200 max-w-xl">
-                  Collaborate with your {student.grade} classmates, discuss assignments in co-curricular clubs, and message peers privately (school administration maintains safeguarding oversight).
+                  Collaborate with your {student.grade} classmates, discuss assignments in co-curricular clubs, and message peers privately.
                 </p>
               </div>
 
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-white/10 border border-white/10 text-xs text-indigo-200 shrink-0">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                 <span className="font-bold text-white">Private Peer Chat Enabled</span>
-                <span className="text-[10px] text-amber-300 font-semibold">• Admin Safeguarded</span>
               </div>
             </div>
 
@@ -2126,6 +2134,13 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
         {/* TAB: SICK BAY & CLINIC PASS */}
         {activeTab === 'sickbay' && (
           <StudentSickBayTab />
+        )}
+
+        {/* TAB: CAMPUS & EVENTS GALLERY */}
+        {activeTab === 'gallery' && (
+          <div className="rounded-3xl overflow-hidden shadow-xs border border-slate-200 bg-white">
+            <CampusGallery showAdminControls={false} />
+          </div>
         )}
       </main>
 

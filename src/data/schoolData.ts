@@ -93,7 +93,7 @@ export const DEFAULT_CLASSES: SchoolClass[] = [
   { id: 'cls-11', name: 'JSS 2', category: 'Junior Secondary', tuitionPerTerm: 220000, description: 'Junior secondary consolidation', isActive: true },
   { id: 'cls-12', name: 'JSS 3', category: 'Junior Secondary', tuitionPerTerm: 235000, description: 'BECE / Junior WAEC examination class', isActive: true },
   { id: 'cls-13', name: 'SSS 1 Science', category: 'Senior Secondary', tuitionPerTerm: 250000, description: 'Pure sciences & robotics track', isActive: true },
-  { id: 'cls-14', name: 'SSS 2 Science', category: 'Senior Secondary', tuitionPerTerm: 265000, description: 'Advanced physics, chemistry, and calculus', isActive: true, classTeacherId: 'tut-1' },
+  { id: 'cls-14', name: 'SSS 2 Science', category: 'Senior Secondary', tuitionPerTerm: 265000, description: 'Advanced physics, chemistry, and calculus', isActive: true, classTeacherId: 'tut-1', prefectStudentId: 'stu-1', assistantPrefectStudentId: 'stu-2' },
   { id: 'cls-15', name: 'SSS 3 Science', category: 'Senior Secondary', tuitionPerTerm: 280000, description: 'WASSCE, NECO & UTME preparation', isActive: true },
   { id: 'cls-16', name: 'SSS 2 Arts & Commercial', category: 'Senior Secondary', tuitionPerTerm: 265000, description: 'Economics, literature, government and commerce', isActive: true, classTeacherId: 'tut-3' }
 ];
@@ -1812,7 +1812,7 @@ export const DEFAULT_CHAT_CHANNELS: ChatChannel[] = [
     id: 'chan-dm-student-peer',
     name: 'Private Peer Study: Tiwa Adeleke & Tobi Alabi',
     type: 'direct',
-    description: 'Private student-to-student study dialogue between SSS 2 classmates. School administration maintains supervisory safeguarding oversight.',
+    description: 'Private student-to-student study dialogue between SSS 2 classmates.',
     directParticipantIds: ['stu-1', 'stu-2', 'admin-1'],
     directParticipantNames: ['Tiwa Adeleke (Scholar)', 'Tobi Alabi (Scholar)'],
     createdAt: '2026-09-20T10:00:00.000Z',

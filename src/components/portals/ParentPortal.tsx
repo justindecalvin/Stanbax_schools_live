@@ -26,11 +26,13 @@ import {
   Lock,
   ChevronRight,
   School as SchoolIcon,
-  Check
+  Check,
+  Camera
 } from '../RealIcons';
 import { ParentProfile, StudentProfile, ParentConsultationRequest, FeePaymentRecord } from '../../types';
 import { PortalLoginPage } from '../PortalLoginPage';
 import { SchoolChatSystem } from '../chat/SchoolChatSystem';
+import { CampusGallery } from '../CampusGallery';
 
 interface ParentPortalProps {
   onBackToWebsite: () => void;
@@ -82,7 +84,7 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({ onBackToWebsite }) =
   const selectedChild = linkedChildren.find(c => c.id === selectedChildId) || linkedChildren[0] || students[0];
 
   // Active navigation tab
-  type ParentTab = 'overview' | 'academics' | 'fees' | 'health' | 'consultation' | 'timetable' | 'chat';
+  type ParentTab = 'overview' | 'academics' | 'fees' | 'health' | 'consultation' | 'timetable' | 'chat' | 'gallery';
   const [activeTab, setActiveTab] = useState<ParentTab>('overview');
 
   // Consultation Booking Modal / Form State
@@ -195,7 +197,8 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({ onBackToWebsite }) =
     { id: 'health' as const, label: 'Clinic & Health Log', icon: HeartPulse, badge: childSickBayVisits.length || undefined },
     { id: 'timetable' as const, label: 'Weekly Class Schedule', icon: Calendar },
     { id: 'consultation' as const, label: 'Faculty Consultations', icon: MessageSquare, badge: myConsultations.filter(c => c.status === 'Approved').length || undefined },
-    { id: 'chat' as const, label: 'School Community & Tutors Chat', icon: MessageSquare }
+    { id: 'chat' as const, label: 'School Community & Tutors Chat', icon: MessageSquare },
+    { id: 'gallery' as const, label: 'Campus & Events Gallery', icon: Camera }
   ];
 
   return (
@@ -987,6 +990,13 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({ onBackToWebsite }) =
               currentUserName={activeParent.fullName}
               currentUserSubtext={`Guardian of ${selectedChild.name} (${selectedChild.grade})`}
             />
+          </div>
+        )}
+
+        {/* TAB 8: CAMPUS & EVENTS GALLERY */}
+        {activeTab === 'gallery' && (
+          <div className="rounded-3xl overflow-hidden border border-stone-200 bg-white shadow-xs">
+            <CampusGallery showAdminControls={false} />
           </div>
         )}
 
