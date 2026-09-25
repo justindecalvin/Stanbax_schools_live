@@ -28,8 +28,10 @@ import {
   ChevronRight,
   Eye,
   EyeOff,
-  KeyRound
+  KeyRound,
+  MessageSquare
 } from '../RealIcons';
+import { SchoolChatSystem } from '../chat/SchoolChatSystem';
 
 interface TutorPortalProps {
   onBackToWebsite: () => void;
@@ -70,7 +72,7 @@ export const TutorPortal: React.FC<TutorPortalProps> = ({ onBackToWebsite }) => 
     );
   }
 
-  const [tutorTab, setTutorTab] = useState<'gradebook' | 'ai_exam_creator' | 'lesson_notes' | 'homework' | 'attendance' | 'timetable' | 'staff_profile'>('gradebook');
+  const [tutorTab, setTutorTab] = useState<'gradebook' | 'ai_exam_creator' | 'lesson_notes' | 'homework' | 'attendance' | 'timetable' | 'staff_profile' | 'chat'>('gradebook');
   const [isSideMenuOpen, setIsSideMenuOpen] = useState(false);
 
   // Active enrolled scholars in class (ex-students / alumni no longer show as part of the class)
@@ -468,6 +470,14 @@ export const TutorPortal: React.FC<TutorPortalProps> = ({ onBackToWebsite }) => 
       badgeColor: tutor.signatureUrl ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : 'bg-amber-400/20 text-amber-300 border-amber-400/30',
       icon: UserCheck,
       description: 'Upload official passport photograph, endorse digital signature & view administrative ranking'
+    },
+    { 
+      id: 'chat' as const, 
+      label: 'Staff Room & Community Chat', 
+      badge: 'Interactive Hub',
+      badgeColor: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
+      icon: MessageSquare,
+      description: 'Collaborate with faculty colleagues, interact with student class groups & communicate with parents'
     },
   ];
 
@@ -2036,6 +2046,33 @@ export const TutorPortal: React.FC<TutorPortalProps> = ({ onBackToWebsite }) => 
         {/* TAB 5: STAFF PROFILE, PHOTO & DIGITAL SIGNATURE */}
         {tutorTab === 'staff_profile' && (
           <StaffProfileAndSignatureTab tutor={tutor} />
+        )}
+
+        {/* TAB: STAFF ROOM & COMMUNITY CHAT */}
+        {tutorTab === 'chat' && (
+          <div className="space-y-4 animate-fadeIn">
+            <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-blue-950 p-6 rounded-3xl text-white shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-4 border border-blue-800">
+              <div className="space-y-1">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30 text-[11px] font-black uppercase tracking-wider">
+                  <MessageSquare className="w-3.5 h-3.5" />
+                  <span>Faculty Staff Room & Scholastic Hub</span>
+                </div>
+                <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white">
+                  Teacher Collaboration & Student Channels
+                </h2>
+                <p className="text-xs text-blue-200 max-w-xl">
+                  Communicate across class channels, engage in academic subject departments, answer student questions, and liaise with parents.
+                </p>
+              </div>
+            </div>
+
+            <SchoolChatSystem
+              currentUserRole="tutor"
+              currentUserId={tutor.id}
+              currentUserName={tutor.name}
+              currentUserSubtext={`${tutor.role || 'Faculty Tutor'} • ${tutor.department || 'Academic Staff'}`}
+            />
+          </div>
         )}
       </main>
     </div>

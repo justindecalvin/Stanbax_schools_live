@@ -24,6 +24,7 @@ import {
   X,
   HelpCircle,
   Layout,
+  MessageSquare,
   School as SchoolIcon
 } from '../RealIcons';
 
@@ -43,6 +44,7 @@ import { AdminLandingPageTab } from './admin/AdminLandingPageTab';
 import { AdminFaqSubTab } from './admin/AdminFaqSubTab';
 import { AdminCalvinTokensTab } from './admin/AdminCalvinTokensTab';
 import { AdminSchemeOfWorkTab } from './admin/AdminSchemeOfWorkTab';
+import { SchoolChatSystem } from '../chat/SchoolChatSystem';
 import { Bot, Sparkles } from 'lucide-react';
 
 interface AdminPortalProps {
@@ -51,6 +53,7 @@ interface AdminPortalProps {
 
 type AdminTab = 
   | 'overview'
+  | 'chat'
   | 'calvin_tokens'
   | 'scheme_of_work'
   | 'calendar'
@@ -94,6 +97,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToWebsite }) => 
 
   const menuItems: Array<{ id: AdminTab; label: string; icon: React.ElementType; badge?: string | number }> = [
     { id: 'overview', label: 'Dashboard Overview', icon: Layers },
+    { id: 'chat', label: 'Community Chat Hub', icon: MessageSquare, badge: 'Live' },
     { id: 'calvin_tokens', label: 'Calvin AI Tokens', icon: Bot, badge: availableTokensCount > 0 ? `${availableTokensCount} Ready` : undefined },
     { id: 'scheme_of_work', label: 'Schemes of Work (AI Brain)', icon: Sparkles, badge: 'Curriculum' },
     { id: 'calendar', label: 'Term Calendar & Events', icon: Calendar },
@@ -377,6 +381,29 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToWebsite }) => 
                   </button>
                 </div>
               </div>
+            </div>
+          )}
+
+          {activeTab === 'chat' && (
+            <div className="space-y-6">
+              <div className="bg-gradient-to-r from-neutral-900 via-neutral-800 to-red-950 text-white p-6 rounded-3xl shadow-sm border border-neutral-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <span className="px-2.5 py-0.5 rounded-full bg-red-600/30 text-red-300 text-[10px] font-black uppercase tracking-wider border border-red-500/40">
+                    Omnipotent Administrative Control
+                  </span>
+                  <h2 className="text-xl font-black">Stanbax School Community Chat System</h2>
+                  <p className="text-xs text-neutral-300 max-w-xl">
+                    Full supervisory control across student class forums, extracurricular club hubs, and direct guardian-faculty consultations. Lock channels, flag messages, or manage discussion rooms.
+                  </p>
+                </div>
+              </div>
+
+              <SchoolChatSystem
+                currentUserRole="admin"
+                currentUserId="admin-1"
+                currentUserName="Principal Administrator"
+                currentUserSubtext="School Administration & Registry"
+              />
             </div>
           )}
 

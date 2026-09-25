@@ -938,3 +938,42 @@ export interface LibraryBookItem {
   year?: string;
 }
 
+// 6. Community Chat System (Students, Authorized Parents, Tutors & Admin)
+export type ChatChannelType = 'class' | 'club' | 'direct' | 'announcement';
+
+export interface ChatChannel {
+  id: string;
+  name: string;
+  type: ChatChannelType;
+  description?: string;
+  classId?: string;
+  className?: string;
+  clubId?: string;
+  clubName?: string;
+  directParticipantIds?: string[]; // user ids (student, parent, tutor, admin)
+  directParticipantNames?: string[];
+  createdAt: string;
+  createdBy: string;
+  isReadOnly?: boolean; // admin can lock
+  isArchived?: boolean;
+}
+
+export interface SchoolChatMessage {
+  id: string;
+  channelId: string;
+  senderId: string;
+  senderName: string;
+  senderRole: 'student' | 'parent' | 'tutor' | 'admin';
+  senderAvatar?: string;
+  senderSubtext?: string; // e.g. "SSS 2 Scholar", "JETS Patron", "Parent of Tiwa", "School Admin"
+  content: string;
+  timestamp: string;
+  attachments?: Array<{
+    name: string;
+    url: string;
+    type?: string;
+  }>;
+  flaggedByAdmin?: boolean;
+  deletedByAdmin?: boolean;
+}
+

@@ -31,7 +31,8 @@ import {
   Lock,
   Camera,
   Upload,
-  HeartPulse
+  HeartPulse,
+  MessageSquare
 } from '../RealIcons';
 import { HistoricalSessionRecord, HistoricalTermRecord, GradeRecord, Homework } from '../../types';
 import { generateStudentHistoricalRecords } from '../../data/schoolData';
@@ -43,6 +44,7 @@ import { StudentTimetableTab } from './student/StudentTimetableTab';
 import { StudentSickBayTab } from './student/StudentSickBayTab';
 import { StudentIdCardModal } from './student/StudentIdCardModal';
 import { StudentCalvinAiTab } from './student/StudentCalvinAiTab';
+import { SchoolChatSystem } from '../chat/SchoolChatSystem';
 import { SchoolLogo } from '../SchoolLogo';
 import { Bot, Crown } from 'lucide-react';
 
@@ -69,7 +71,8 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
     lessonNotes,
     getClassRankings,
     acceptTokenPromptAndActivate,
-    dismissTokenPrompt
+    dismissTokenPrompt,
+    houseStandings
   } = useSchool();
 
   // Automatic class ranking calculation
@@ -125,7 +128,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
     );
   }
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'calvin_ai' | 'notes' | 'cbt' | 'library' | 'homework' | 'grades' | 'timetable' | 'sickbay'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'chat' | 'calvin_ai' | 'notes' | 'cbt' | 'library' | 'homework' | 'grades' | 'timetable' | 'sickbay'>('overview');
   const [isSideMenuOpen, setIsSideMenuOpen] = useState(false);
   const [isIdCardOpen, setIsIdCardOpen] = useState(false);
 
@@ -491,6 +494,14 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
       description: 'Quick snapshot of attendance, GPA, house points & upcoming classes'
     },
     { 
+      id: 'chat' as const, 
+      label: 'Scholar & Faculty Chat Hub', 
+      badge: 'Class & Clubs',
+      badgeColor: 'bg-red-500/20 text-red-300 border-red-500/30',
+      icon: MessageSquare,
+      description: 'Interact with peers, class forums, extracurricular societies & tutors'
+    },
+    { 
       id: 'calvin_ai' as const, 
       label: 'Calvin AI Tutor', 
       badge: student.calvinAiAccess?.active 
@@ -741,7 +752,17 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-blue-300 font-bold">House / Dorm:</span>
-                  <span className="text-emerald-300 font-bold">{student.house || 'Blue House'}</span>
+                  {(() => {
+                    const matched = houseStandings.find(h => 
+                      student.house && (h.name.toLowerCase().includes(student.house.toLowerCase()) || student.house.toLowerCase().includes(h.name.toLowerCase()))
+                    ) || houseStandings[0];
+                    return (
+                      <span className="font-bold flex items-center gap-1.5" style={{ color: matched?.color || '#34d399' }}>
+                        <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: matched?.color || '#34d399' }} />
+                        <span>{student.house || matched?.name || 'Blue House'}</span>
+                      </span>
+                    );
+                  })()}
                 </div>
               </div>
 
@@ -958,16 +979,34 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
             </div>
           </div>
 
-          <div className="p-4 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-xl bg-indigo-900 text-white flex items-center justify-center font-black">
-              <Shield className="w-6 h-6 text-amber-400" />
-            </div>
-            <div>
-              <span className="text-[10px] font-black uppercase text-indigo-700 tracking-wider">Athletic House</span>
-              <p className="text-base font-black text-blue-950">{student.house || 'Unassigned'}</p>
-              <span className="text-[10px] text-indigo-600 font-bold">1st on Leaderboard (1,420 pts)</span>
-            </div>
-          </div>
+          {(() => {
+            const matchedHouse = houseStandings.find(h => 
+              student.house && (h.name.toLowerCase().includes(student.house.toLowerCase()) || student.house.toLowerCase().includes(h.name.toLowerCase()))
+            ) || houseStandings[0];
+            const sortedHouses = [...houseStandings].sort((a, b) => b.points - a.points);
+            const houseRank = matchedHouse ? sortedHouses.findIndex(h => h.name === matchedHouse.name) + 1 : 1;
+            const houseColor = matchedHouse?.color || '#2563eb';
+            const houseName = student.house || matchedHouse?.name || 'Unassigned House';
+            const housePoints = matchedHouse?.points ?? 1420;
+
+            return (
+              <div className="p-4 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center gap-3.5">
+                <div 
+                  className="w-12 h-12 rounded-xl text-white flex items-center justify-center font-black shadow-xs shrink-0"
+                  style={{ backgroundColor: houseColor }}
+                >
+                  <Shield className="w-6 h-6 text-white" />
+                </div>
+                <div className="min-w-0">
+                  <span className="text-[10px] font-black uppercase text-indigo-700 tracking-wider">Athletic House Team</span>
+                  <p className="text-sm sm:text-base font-black text-blue-950 truncate" title={houseName}>{houseName}</p>
+                  <span className="text-[10px] text-indigo-600 font-bold block">
+                    Rank #{houseRank} ({housePoints.toLocaleString()} pts)
+                  </span>
+                </div>
+              </div>
+            );
+          })()}
 
           <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center gap-3.5">
             <div className="w-12 h-12 rounded-xl bg-emerald-700 text-white flex items-center justify-center font-black">
@@ -1201,6 +1240,30 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* TAB: SCHOLAR & FACULTY CHAT HUB */}
+        {activeTab === 'chat' && (
+          <div className="space-y-6">
+            <div className="bg-gradient-to-r from-blue-950 via-indigo-950 to-purple-950 text-white p-6 rounded-3xl shadow-sm border border-blue-900 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <span className="px-2.5 py-0.5 rounded-full bg-amber-400/20 text-amber-300 text-[10px] font-black uppercase tracking-wider border border-amber-400/30">
+                  Student Community Network
+                </span>
+                <h2 className="text-xl font-black">Stanbax Scholar Discussion & Society Hub</h2>
+                <p className="text-xs text-blue-200 max-w-xl">
+                  Collaborate with your {student.grade} classmates, discuss assignments in co-curricular clubs, and contact faculty tutors for study assistance.
+                </p>
+              </div>
+            </div>
+
+            <SchoolChatSystem
+              currentUserRole="student"
+              currentUserId={student.id}
+              currentUserName={student.name}
+              currentUserSubtext={`${student.grade} Scholar`}
+            />
           </div>
         )}
 

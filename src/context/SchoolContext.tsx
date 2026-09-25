@@ -72,7 +72,9 @@ import {
   ParentConsultationRequest,
   FeePaymentRecord,
   LibraryBookItem,
-  SchemeOfWork
+  SchemeOfWork,
+  ChatChannel,
+  SchoolChatMessage
 } from '../types';
 import { defaultSchemesOfWork } from '../data/defaultSchemesOfWork';
 import { INITIAL_LESSON_NOTES } from '../data/initialLessonNotes';
@@ -119,7 +121,10 @@ import {
   DEFAULT_PARENTS,
   DEFAULT_PARENT_CONSULTATIONS,
   DEFAULT_FEE_PAYMENTS,
-  DEFAULT_LIBRARY_BOOKS
+  DEFAULT_LIBRARY_BOOKS,
+  DEFAULT_CBT_ATTEMPTS,
+  DEFAULT_CHAT_CHANNELS,
+  DEFAULT_CHAT_MESSAGES
 } from '../data/schoolData';
 
 interface SchoolContextType {
@@ -516,6 +521,17 @@ interface SchoolContextType {
   deleteSchemeOfWork: (id: string) => boolean;
   resetSchemesToDefault: () => void;
   getSchemeForSubjectAndClass: (subjectName: string, classLevel?: string, term?: string) => SchemeOfWork | undefined;
+
+  // 28. School Community Chat System (Students, Parents, Tutors & Admin)
+  chatChannels: ChatChannel[];
+  chatMessages: SchoolChatMessage[];
+  addChatChannel: (channel: Omit<ChatChannel, 'id' | 'createdAt'>) => ChatChannel;
+  updateChatChannel: (id: string, updates: Partial<ChatChannel>) => void;
+  deleteChatChannel: (id: string) => void;
+  sendChatMessage: (msg: Omit<SchoolChatMessage, 'id' | 'timestamp'>) => SchoolChatMessage;
+  deleteChatMessage: (id: string) => void;
+  flagChatMessage: (id: string, flagged?: boolean) => void;
+  resetChatToDefault: () => void;
 }
 
 const SchoolContext = createContext<SchoolContextType | undefined>(undefined);
@@ -4233,9 +4249,12 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [cbtAttempts, setCbtAttempts] = useState<CbtAttempt[]>(() => {
     const saved = localStorage.getItem('stanbax_cbt_attempts');
     if (saved) {
-      try { return JSON.parse(saved); } catch (e) { console.error('Error parsing cbt attempts', e); }
+      try { 
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) { console.error('Error parsing cbt attempts', e); }
     }
-    return [];
+    return DEFAULT_CBT_ATTEMPTS;
   });
 
   const addCbtExam = (examData: Omit<CbtExam, 'id'>): CbtExam => {
@@ -5040,6 +5059,108 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     });
   };
 
+  // 28. School Community Chat System (Students, Parents, Tutors & Admin)
+  const [chatChannels, setChatChannels] = useState<ChatChannel[]>(() => {
+    try {
+      const saved = localStorage.getItem('stanbax_chat_channels');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {
+      console.error('Error loading chat channels', e);
+    }
+    return DEFAULT_CHAT_CHANNELS;
+  });
+
+  const [chatMessages, setChatMessages] = useState<SchoolChatMessage[]>(() => {
+    try {
+      const saved = localStorage.getItem('stanbax_chat_messages');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {
+      console.error('Error loading chat messages', e);
+    }
+    return DEFAULT_CHAT_MESSAGES;
+  });
+
+  const addChatChannel = (channelData: Omit<ChatChannel, 'id' | 'createdAt'>): ChatChannel => {
+    const newChan: ChatChannel = {
+      ...channelData,
+      id: `chan-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      createdAt: new Date().toISOString()
+    };
+    setChatChannels(prev => {
+      const updated = [...prev, newChan];
+      try { localStorage.setItem('stanbax_chat_channels', JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+    return newChan;
+  };
+
+  const updateChatChannel = (id: string, updates: Partial<ChatChannel>) => {
+    setChatChannels(prev => {
+      const updated = prev.map(c => c.id === id ? { ...c, ...updates } : c);
+      try { localStorage.setItem('stanbax_chat_channels', JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+  };
+
+  const deleteChatChannel = (id: string) => {
+    setChatChannels(prev => {
+      const updated = prev.filter(c => c.id !== id);
+      try { localStorage.setItem('stanbax_chat_channels', JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+    // Also remove messages belonging to deleted channel
+    setChatMessages(prev => {
+      const updated = prev.filter(m => m.channelId !== id);
+      try { localStorage.setItem('stanbax_chat_messages', JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+  };
+
+  const sendChatMessage = (msgData: Omit<SchoolChatMessage, 'id' | 'timestamp'>): SchoolChatMessage => {
+    const newMsg: SchoolChatMessage = {
+      ...msgData,
+      id: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      timestamp: new Date().toISOString()
+    };
+    setChatMessages(prev => {
+      const updated = [...prev, newMsg];
+      try { localStorage.setItem('stanbax_chat_messages', JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+    return newMsg;
+  };
+
+  const deleteChatMessage = (id: string) => {
+    setChatMessages(prev => {
+      const updated = prev.map(m => m.id === id ? { ...m, deletedByAdmin: true } : m);
+      try { localStorage.setItem('stanbax_chat_messages', JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+  };
+
+  const flagChatMessage = (id: string, flagged: boolean = true) => {
+    setChatMessages(prev => {
+      const updated = prev.map(m => m.id === id ? { ...m, flaggedByAdmin: flagged } : m);
+      try { localStorage.setItem('stanbax_chat_messages', JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+  };
+
+  const resetChatToDefault = () => {
+    setChatChannels(DEFAULT_CHAT_CHANNELS);
+    setChatMessages(DEFAULT_CHAT_MESSAGES);
+    try {
+      localStorage.setItem('stanbax_chat_channels', JSON.stringify(DEFAULT_CHAT_CHANNELS));
+      localStorage.setItem('stanbax_chat_messages', JSON.stringify(DEFAULT_CHAT_MESSAGES));
+    } catch {}
+  };
+
   // 15B. Dynamic Available Academic Sessions across current & archives
   const availableSessions = Array.from(new Set([
     assessmentConfig.activeSession,
@@ -5331,7 +5452,17 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         updateSchemeOfWork,
         deleteSchemeOfWork,
         resetSchemesToDefault,
-        getSchemeForSubjectAndClass
+        getSchemeForSubjectAndClass,
+        // 28. School Community Chat System (Students, Parents, Tutors & Admin)
+        chatChannels,
+        chatMessages,
+        addChatChannel,
+        updateChatChannel,
+        deleteChatChannel,
+        sendChatMessage,
+        deleteChatMessage,
+        flagChatMessage,
+        resetChatToDefault
       }}
     >
       {children}

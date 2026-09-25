@@ -32,12 +32,15 @@ import {
   AcademicCalendarEvent,
   HistoricalSessionRecord,
   CbtExam,
+  CbtAttempt,
   ClassWeeklyTimetable,
   SickBayVisitLog,
   ParentProfile,
   ParentConsultationRequest,
   FeePaymentRecord,
-  LibraryBookItem
+  LibraryBookItem,
+  ChatChannel,
+  SchoolChatMessage
 } from '../types';
 
 export const DEFAULT_IMAGES: AppImages = {
@@ -413,8 +416,8 @@ export const DEMO_STUDENT: StudentProfile = {
   password: 'stanbax2025',
   securityQuestion: 'What is your favourite subject?',
   securityAnswer: 'Physics',
-  house: 'Sapphire House (Blue)',
-  clubs: ['Literary & Debating Society', 'Junior Engineers & Technicians (JETS) Club'],
+  house: 'Sapphire (Blue House)',
+  clubs: ['Literary & Debating Society', 'JETS Science & Robotics Club'],
   attendancePercent: 98,
   attendanceDays: 59,
   totalSchoolDays: 60,
@@ -445,6 +448,8 @@ export const DEMO_STUDENTS: StudentProfile[] = [
     parentEmail: 'akindele.eng@yahoo.com',
     email: 'stx2023043@stanbaxschools.edu.ng',
     password: 'stanbax2025',
+    house: 'Ruby (Red House)',
+    clubs: ['JETS Science & Robotics Club'],
     attendancePercent: 95,
     attendanceDays: 57,
     totalSchoolDays: 60,
@@ -472,6 +477,8 @@ export const DEMO_STUDENTS: StudentProfile[] = [
     parentEmail: 'okafor.family@gmail.com',
     email: 'stx2023044@stanbaxschools.edu.ng',
     password: 'stanbax2025',
+    house: 'Emerald (Green House)',
+    clubs: ['Literary & Debating Society', 'Music & Brass Band'],
     attendancePercent: 97,
     attendanceDays: 58,
     totalSchoolDays: 60,
@@ -499,6 +506,8 @@ export const DEMO_STUDENTS: StudentProfile[] = [
     parentEmail: 'fashola.law@gmail.com',
     email: 'stx2023045@stanbaxschools.edu.ng',
     password: 'stanbax2025',
+    house: 'Topaz (Yellow House)',
+    clubs: ['Press & Media Club'],
     attendancePercent: 92,
     attendanceDays: 55,
     totalSchoolDays: 60,
@@ -526,6 +535,8 @@ export const DEMO_STUDENTS: StudentProfile[] = [
     parentEmail: 'oghomwen.clinic@gmail.com',
     email: 'stx2023046@stanbaxschools.edu.ng',
     password: 'stanbax2025',
+    house: 'Sapphire (Blue House)',
+    clubs: ['JETS Science & Robotics Club'],
     attendancePercent: 96,
     attendanceDays: 58,
     totalSchoolDays: 60,
@@ -553,6 +564,8 @@ export const DEMO_STUDENTS: StudentProfile[] = [
     parentEmail: 'danjuma.holdings@gmail.com',
     email: 'stx2023047@stanbaxschools.edu.ng',
     password: 'stanbax2025',
+    house: 'Ruby (Red House)',
+    clubs: ['Music & Brass Band'],
     attendancePercent: 88,
     attendanceDays: 53,
     totalSchoolDays: 60,
@@ -581,6 +594,8 @@ export const DEMO_STUDENTS: StudentProfile[] = [
     email: 'stx2024101@stanbaxschools.edu.ng',
     password: 'stanbax2025',
     parentEmail: 'bello.family@gmail.com',
+    house: 'Emerald (Green House)',
+    clubs: ['Literary & Debating Society'],
     attendancePercent: 100,
     attendanceDays: 60,
     totalSchoolDays: 60,
@@ -608,6 +623,8 @@ export const DEMO_STUDENTS: StudentProfile[] = [
     email: 'stx2024102@stanbaxschools.edu.ng',
     password: 'stanbax2025',
     parentEmail: 'nnamdi.family@gmail.com',
+    house: 'Topaz (Yellow House)',
+    clubs: ['Press & Media Club'],
     attendancePercent: 94,
     attendanceDays: 56,
     totalSchoolDays: 60,
@@ -1601,6 +1618,291 @@ export const DEFAULT_LIBRARY_BOOKS: LibraryBookItem[] = [
     summary: 'Hands-on projects for Arduino microcontrollers, sensor integration, Python loops, and algorithmic problem-solving.',
     downloadsCount: 198,
     year: '2026 Edition'
+  }
+];
+
+// ==========================================
+// 6. DEFAULT CBT ATTEMPTS (For Leaderboards)
+// ==========================================
+export const DEFAULT_CBT_ATTEMPTS: CbtAttempt[] = [
+  {
+    id: 'att-seed-1',
+    examId: 'cbt-phy-ss2',
+    examTitle: 'SS 2 Physics Termly Mock Assessment (WAEC/NECO Standard)',
+    subject: 'Physics',
+    studentId: 'stu-3',
+    studentName: 'Chidera Okafor',
+    score: 6,
+    totalQuestions: 6,
+    percentage: 100,
+    passed: true,
+    dateAttempted: '2026-09-21T10:15:00.000Z',
+    answers: { 'q-phy-1': 2, 'q-phy-2': 2, 'q-phy-3': 1, 'q-phy-4': 1, 'q-phy-5': 2, 'q-phy-6': 1 }
+  },
+  {
+    id: 'att-seed-2',
+    examId: 'cbt-phy-ss2',
+    examTitle: 'SS 2 Physics Termly Mock Assessment (WAEC/NECO Standard)',
+    subject: 'Physics',
+    studentId: 'stu-1',
+    studentName: 'Tiwa Adeleke',
+    score: 5,
+    totalQuestions: 6,
+    percentage: 83,
+    passed: true,
+    dateAttempted: '2026-09-21T11:45:00.000Z',
+    answers: { 'q-phy-1': 2, 'q-phy-2': 2, 'q-phy-3': 1, 'q-phy-4': 1, 'q-phy-5': 2, 'q-phy-6': 0 }
+  },
+  {
+    id: 'att-seed-3',
+    examId: 'cbt-phy-ss2',
+    examTitle: 'SS 2 Physics Termly Mock Assessment (WAEC/NECO Standard)',
+    subject: 'Physics',
+    studentId: 'stu-5',
+    studentName: 'Efe Oghomwen',
+    score: 5,
+    totalQuestions: 6,
+    percentage: 83,
+    passed: true,
+    dateAttempted: '2026-09-22T09:20:00.000Z',
+    answers: { 'q-phy-1': 2, 'q-phy-2': 2, 'q-phy-3': 1, 'q-phy-4': 0, 'q-phy-5': 2, 'q-phy-6': 1 }
+  },
+  {
+    id: 'att-seed-4',
+    examId: 'cbt-phy-ss2',
+    examTitle: 'SS 2 Physics Termly Mock Assessment (WAEC/NECO Standard)',
+    subject: 'Physics',
+    studentId: 'stu-2',
+    studentName: 'Babatunde Akindele',
+    score: 4,
+    totalQuestions: 6,
+    percentage: 67,
+    passed: true,
+    dateAttempted: '2026-09-22T14:10:00.000Z',
+    answers: { 'q-phy-1': 2, 'q-phy-2': 0, 'q-phy-3': 1, 'q-phy-4': 1, 'q-phy-5': 0, 'q-phy-6': 1 }
+  },
+  {
+    id: 'att-seed-5',
+    examId: 'cbt-eng-jamb',
+    examTitle: 'JAMB UTME English Language Use of English & Lexis',
+    subject: 'English Language',
+    studentId: 'stu-1',
+    studentName: 'Tiwa Adeleke',
+    score: 2,
+    totalQuestions: 2,
+    percentage: 100,
+    passed: true,
+    dateAttempted: '2026-09-23T08:30:00.000Z',
+    answers: { 'q-eng-1': 0, 'q-eng-2': 1 }
+  },
+  {
+    id: 'att-seed-6',
+    examId: 'cbt-mth-bece',
+    examTitle: 'BECE / Junior WAEC Mathematics Speed Drills',
+    subject: 'Mathematics',
+    studentId: 'stu-7',
+    studentName: 'Amina Bello',
+    score: 3,
+    totalQuestions: 3,
+    percentage: 100,
+    passed: true,
+    dateAttempted: '2026-09-20T16:00:00.000Z',
+    answers: { 'q-mth-1': 1, 'q-mth-2': 2, 'q-mth-3': 0 }
+  },
+  {
+    id: 'att-seed-7',
+    examId: 'cbt-mth-bece',
+    examTitle: 'BECE / Junior WAEC Mathematics Speed Drills',
+    subject: 'Mathematics',
+    studentId: 'stu-8',
+    studentName: 'Kenechukwu Nnamdi',
+    score: 2,
+    totalQuestions: 3,
+    percentage: 67,
+    passed: true,
+    dateAttempted: '2026-09-21T15:20:00.000Z',
+    answers: { 'q-mth-1': 1, 'q-mth-2': 0, 'q-mth-3': 0 }
+  }
+];
+
+// ==========================================
+// 7. DEFAULT COMMUNITY CHAT CHANNELS
+// ==========================================
+export const DEFAULT_CHAT_CHANNELS: ChatChannel[] = [
+  {
+    id: 'chan-gen-announcement',
+    name: 'Official School Announcements',
+    type: 'announcement',
+    description: 'Universal administrative bulletin for scholars, tutors, and guardians.',
+    createdAt: '2026-09-01T08:00:00.000Z',
+    createdBy: 'admin-1',
+    isReadOnly: true
+  },
+  {
+    id: 'chan-cls-sss2',
+    name: 'SSS 2 Science — Class Forum',
+    type: 'class',
+    description: 'Daily academic debates, peer study groups, and classroom updates.',
+    classId: 'cls-14',
+    className: 'SSS 2 Science',
+    createdAt: '2026-09-01T08:00:00.000Z',
+    createdBy: 'admin-1'
+  },
+  {
+    id: 'chan-cls-jss1',
+    name: 'JSS 1 — Class Forum',
+    type: 'class',
+    description: 'Junior secondary scholars collaborative discussions.',
+    classId: 'cls-10',
+    className: 'JSS 1',
+    createdAt: '2026-09-01T08:00:00.000Z',
+    createdBy: 'admin-1'
+  },
+  {
+    id: 'chan-club-jets',
+    name: 'JETS Science & Robotics Club',
+    type: 'club',
+    description: 'Prototyping, robotics experiments, Olympiad prep, and circuit design.',
+    clubId: 'cl-1',
+    clubName: 'JETS Science & Robotics Club',
+    createdAt: '2026-09-01T08:00:00.000Z',
+    createdBy: 'admin-1'
+  },
+  {
+    id: 'chan-club-debate',
+    name: 'Literary & Debating Society',
+    type: 'club',
+    description: 'Oratory tournaments, mock parliaments, and essay symposiums.',
+    clubId: 'cl-2',
+    clubName: 'Literary & Debating Society',
+    createdAt: '2026-09-01T08:00:00.000Z',
+    createdBy: 'admin-1'
+  },
+  {
+    id: 'chan-club-press',
+    name: 'Press & Media Club',
+    type: 'club',
+    description: 'Termly gazette publishing, journalism, and photography.',
+    clubId: 'cl-4',
+    clubName: 'Press & Media Club',
+    createdAt: '2026-09-01T08:00:00.000Z',
+    createdBy: 'admin-1'
+  },
+  {
+    id: 'chan-dm-parent-tutor',
+    name: 'Guardian Link: Chief Adeleke & Mr. Ogunleye',
+    type: 'direct',
+    description: 'Authorized private consultation channel between parent and appointed faculty tutor.',
+    directParticipantIds: ['parent-1', 'tut-1', 'admin-1'],
+    directParticipantNames: ['Chief & Mrs. Adebayo Adeleke (Parent)', 'Mr. Olumide Ogunleye (Form Master)'],
+    createdAt: '2026-09-15T09:00:00.000Z',
+    createdBy: 'admin-1'
+  },
+  {
+    id: 'chan-dm-student-tutor',
+    name: 'Academic Mentorship: Tiwa Adeleke & Dr. Obi',
+    type: 'direct',
+    description: 'Private academic consultation and Olympiad mentoring.',
+    directParticipantIds: ['stu-1', 'tut-3', 'admin-1'],
+    directParticipantNames: ['Tiwa Adeleke (Scholar)', 'Dr. Chukwuemeka Obi (Tutor)'],
+    createdAt: '2026-09-18T14:00:00.000Z',
+    createdBy: 'admin-1'
+  }
+];
+
+// ==========================================
+// 8. DEFAULT COMMUNITY CHAT MESSAGES
+// ==========================================
+export const DEFAULT_CHAT_MESSAGES: SchoolChatMessage[] = [
+  {
+    id: 'msg-ann-1',
+    channelId: 'chan-gen-announcement',
+    senderId: 'admin-1',
+    senderName: 'Principal Administrator',
+    senderRole: 'admin',
+    senderSubtext: 'Stanbax Central Registry',
+    content: 'Good morning scholars, esteemed tutors, and parents! Continuous Assessment tests and CBT simulations are active this week. Please review your weekly timetables and prepare diligently.',
+    timestamp: '2026-09-22T07:45:00.000Z'
+  },
+  {
+    id: 'msg-cls-1',
+    channelId: 'chan-cls-sss2',
+    senderId: 'tut-1',
+    senderName: 'Mr. Olumide Ogunleye',
+    senderRole: 'tutor',
+    senderSubtext: 'Physics Tutor & Form Master',
+    content: 'Welcome SSS 2 scholars! The laboratory practical on Snell’s Law and optical refraction will take place on Thursday at 10:15 AM. Ensure your lab coats and graph sheets are ready.',
+    timestamp: '2026-09-22T08:15:00.000Z'
+  },
+  {
+    id: 'msg-cls-2',
+    channelId: 'chan-cls-sss2',
+    senderId: 'stu-1',
+    senderName: 'Tiwa Adeleke',
+    senderRole: 'student',
+    senderSubtext: 'SSS 2 Science (Class Prefect)',
+    content: 'Noted, Sir! I have coordinated with the lab steward. We have 20 triangular glass prisms and ray boxes prepared for the experiment.',
+    timestamp: '2026-09-22T08:22:00.000Z'
+  },
+  {
+    id: 'msg-cls-3',
+    channelId: 'chan-cls-sss2',
+    senderId: 'stu-3',
+    senderName: 'Chidera Okafor',
+    senderRole: 'student',
+    senderSubtext: 'SSS 2 Science',
+    content: 'Has anyone finished question 7 on the Kinematics assignment? The projectile formula for horizontal range is yielding 120m for me.',
+    timestamp: '2026-09-22T16:40:00.000Z'
+  },
+  {
+    id: 'msg-cls-4',
+    channelId: 'chan-cls-sss2',
+    senderId: 'stu-2',
+    senderName: 'Babatunde Akindele',
+    senderRole: 'student',
+    senderSubtext: 'SSS 2 Science',
+    content: 'Yes Chidera! Using R = (u² sin 2θ) / g gives 120 metres exactly at 45 degrees initial launch angle.',
+    timestamp: '2026-09-22T17:05:00.000Z'
+  },
+  {
+    id: 'msg-club-1',
+    channelId: 'chan-club-jets',
+    senderId: 'tut-1',
+    senderName: 'Mr. Olumide Ogunleye',
+    senderRole: 'tutor',
+    senderSubtext: 'JETS Faculty Patron',
+    content: 'Congratulations to our JETS Arduino robotics team for passing stage 1 of the National Science Olympiad! Meeting this Wednesday at 3:00 PM in the ICT Innovation Lab.',
+    timestamp: '2026-09-23T09:10:00.000Z'
+  },
+  {
+    id: 'msg-club-2',
+    channelId: 'chan-club-jets',
+    senderId: 'stu-1',
+    senderName: 'Tiwa Adeleke',
+    senderRole: 'student',
+    senderSubtext: 'JETS Project Lead',
+    content: 'Thank you Sir! We have already coded the autonomous obstacle-avoidance ultrasonic algorithm in Python and C++.',
+    timestamp: '2026-09-23T09:30:00.000Z'
+  },
+  {
+    id: 'msg-dm-1',
+    channelId: 'chan-dm-parent-tutor',
+    senderId: 'parent-1',
+    senderName: 'Chief Adebayo Adeleke',
+    senderRole: 'parent',
+    senderSubtext: 'Parent of Tiwa Adeleke',
+    content: 'Good afternoon Mr. Ogunleye. We noticed Tiwa’s outstanding result in the Physics CBT simulation. We would like to confirm the schedule for the upcoming Cambridge IGCSE revision seminars.',
+    timestamp: '2026-09-23T13:15:00.000Z'
+  },
+  {
+    id: 'msg-dm-2',
+    channelId: 'chan-dm-parent-tutor',
+    senderId: 'tut-1',
+    senderName: 'Mr. Olumide Ogunleye',
+    senderRole: 'tutor',
+    senderSubtext: 'Senior Physics Faculty',
+    content: 'Good day Chief Adeleke. Tiwa’s analytical aptitude is exemplary! The IGCSE masterclass runs every Saturday 9:00 AM – 12:00 PM. All learning modules have been uploaded to the Digital Library.',
+    timestamp: '2026-09-23T14:00:00.000Z'
   }
 ];
 

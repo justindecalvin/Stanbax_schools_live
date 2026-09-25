@@ -29,7 +29,7 @@ import {
   CheckCircle2,
   AlertCircle
 } from '../../RealIcons';
-import { HeroSlide, AcademicProgram, KeyPillarItem, Club, Testimonial } from '../../../types';
+import { HeroSlide, AcademicProgram, KeyPillarItem, Club, Testimonial, HouseStanding } from '../../../types';
 import { DEFAULT_IMAGES } from '../../../data/schoolData';
 
 type CmsSubTab = 
@@ -81,6 +81,8 @@ export const AdminLandingPageTab: React.FC = () => {
     resetClubsToDefault,
     houseStandings, 
     updateHouseStanding, 
+    addHouseStanding,
+    deleteHouseStanding,
     resetHouseStandingsToDefault,
     testimonials, 
     testimonialsHeader, 
@@ -1556,33 +1558,124 @@ export const AdminLandingPageTab: React.FC = () => {
 
             {/* House Standings */}
             <div className="pt-6 border-t border-stone-100 space-y-4">
-              <h4 className="text-sm font-black text-stone-900">
-                Inter-House Sports Standings
-              </h4>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h4 className="text-sm font-black text-stone-900 flex items-center gap-2">
+                    <Trophy className="w-4 h-4 text-amber-500" />
+                    <span>Inter-House Sports Standings & Teams</span>
+                  </h4>
+                  <p className="text-xs text-stone-500 mt-0.5">
+                    Create, edit or delete official athletic houses. Changes immediately update the public landing page, scholar portals, ID cards, and athletic standings across Stanbax.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={resetHouseStandingsToDefault}
+                    className="px-3 py-1.5 text-xs font-bold text-stone-600 bg-stone-100 hover:bg-stone-200 rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    Reset Houses
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const newHouse: HouseStanding = {
+                        name: `Diamond (White House)`,
+                        color: '#475569',
+                        points: 1200,
+                        motto: 'Purity, Strength & Resilience',
+                        houseMaster: 'Mr. David Adeleke'
+                      };
+                      addHouseStanding(newHouse);
+                      showToast('New athletic house created successfully!');
+                    }}
+                    className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-stone-950 text-xs font-black rounded-xl shadow-xs flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Create House Team
+                  </button>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {houseStandings.map((h) => (
-                  <div key={h.name} className="p-4 bg-white rounded-2xl border border-stone-200 shadow-xs space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-black">{h.name}</span>
-                      <span className="text-xs font-black text-red-600">{h.points} Pts</span>
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold text-stone-500 mb-0.5">Points</label>
-                      <input 
-                        type="number"
-                        value={h.points}
-                        onChange={(e) => updateHouseStanding(h.name, { points: Number(e.target.value) })}
-                        className="w-full px-2 py-1 text-xs font-bold bg-stone-50 border border-stone-300 rounded-lg"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold text-stone-500 mb-0.5">House Master</label>
-                      <input 
-                        type="text"
-                        value={h.houseMaster || ''}
-                        onChange={(e) => updateHouseStanding(h.name, { houseMaster: e.target.value })}
-                        className="w-full px-2 py-1 text-xs bg-stone-50 border border-stone-300 rounded-lg"
-                      />
+                  <div key={h.name} className="p-4 bg-white rounded-2xl border border-stone-200 shadow-xs space-y-3 relative overflow-hidden flex flex-col justify-between">
+                    <div className="absolute top-0 left-0 right-0 h-2" style={{ backgroundColor: h.color }} />
+                    <div className="space-y-2 pt-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <input
+                          type="text"
+                          value={h.name}
+                          onChange={(e) => updateHouseStanding(h.name, { name: e.target.value })}
+                          className="text-xs font-black bg-stone-50 border border-stone-300 rounded-lg px-2 py-1 flex-1"
+                          placeholder="House Name"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (confirm(`Are you sure you want to delete ${h.name}?`)) {
+                              deleteHouseStanding(h.name);
+                              showToast(`Deleted ${h.name}`);
+                            }
+                          }}
+                          className="text-stone-400 hover:text-red-600 p-1 cursor-pointer transition-colors"
+                          title="Delete House"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-[10px] font-bold text-stone-500 mb-0.5">Points</label>
+                          <input 
+                            type="number"
+                            value={h.points}
+                            onChange={(e) => updateHouseStanding(h.name, { points: Number(e.target.value) })}
+                            className="w-full px-2 py-1 text-xs font-bold bg-stone-50 border border-stone-300 rounded-lg"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-stone-500 mb-0.5">House Color</label>
+                          <div className="flex items-center gap-1.5">
+                            <input 
+                              type="color"
+                              value={h.color || '#2563eb'}
+                              onChange={(e) => updateHouseStanding(h.name, { color: e.target.value })}
+                              className="w-7 h-7 rounded border border-stone-300 p-0.5 cursor-pointer"
+                            />
+                            <input 
+                              type="text"
+                              value={h.color || '#2563eb'}
+                              onChange={(e) => updateHouseStanding(h.name, { color: e.target.value })}
+                              className="w-full px-1.5 py-1 text-[10px] font-mono bg-stone-50 border border-stone-300 rounded-lg"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-bold text-stone-500 mb-0.5">House Motto</label>
+                        <input 
+                          type="text"
+                          value={h.motto || ''}
+                          onChange={(e) => updateHouseStanding(h.name, { motto: e.target.value })}
+                          placeholder="e.g. Valour and Integrity"
+                          className="w-full px-2 py-1 text-xs bg-stone-50 border border-stone-300 rounded-lg italic text-stone-700"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-bold text-stone-500 mb-0.5">House Master / Mistress</label>
+                        <input 
+                          type="text"
+                          value={h.houseMaster || ''}
+                          onChange={(e) => updateHouseStanding(h.name, { houseMaster: e.target.value })}
+                          placeholder="e.g. Mr. Olumide Ogunleye"
+                          className="w-full px-2 py-1 text-xs bg-stone-50 border border-stone-300 rounded-lg"
+                        />
+                      </div>
                     </div>
                   </div>
                 ))}

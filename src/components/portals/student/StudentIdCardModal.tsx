@@ -15,10 +15,16 @@ import {
 } from '../../RealIcons';
 
 export const StudentIdCardModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
-  const { student, schoolInfo, images } = useSchool();
+  const { student, schoolInfo, images, houseStandings } = useSchool();
   const cardRef = useRef<HTMLDivElement>(null);
 
   if (!isOpen) return null;
+
+  const matchedHouse = houseStandings.find(h => 
+    student.house && (h.name.toLowerCase().includes(student.house.toLowerCase()) || student.house.toLowerCase().includes(h.name.toLowerCase()))
+  ) || houseStandings[0];
+  const houseColor = matchedHouse?.color || '#eab308';
+  const houseDisplay = student.house || matchedHouse?.name || 'Unassigned House';
 
   const handlePrint = () => {
     window.print();
@@ -87,7 +93,7 @@ export const StudentIdCardModal: React.FC<{ isOpen: boolean; onClose: () => void
                     <span className="text-neutral-400">Class:</span> <strong className="text-white">{student.grade}</strong>
                   </div>
                   <div>
-                    <span className="text-neutral-400">House:</span> <strong className="text-amber-300">{student.house || 'Yellow'}</strong>
+                    <span className="text-neutral-400">House:</span> <strong style={{ color: houseColor }}>{houseDisplay}</strong>
                   </div>
                 </div>
               </div>

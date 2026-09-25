@@ -30,6 +30,7 @@ import {
 } from '../RealIcons';
 import { ParentProfile, StudentProfile, ParentConsultationRequest, FeePaymentRecord } from '../../types';
 import { PortalLoginPage } from '../PortalLoginPage';
+import { SchoolChatSystem } from '../chat/SchoolChatSystem';
 
 interface ParentPortalProps {
   onBackToWebsite: () => void;
@@ -81,7 +82,7 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({ onBackToWebsite }) =
   const selectedChild = linkedChildren.find(c => c.id === selectedChildId) || linkedChildren[0] || students[0];
 
   // Active navigation tab
-  type ParentTab = 'overview' | 'academics' | 'fees' | 'health' | 'consultation' | 'timetable';
+  type ParentTab = 'overview' | 'academics' | 'fees' | 'health' | 'consultation' | 'timetable' | 'chat';
   const [activeTab, setActiveTab] = useState<ParentTab>('overview');
 
   // Consultation Booking Modal / Form State
@@ -193,7 +194,8 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({ onBackToWebsite }) =
     { id: 'fees' as const, label: 'Bursary & Fee Clearance', icon: CreditCard },
     { id: 'health' as const, label: 'Clinic & Health Log', icon: HeartPulse, badge: childSickBayVisits.length || undefined },
     { id: 'timetable' as const, label: 'Weekly Class Schedule', icon: Calendar },
-    { id: 'consultation' as const, label: 'Faculty Consultations', icon: MessageSquare, badge: myConsultations.filter(c => c.status === 'Approved').length || undefined }
+    { id: 'consultation' as const, label: 'Faculty Consultations', icon: MessageSquare, badge: myConsultations.filter(c => c.status === 'Approved').length || undefined },
+    { id: 'chat' as const, label: 'School Community & Tutors Chat', icon: MessageSquare }
   ];
 
   return (
@@ -958,6 +960,33 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({ onBackToWebsite }) =
                 </div>
               )}
             </div>
+          </div>
+        )}
+
+        {/* TAB 7: SCHOOL COMMUNITY & CHAT */}
+        {activeTab === 'chat' && (
+          <div className="space-y-4 animate-fadeIn">
+            <div className="bg-gradient-to-r from-stone-900 via-amber-950 to-stone-900 p-6 rounded-3xl text-white shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-4 border border-amber-900/50">
+              <div className="space-y-1">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[11px] font-black uppercase tracking-wider">
+                  <MessageSquare className="w-3.5 h-3.5" />
+                  <span>PTA, Faculty & Ward Communications</span>
+                </div>
+                <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white">
+                  Parent Community & Direct Tutor Desk
+                </h2>
+                <p className="text-xs text-stone-300 max-w-xl">
+                  Connect directly with teachers, engage in the Parents & Teachers Association (PTA) channel, and receive administrative announcements.
+                </p>
+              </div>
+            </div>
+
+            <SchoolChatSystem
+              currentUserRole="parent"
+              currentUserId={activeParent.id}
+              currentUserName={activeParent.fullName}
+              currentUserSubtext={`Guardian of ${selectedChild.name} (${selectedChild.grade})`}
+            />
           </div>
         )}
 
