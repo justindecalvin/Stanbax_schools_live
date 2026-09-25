@@ -1253,8 +1253,14 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
                 </span>
                 <h2 className="text-xl font-black">Stanbax Scholar Discussion & Society Hub</h2>
                 <p className="text-xs text-blue-200 max-w-xl">
-                  Collaborate with your {student.grade} classmates, discuss assignments in co-curricular clubs, and contact faculty tutors for study assistance.
+                  Collaborate with your {student.grade} classmates, discuss assignments in co-curricular clubs, and message peers privately (school administration maintains safeguarding oversight).
                 </p>
+              </div>
+
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-white/10 border border-white/10 text-xs text-indigo-200 shrink-0">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="font-bold text-white">Private Peer Chat Enabled</span>
+                <span className="text-[10px] text-amber-300 font-semibold">• Admin Safeguarded</span>
               </div>
             </div>
 

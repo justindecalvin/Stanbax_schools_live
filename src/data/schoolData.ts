@@ -1807,6 +1807,16 @@ export const DEFAULT_CHAT_CHANNELS: ChatChannel[] = [
     directParticipantNames: ['Tiwa Adeleke (Scholar)', 'Dr. Chukwuemeka Obi (Tutor)'],
     createdAt: '2026-09-18T14:00:00.000Z',
     createdBy: 'admin-1'
+  },
+  {
+    id: 'chan-dm-student-peer',
+    name: 'Private Peer Study: Tiwa Adeleke & Tobi Alabi',
+    type: 'direct',
+    description: 'Private student-to-student study dialogue between SSS 2 classmates. School administration maintains supervisory safeguarding oversight.',
+    directParticipantIds: ['stu-1', 'stu-2', 'admin-1'],
+    directParticipantNames: ['Tiwa Adeleke (Scholar)', 'Tobi Alabi (Scholar)'],
+    createdAt: '2026-09-20T10:00:00.000Z',
+    createdBy: 'stu-1'
   }
 ];
 
@@ -1903,6 +1913,36 @@ export const DEFAULT_CHAT_MESSAGES: SchoolChatMessage[] = [
     senderSubtext: 'Senior Physics Faculty',
     content: 'Good day Chief Adeleke. Tiwa’s analytical aptitude is exemplary! The IGCSE masterclass runs every Saturday 9:00 AM – 12:00 PM. All learning modules have been uploaded to the Digital Library.',
     timestamp: '2026-09-23T14:00:00.000Z'
+  },
+  {
+    id: 'msg-dm-peer-1',
+    channelId: 'chan-dm-student-peer',
+    senderId: 'stu-1',
+    senderName: 'Tiwa Adeleke',
+    senderRole: 'student',
+    senderSubtext: 'SSS 2 Scholar',
+    content: 'Hi Tobi! Have you worked through the calculus differentiation exercise for Week 3? I am reviewing the quadratic factorizations right now.',
+    timestamp: '2026-09-23T16:00:00.000Z'
+  },
+  {
+    id: 'msg-dm-peer-2',
+    channelId: 'chan-dm-student-peer',
+    senderId: 'stu-2',
+    senderName: 'Tobi Alabi',
+    senderRole: 'student',
+    senderSubtext: 'SSS 2 Scholar',
+    content: 'Hello Tiwa! Yes, I solved questions 1 to 5. Let’s compare our working steps during free prep period in the library tomorrow.',
+    timestamp: '2026-09-23T16:15:00.000Z'
+  },
+  {
+    id: 'msg-dm-peer-3',
+    channelId: 'chan-dm-student-peer',
+    senderId: 'stu-1',
+    senderName: 'Tiwa Adeleke',
+    senderRole: 'student',
+    senderSubtext: 'SSS 2 Scholar',
+    content: 'Sounds great! Calvin AI gave me a clear step-by-step derivation for the turning points too.',
+    timestamp: '2026-09-23T16:20:00.000Z'
   }
 ];
 

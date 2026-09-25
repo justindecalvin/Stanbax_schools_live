@@ -421,9 +421,16 @@ export const StudentCalvinAiTab: React.FC<StudentCalvinAiTabProps> = ({ student 
         }
       }
 
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 20000);
+
       const res = await fetch('/api/calvin-chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        signal: controller.signal,
         body: JSON.stringify({
           message: query,
           studentName: student.name,
@@ -435,8 +442,20 @@ export const StudentCalvinAiTab: React.FC<StudentCalvinAiTabProps> = ({ student 
           chatHistory
         })
       });
+      clearTimeout(timeoutId);
 
-      const data = await res.json();
+      const contentType = res.headers.get('content-type') || '';
+      let data: any = null;
+      if (contentType.includes('application/json')) {
+        data = await res.json();
+      } else {
+        const rawText = await res.text();
+        try {
+          data = JSON.parse(rawText);
+        } catch {
+          data = { success: false, error: 'Server returned non-JSON response' };
+        }
+      }
 
       if (data.success && data.reply) {
         const calvinMsg: ChatMessage = {

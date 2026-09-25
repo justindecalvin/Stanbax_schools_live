@@ -11,6 +11,8 @@ import {
   Trash2, 
   Flag, 
   ShieldCheck, 
+  Shield,
+  Eye,
   User, 
   GraduationCap, 
   BookOpen, 
@@ -72,6 +74,12 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
   const [newChanDirectUser, setNewChanDirectUser] = useState('');
   const [newChanReadOnly, setNewChanReadOnly] = useState(false);
 
+  // Peer-to-Peer Student Messaging State
+  const [showDirectPeerModal, setShowDirectPeerModal] = useState(false);
+  const [peerSearchTerm, setPeerSearchTerm] = useState('');
+  const [peerFilterClass, setPeerFilterClass] = useState<string>('all');
+  const [peerTab, setPeerTab] = useState<'classmates' | 'all_scholars' | 'tutors'>('classmates');
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll messages to bottom
@@ -84,6 +92,36 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
   const isTutor = currentUserRole === 'tutor';
   const isParent = currentUserRole === 'parent';
   const isStudent = currentUserRole === 'student';
+
+  // Start or open a 1:1 direct chat between students (or with tutors), with admin safeguarding inclusion
+  const handleStartDirectChat = (targetId: string, targetName: string, _targetRole: 'student' | 'tutor' | 'parent' = 'student') => {
+    // Check if a direct chat channel already exists between these two participants
+    const existing = chatChannels.find(c => 
+      c.type === 'direct' && 
+      c.directParticipantIds?.includes(currentUserId) && 
+      c.directParticipantIds?.includes(targetId)
+    );
+
+    if (existing) {
+      setActiveChannelId(existing.id);
+      setShowDirectPeerModal(false);
+      return;
+    }
+
+    // Always include 'admin-1' in directParticipantIds so school administrators have supervisory safeguarding oversight
+    const newChan = addChatChannel({
+      name: targetName,
+      type: 'direct',
+      description: `Private study dialogue between ${currentUserName} and ${targetName}. School administration maintains supervisory safeguarding oversight.`,
+      directParticipantIds: [currentUserId, targetId, 'admin-1'],
+      directParticipantNames: [currentUserName, targetName],
+      createdBy: currentUserId,
+      isReadOnly: false
+    });
+
+    setActiveChannelId(newChan.id);
+    setShowDirectPeerModal(false);
+  };
 
   // Filter channels based on user authorization
   const authorizedChannels = chatChannels.filter(chan => {
@@ -221,17 +259,34 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
               </div>
             </div>
 
-            {isAdmin && (
+            <div className="flex items-center gap-1.5">
               <button
                 type="button"
-                onClick={() => setShowNewChannelModal(true)}
-                className="p-1.5 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-bold transition flex items-center gap-1 cursor-pointer shadow-xs"
-                title="Create Chat Channel"
+                onClick={() => {
+                  setPeerSearchTerm('');
+                  setShowDirectPeerModal(true);
+                }}
+                className="px-2.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+                title="Message a classmate privately"
               >
-                <Plus className="w-4 h-4" />
-                <span className="text-[11px] hidden sm:inline">New Channel</span>
+                <MessageSquare className="w-3.5 h-3.5" />
+                <span className="text-[11px] font-extrabold whitespace-nowrap">
+                  {isAdmin ? 'Message User' : '+ Message Peer'}
+                </span>
               </button>
-            )}
+
+              {isAdmin && (
+                <button
+                  type="button"
+                  onClick={() => setShowNewChannelModal(true)}
+                  className="p-1.5 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-bold transition flex items-center gap-1 cursor-pointer shadow-xs"
+                  title="Create Chat Channel"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span className="text-[11px] hidden sm:inline">New Group</span>
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Search bar */}
@@ -241,8 +296,8 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search chat forums or groups..."
-              className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-neutral-100 border border-neutral-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-400"
+              placeholder="Search chat forums or private peer DMs..."
+              className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-neutral-100 border border-neutral-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
 
@@ -253,13 +308,23 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
                 key={tab}
                 type="button"
                 onClick={() => setChannelFilter(tab)}
-                className={`px-2.5 py-1 rounded-lg uppercase tracking-wider text-[10px] whitespace-nowrap transition cursor-pointer ${
+                className={`px-2.5 py-1 rounded-lg uppercase tracking-wider text-[10px] whitespace-nowrap transition cursor-pointer flex items-center gap-1 ${
                   channelFilter === tab 
                     ? 'bg-neutral-900 text-white shadow-xs' 
                     : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
                 }`}
               >
-                {tab === 'all' ? 'All' : tab === 'direct' ? 'Private' : tab}
+                {tab === 'direct' && <Lock className="w-2.5 h-2.5" />}
+                <span>
+                  {tab === 'all' ? 'All' : tab === 'direct' ? (isAdmin ? 'Private DMs' : 'Private Chats') : tab}
+                </span>
+                {tab === 'direct' && (
+                  <span className={`px-1 rounded-xs font-black text-[9px] ${
+                    channelFilter === tab ? 'bg-amber-400 text-neutral-950' : 'bg-neutral-200 text-neutral-700'
+                  }`}>
+                    {authorizedChannels.filter(c => c.type === 'direct').length}
+                  </span>
+                )}
               </button>
             ))}
           </div>
@@ -274,7 +339,23 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
           ) : (
             displayedChannels.map(chan => {
               const isSelected = activeChannel?.id === chan.id;
-              const unreadDummy = false;
+              const isDirect = chan.type === 'direct';
+
+              let displayName = chan.name;
+              let displayDesc = chan.description || `${chan.type.toUpperCase()} discussion channel`;
+
+              if (isDirect) {
+                if (isAdmin) {
+                  displayName = chan.directParticipantNames && chan.directParticipantNames.length >= 2
+                    ? `${chan.directParticipantNames[0]} ↔ ${chan.directParticipantNames[1]}`
+                    : chan.name;
+                  displayDesc = 'Private Peer Dialogue • Administrator Safeguarding Active';
+                } else {
+                  const otherName = chan.directParticipantNames?.find(n => !n.includes(currentUserName));
+                  if (otherName) displayName = otherName;
+                  displayDesc = 'Private 1:1 Study Dialogue (Safeguarded)';
+                }
+              }
 
               return (
                 <button
@@ -292,7 +373,7 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
                       chan.type === 'announcement' ? 'bg-amber-100 text-amber-900' :
                       chan.type === 'class' ? 'bg-blue-100 text-blue-900' :
                       chan.type === 'club' ? 'bg-emerald-100 text-emerald-900' :
-                      'bg-purple-100 text-purple-900'
+                      'bg-indigo-100 text-indigo-900'
                     }`}>
                       {chan.type === 'announcement' && <Sparkles className="w-4 h-4" />}
                       {chan.type === 'class' && <GraduationCap className="w-4 h-4" />}
@@ -302,19 +383,23 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
 
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5">
-                        <span className="text-xs truncate block">{chan.name}</span>
+                        <span className="text-xs truncate block">{displayName}</span>
                         {chan.isReadOnly && (
                           <Lock className="w-3 h-3 text-neutral-400 shrink-0" />
                         )}
                       </div>
                       <span className="text-[10px] text-neutral-400 truncate block">
-                        {chan.description || `${chan.type.toUpperCase()} discussion channel`}
+                        {displayDesc}
                       </span>
                     </div>
                   </div>
 
-                  <span className="text-[9px] px-1.5 py-0.5 rounded-md uppercase font-extrabold bg-neutral-100 text-neutral-600 shrink-0">
-                    {chan.type === 'direct' ? '1:1' : chan.type}
+                  <span className={`text-[9px] px-1.5 py-0.5 rounded-md uppercase font-extrabold shrink-0 ${
+                    isDirect
+                      ? isAdmin ? 'bg-amber-100 text-amber-900 border border-amber-300' : 'bg-indigo-100 text-indigo-700 border border-indigo-200'
+                      : 'bg-neutral-100 text-neutral-600'
+                  }`}>
+                    {isDirect ? (isAdmin ? '1:1 Audited' : '1:1 Private') : chan.type}
                   </span>
                 </button>
               );
@@ -350,19 +435,58 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
         {/* Active Channel Header */}
         {activeChannel ? (
           <>
+            {/* Safeguarding Notice Banner for Direct Chats */}
+            {activeChannel.type === 'direct' && (
+              isAdmin ? (
+                <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-b border-amber-200 px-4 py-2.5 flex items-center justify-between text-xs text-amber-950">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-lg bg-amber-500 text-white flex items-center justify-center shrink-0">
+                      <Eye className="w-3.5 h-3.5" />
+                    </div>
+                    <div>
+                      <span className="font-extrabold text-amber-900">Administrator Safeguarding Oversight: </span>
+                      <span className="text-amber-800">
+                        Observing private dialogue between <strong>{activeChannel.directParticipantNames?.[0] || 'Scholar A'}</strong> and <strong>{activeChannel.directParticipantNames?.[1] || 'Scholar B'}</strong>.
+                      </span>
+                    </div>
+                  </div>
+                  <span className="px-2.5 py-0.5 rounded-full bg-amber-200 text-amber-900 text-[10px] font-black uppercase tracking-wider shrink-0 border border-amber-300">
+                    Admin Audited
+                  </span>
+                </div>
+              ) : (
+                <div className="bg-indigo-50/80 border-b border-indigo-100 px-4 py-2 flex items-center justify-between text-xs text-indigo-950">
+                  <div className="flex items-center gap-2">
+                    <Lock className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                    <span>Private 1-on-1 dialogue with <strong>{activeChannel.directParticipantNames?.find(n => !n.includes(currentUserName)) || activeChannel.name}</strong></span>
+                  </div>
+                  <div className="flex items-center gap-1 text-[11px] text-indigo-700 font-bold">
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    <span>Safeguarded & Admin Monitored</span>
+                  </div>
+                </div>
+              )
+            )}
+
             <div className="p-4 border-b border-neutral-200 flex items-center justify-between gap-4 bg-white/80 backdrop-blur-xs">
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <h4 className="font-black text-sm sm:text-base text-neutral-900 truncate">
-                    {activeChannel.name}
+                    {activeChannel.type === 'direct' 
+                      ? (isAdmin 
+                          ? (activeChannel.directParticipantNames && activeChannel.directParticipantNames.length >= 2 
+                              ? `${activeChannel.directParticipantNames[0]} ↔ ${activeChannel.directParticipantNames[1]}` 
+                              : activeChannel.name)
+                          : (activeChannel.directParticipantNames?.find(n => !n.includes(currentUserName)) || activeChannel.name))
+                      : activeChannel.name}
                   </h4>
                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
                     activeChannel.type === 'announcement' ? 'bg-amber-100 text-amber-900' :
                     activeChannel.type === 'class' ? 'bg-blue-100 text-blue-900' :
                     activeChannel.type === 'club' ? 'bg-emerald-100 text-emerald-900' :
-                    'bg-purple-100 text-purple-900'
+                    'bg-indigo-100 text-indigo-900'
                   }`}>
-                    {activeChannel.type}
+                    {activeChannel.type === 'direct' ? (isAdmin ? '1:1 Monitored' : '1:1 Private') : activeChannel.type}
                   </span>
                   {activeChannel.isReadOnly && (
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-neutral-100 text-neutral-600 flex items-center gap-1">
@@ -371,7 +495,11 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
                   )}
                 </div>
                 <p className="text-xs text-neutral-500 truncate mt-0.5">
-                  {activeChannel.description || 'Welcome to this school discussion forum. Keep interactions respectful and academic.'}
+                  {activeChannel.type === 'direct'
+                    ? (isAdmin
+                        ? 'Private student dialogue visible to administrators for safeguarding and student protection.'
+                        : 'Private 1-on-1 dialogue. Keep exchanges academic, respectful, and safe.')
+                    : (activeChannel.description || 'Welcome to this school discussion forum. Keep interactions respectful and academic.')}
                 </p>
               </div>
 
@@ -716,6 +844,213 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* DIRECT PEER-TO-PEER MESSAGING MODAL (STUDENT DMs WITH ADMIN SAFEGUARDING)  */}
+      {/* ========================================================================= */}
+      {showDirectPeerModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-xs overflow-y-auto">
+          <div className="bg-white rounded-3xl shadow-2xl border border-stone-200 w-full max-w-xl overflow-hidden my-8 animate-in fade-in zoom-in-95 duration-150">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-indigo-900 via-indigo-950 to-neutral-900 text-white p-6 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-md">
+                  <MessageSquare className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-lg text-white">Private Direct Message</h3>
+                  <p className="text-xs text-indigo-200">
+                    Connect 1-on-1 with a fellow scholar or academic tutor
+                  </p>
+                </div>
+              </div>
+              <button 
+                type="button"
+                onClick={() => setShowDirectPeerModal(false)}
+                className="text-stone-400 hover:text-white p-2 rounded-xl hover:bg-stone-800 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+              {/* Safeguarding Policy Notice */}
+              <div className="p-3.5 rounded-2xl bg-indigo-50 border border-indigo-200 flex items-start gap-3">
+                <ShieldCheck className="w-5 h-5 text-indigo-700 shrink-0 mt-0.5" />
+                <div className="text-xs text-indigo-950 leading-relaxed">
+                  <span className="font-bold block text-indigo-900">Protected Peer Communication & Safeguarding Policy</span>
+                  Direct messages are private between you and your selected recipient. In adherence to Stanbax Schools child protection standards, school administration retains supervisory access across all student communications.
+                </div>
+              </div>
+
+              {/* Tabs: Scholars vs Tutors */}
+              <div className="flex items-center gap-2 p-1 bg-neutral-100 rounded-xl">
+                <button
+                  type="button"
+                  onClick={() => setPeerTab('classmates')}
+                  className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                    peerTab === 'classmates' 
+                      ? 'bg-white text-neutral-900 shadow-xs' 
+                      : 'text-neutral-500 hover:text-neutral-900'
+                  }`}
+                >
+                  Classmates & Scholars ({students.filter(s => s.id !== currentUserId).length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPeerTab('tutors')}
+                  className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                    peerTab === 'tutors' 
+                      ? 'bg-white text-neutral-900 shadow-xs' 
+                      : 'text-neutral-500 hover:text-neutral-900'
+                  }`}
+                >
+                  Faculty Tutors ({tutors.length})
+                </button>
+              </div>
+
+              {/* Search & Class Filter */}
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Search className="w-4 h-4 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={peerSearchTerm}
+                    onChange={(e) => setPeerSearchTerm(e.target.value)}
+                    placeholder={peerTab === 'classmates' ? "Search classmate by name or grade..." : "Search tutor by name or subject..."}
+                    className="w-full pl-9 pr-3 py-2 rounded-xl bg-neutral-100 border border-neutral-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+                {peerTab === 'classmates' && (
+                  <select
+                    value={peerFilterClass}
+                    onChange={(e) => setPeerFilterClass(e.target.value)}
+                    className="px-3 py-2 rounded-xl bg-neutral-100 border border-neutral-200 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="all">All Grades</option>
+                    {Array.from(new Set(students.map(s => s.grade))).map(g => (
+                      <option key={g} value={g}>{g}</option>
+                    ))}
+                  </select>
+                )}
+              </div>
+
+              {/* User Directory List */}
+              <div className="space-y-2 pt-1">
+                {peerTab === 'classmates' ? (
+                  (() => {
+                    const peerList = students.filter(s => {
+                      if (s.id === currentUserId) return false;
+                      const matchesSearch = s.name.toLowerCase().includes(peerSearchTerm.toLowerCase()) ||
+                        (s.grade && s.grade.toLowerCase().includes(peerSearchTerm.toLowerCase()));
+                      const matchesClass = peerFilterClass === 'all' || s.grade === peerFilterClass;
+                      return matchesSearch && matchesClass;
+                    });
+
+                    if (peerList.length === 0) {
+                      return (
+                        <div className="p-8 text-center text-xs text-neutral-400 bg-neutral-50 rounded-2xl border border-neutral-100">
+                          No scholars found matching your search.
+                        </div>
+                      );
+                    }
+
+                    return peerList.map(s => {
+                      // Check if already in active chat
+                      const hasExistingChat = chatChannels.some(c => 
+                        c.type === 'direct' && 
+                        c.directParticipantIds?.includes(currentUserId) && 
+                        c.directParticipantIds?.includes(s.id)
+                      );
+
+                      return (
+                        <div
+                          key={s.id}
+                          className="p-3 rounded-2xl border border-neutral-200 hover:border-indigo-300 hover:bg-indigo-50/30 transition flex items-center justify-between gap-3 bg-white shadow-2xs"
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-black text-sm shrink-0">
+                              {s.name.charAt(0)}
+                            </div>
+                            <div className="min-w-0">
+                              <h5 className="font-extrabold text-xs text-neutral-900 truncate">{s.name}</h5>
+                              <p className="text-[11px] text-neutral-500 font-medium truncate">
+                                {s.grade} • {s.house ? `${s.house} House` : 'Nigerian-British Standard'}
+                              </p>
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => handleStartDirectChat(s.id, s.name, 'student')}
+                            className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-xs transition flex items-center gap-1.5 cursor-pointer shrink-0"
+                          >
+                            <Send className="w-3 h-3" />
+                            <span>{hasExistingChat ? 'Open Chat' : 'Start Chat'}</span>
+                          </button>
+                        </div>
+                      );
+                    });
+                  })()
+                ) : (
+                  (() => {
+                    const tutorList = tutors.filter(t => {
+                      if (t.id === currentUserId) return false;
+                      const matchesSearch = t.name.toLowerCase().includes(peerSearchTerm.toLowerCase()) ||
+                        (t.assignedSubjects && t.assignedSubjects.some(sub => sub.toLowerCase().includes(peerSearchTerm.toLowerCase())));
+                      return matchesSearch;
+                    });
+
+                    if (tutorList.length === 0) {
+                      return (
+                        <div className="p-8 text-center text-xs text-neutral-400 bg-neutral-50 rounded-2xl border border-neutral-100">
+                          No tutors found matching your search.
+                        </div>
+                      );
+                    }
+
+                    return tutorList.map(t => {
+                      const hasExistingChat = chatChannels.some(c => 
+                        c.type === 'direct' && 
+                        c.directParticipantIds?.includes(currentUserId) && 
+                        c.directParticipantIds?.includes(t.id)
+                      );
+
+                      return (
+                        <div
+                          key={t.id}
+                          className="p-3 rounded-2xl border border-neutral-200 hover:border-blue-300 hover:bg-blue-50/30 transition flex items-center justify-between gap-3 bg-white shadow-2xs"
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-900 flex items-center justify-center font-black text-sm shrink-0">
+                              {t.name.charAt(0)}
+                            </div>
+                            <div className="min-w-0">
+                              <h5 className="font-extrabold text-xs text-neutral-900 truncate">{t.name}</h5>
+                              <p className="text-[11px] text-neutral-500 font-medium truncate">
+                                Faculty Tutor • {t.assignedSubjects?.join(', ') || 'Academic Department'}
+                              </p>
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => handleStartDirectChat(t.id, t.name, 'tutor')}
+                            className="px-3.5 py-1.5 rounded-xl bg-blue-900 hover:bg-blue-800 text-white font-bold text-xs shadow-xs transition flex items-center gap-1.5 cursor-pointer shrink-0"
+                          >
+                            <Send className="w-3 h-3" />
+                            <span>{hasExistingChat ? 'Open Chat' : 'Consult Tutor'}</span>
+                          </button>
+                        </div>
+                      );
+                    });
+                  })()
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}

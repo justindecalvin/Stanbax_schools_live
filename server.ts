@@ -27,14 +27,19 @@ async function generateWithGemini(ai: GoogleGenAI, params: {
   contents: any;
   config?: any;
 }) {
-  const candidateModels = ["gemini-3.8-flash", "gemini-3.1-pro-preview", "gemini-3.1-flash-lite", "gemini-flash-latest"];
+  // Use fast, reliable flash models first to prevent Cloud Run proxy timeouts
+  const candidateModels = ["gemini-3.1-flash-lite", "gemini-flash-latest", "gemini-3.8-flash"];
   let lastErr = null;
   for (const model of candidateModels) {
     try {
       const response = await ai.models.generateContent({
         model,
         contents: params.contents,
-        config: params.config
+        config: {
+          ...params.config,
+          // Abort signal to ensure no individual model hangs and triggers a 504 Gateway Timeout
+          abortSignal: AbortSignal.timeout(12000),
+        }
       });
       return { response, model };
     } catch (err: any) {
@@ -597,7 +602,7 @@ Nevertheless, significant impediments persist. Erratic power supply and prohibit
 }
 
 // Academic Fallback Engine for Calvin AI
-function generateCalvinAcademicFallback(question: string, studentName: string, classLevel: string, isPremium: boolean): string {
+function generateCalvinAcademicFallback(question: string, studentName: string, classLevel: string, isPremium: boolean, schemeOfWork?: any): string {
   const qLower = question.toLowerCase();
   const isEarly = classLevel.toLowerCase().includes('nursery') || classLevel.toLowerCase().includes('kg') || classLevel.toLowerCase().includes('reception');
 
@@ -610,6 +615,47 @@ I love your wonderful question! In our ${classLevel} class at Stanbax Schools, w
 • God made our world full of colorful shapes, sounds, and friendly animals.
 
 Keep asking questions and smiling today! You did great!`;
+  }
+
+  // If scheme of work is supplied, check for matched week or topic to guarantee accurate curriculum grounding
+  if (schemeOfWork && Array.isArray(schemeOfWork.weeklyTopics)) {
+    const weekMatch = qLower.match(/week\s*([0-9]{1,2})/);
+    const targetWeekNum = weekMatch ? parseInt(weekMatch[1], 10) : null;
+    const matchedWeek = targetWeekNum 
+      ? schemeOfWork.weeklyTopics.find((w: any) => w.week === targetWeekNum)
+      : schemeOfWork.weeklyTopics.find((w: any) => w.topic && qLower.includes(w.topic.toLowerCase()));
+
+    if (matchedWeek) {
+      const topicName = matchedWeek.topic;
+      const subtopics = matchedWeek.subtopics?.length ? matchedWeek.subtopics.join(', ') : 'Theoretical fundamentals and worked step derivations';
+      const formulas = matchedWeek.keyFormulasOrTerms?.length ? matchedWeek.keyFormulasOrTerms.join(', ') : '';
+      const objectives = matchedWeek.learningObjectives?.length ? matchedWeek.learningObjectives.map((o: string) => `• ${o}`).join('\n') : '';
+
+      return `Hello ${studentName}. It is a pleasure to guide you today as your AI Academic Tutor at Stanbax Schools Ibadan.
+
+In Week ${matchedWeek.week} of your approved ${schemeOfWork.classLevel || classLevel} ${schemeOfWork.subjectName || ''} Scheme of Work (${schemeOfWork.term || 'Official Syllabus'}), the curriculum unit is:
+
+${topicName}
+
+Curriculum Subtopics Covered:
+${subtopics}
+
+${objectives ? `Specific Learning Objectives:\n${objectives}\n\n` : ''}${formulas ? `Key Formulas & Exam Terms:\n• ${formulas}\n\n` : ''}Comprehensive Academic Breakdown:
+1. Concept Definition & Principle:
+${topicName} forms an essential part of the Nigerian-British secondary school syllabus and is frequently tested in WAEC WASSCE, NECO SSCE, and Cambridge IGCSE examinations. Master the core definitions, standard SI units, and step-by-step methodologies.
+
+2. Step-by-Step Worked Approach:
+• Read the problem statement thoroughly and identify all given parameters.
+• State the standard formula or rule explicitly before substituting numerical values.
+• Work through intermediate steps systematically to secure full method marks.
+• Verify that your final answer includes the correct units or degree of accuracy.
+
+3. WAEC & Cambridge Exam Pitfalls to Avoid:
+• Pay close attention to sign conventions and unit conversions.
+• In theory papers, never omit intermediate working; Stanbax examiners and WAEC markers award step marks independently of the final numerical answer.
+
+Feel free to ask a specific follow-up question or request a worked drill on this Week ${matchedWeek.week} topic!`;
+    }
   }
 
   if (qLower.includes('photo') || qLower.includes('plant') || qLower.includes('leaf')) {
@@ -1399,7 +1445,7 @@ CRITICAL STUDENT-FRIENDLY FORMATTING RULES (STRICTLY ENFORCED):
     const ai = getGeminiClient();
 
     if (!ai) {
-      const fallbackReply = generateCalvinAcademicFallback(message, studentName, classLevel, isPremium);
+      const fallbackReply = generateCalvinAcademicFallback(message, studentName, classLevel, isPremium, schemeOfWork);
       return res.json({
         success: true,
         reply: sanitizeStudentFriendlyText(fallbackReply),
@@ -1443,7 +1489,7 @@ CRITICAL STUDENT-FRIENDLY FORMATTING RULES (STRICTLY ENFORCED):
       });
     } catch (err: any) {
       console.warn("Calvin Gemini API error:", err?.message || err);
-      const fallbackReply = generateCalvinAcademicFallback(message, studentName, classLevel, isPremium);
+      const fallbackReply = generateCalvinAcademicFallback(message, studentName, classLevel, isPremium, schemeOfWork);
       return res.json({
         success: true,
         reply: sanitizeStudentFriendlyText(fallbackReply),
