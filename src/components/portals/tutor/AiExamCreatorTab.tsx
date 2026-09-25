@@ -72,11 +72,29 @@ interface GeneratedAssessment {
   instructions: string;
   isEarlyYearsPictorial: boolean;
   isSecondaryFiftySix: boolean;
+  readingPassage?: {
+    title: string;
+    text: string;
+    instructions?: string;
+  };
   objectives: ObjectiveItem[];
   theory: TheoryItem[];
   paperSavingText: string;
   markingGuide: string;
   schemeSource?: string;
+}
+
+// Clean raw markdown asterisks so words aren't bolded with literal '*' characters on screen or in print
+export function cleanAsterisks(str: string): string {
+  if (!str) return '';
+  let res = str;
+  // Replace patterns like *word* or **word** with uppercase word if it's a test word, or strip asterisks
+  res = res.replace(/italicized word:?\s*\*+([^*]+)\*+/gi, 'capitalized word: "$1"');
+  res = res.replace(/bold word:?\s*\*+([^*]+)\*+/gi, 'capitalized word: "$1"');
+  res = res.replace(/\*\*([^*]+)\*\*/g, '$1');
+  res = res.replace(/\*([^*]+)\*/g, '$1');
+  res = res.replace(/\*/g, '');
+  return res;
 }
 
 export const AiExamCreatorTab: React.FC = () => {
@@ -111,6 +129,7 @@ export const AiExamCreatorTab: React.FC = () => {
   const [assessmentType, setAssessmentType] = useState<string>('Terminal Examination');
   const [customTopics, setCustomTopics] = useState<string>('');
   const [difficulty, setDifficulty] = useState<string>('Standard WAEC / BECE Standard');
+  const [additionalInstructions, setAdditionalInstructions] = useState<string>('');
 
   // Scheme of Work Scope Selection
   const [selectedWeeksScope, setSelectedWeeksScope] = useState<'all' | 'midterm' | 'final' | 'custom'>('all');
@@ -160,6 +179,7 @@ export const AiExamCreatorTab: React.FC = () => {
   const [uploadTerm, setUploadTerm] = useState<'1st Term' | '2nd Term' | '3rd Term'>(selectedTerm);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadText, setUploadText] = useState<string>('');
+  const [uploadInstructions, setUploadInstructions] = useState<string>('');
   const [uploadMode, setUploadMode] = useState<'file' | 'text'>('file');
   const [isUploadingScheme, setIsUploadingScheme] = useState<boolean>(false);
   const [uploadError, setUploadError] = useState<string>('');
@@ -280,10 +300,14 @@ export const AiExamCreatorTab: React.FC = () => {
   // Helper to format a question on the exact single line requested:
   // "1. Who is a boy. A) Male B) female C) none D) all." or "(1. Who is a boy. A) Male B) female C) none D) all.)"
   const formatSingleLine = (item: ObjectiveItem, index: number, style: 'plain' | 'parenthesized' = singleLineStyle) => {
-    const cleanQ = item.question.replace(/^\[.*?\]\s*/, '').trim();
+    const rawQ = item.question.replace(/^\[.*?\]\s*/, '').trim();
+    const cleanQ = cleanAsterisks(rawQ);
     const punct = cleanQ.endsWith('?') || cleanQ.endsWith('.') || cleanQ.endsWith(':') ? '' : '.';
-    const optD = item.optionD ? ` D) ${item.optionD}` : '';
-    const line = `${index + 1}. ${cleanQ}${punct} A) ${item.optionA} B) ${item.optionB} C) ${item.optionC}${optD}`;
+    const optA = cleanAsterisks(item.optionA);
+    const optB = cleanAsterisks(item.optionB);
+    const optC = cleanAsterisks(item.optionC);
+    const optD = item.optionD ? ` D) ${cleanAsterisks(item.optionD)}` : '';
+    const line = `${index + 1}. ${cleanQ}${punct} A) ${optA} B) ${optB} C) ${optC}${optD}`;
     return style === 'parenthesized' ? `(${line})` : line;
   };
 
@@ -319,6 +343,8 @@ export const AiExamCreatorTab: React.FC = () => {
         ? targetedWeeks 
         : undefined;
 
+      const effectiveInstructions = additionalInstructions || activeGroundedScheme?.additionalInstructions || '';
+
       let assessmentData = null;
       let sourceName = 'server_ai';
 
@@ -338,7 +364,8 @@ export const AiExamCreatorTab: React.FC = () => {
             targetTheoryCount: theoryCount,
             schemeOfWork: activeGroundedScheme,
             selectedWeeks: computedWeeks,
-            presetType: selectedPreset
+            presetType: selectedPreset,
+            additionalInstructions: effectiveInstructions
           })
         });
 
@@ -368,12 +395,42 @@ export const AiExamCreatorTab: React.FC = () => {
           targetTheoryCount: theoryCount,
           schemeOfWork: activeGroundedScheme,
           selectedWeeks: computedWeeks,
-          presetType: selectedPreset
+          presetType: selectedPreset,
+          additionalInstructions: effectiveInstructions
         });
       }
 
-      // Re-format paperSavingText to ensure every single objective is in the requested single-line format:
-      // "(1. Who is a boy. A) Male B) female C) none D) all.)" or "1. Who is a boy. A) Male B) female C) none D) all."
+      // Sanitize all asterisks to guarantee student-friendly formatting
+      if (assessmentData) {
+        if (assessmentData.readingPassage) {
+          assessmentData.readingPassage = {
+            title: cleanAsterisks(assessmentData.readingPassage.title || ''),
+            text: cleanAsterisks(assessmentData.readingPassage.text || ''),
+            instructions: cleanAsterisks(assessmentData.readingPassage.instructions || '')
+          };
+        }
+        if (Array.isArray(assessmentData.objectives)) {
+          assessmentData.objectives = assessmentData.objectives.map((o: ObjectiveItem) => ({
+            ...o,
+            question: cleanAsterisks(o.question),
+            optionA: cleanAsterisks(o.optionA),
+            optionB: cleanAsterisks(o.optionB),
+            optionC: cleanAsterisks(o.optionC),
+            optionD: o.optionD ? cleanAsterisks(o.optionD) : undefined,
+            singleLineFormat: cleanAsterisks(o.singleLineFormat)
+          }));
+        }
+        if (Array.isArray(assessmentData.theory)) {
+          assessmentData.theory = assessmentData.theory.map((t: TheoryItem) => ({
+            ...t,
+            questionText: cleanAsterisks(t.questionText),
+            subParts: Array.isArray(t.subParts) ? t.subParts.map(sp => cleanAsterisks(sp)) : [],
+            sampleAnswer: cleanAsterisks(t.sampleAnswer || '')
+          }));
+        }
+      }
+
+      // Re-format paperSavingText to ensure every single objective is in the requested single-line format
       const cleanSingleLines = assessmentData.objectives.map((o: ObjectiveItem, idx: number) => {
         return formatSingleLine(o, idx, singleLineStyle);
       });
@@ -393,7 +450,20 @@ export const AiExamCreatorTab: React.FC = () => {
         `================================================================================\n`,
         `SECTION A: OBJECTIVE QUESTIONS (${assessmentData.objectives.length} MARKS)`,
         `INSTRUCTIONS: Answer all questions. Questions and all four options are on the same line to save printing paper.\n`,
-        ...cleanSingleLines,
+        assessmentData.readingPassage ? [
+          `--------------------------------------------------------------------------------`,
+          `COMPREHENSION READING PASSAGE: ${assessmentData.readingPassage.title ? assessmentData.readingPassage.title.toUpperCase() : 'READING PASSAGE'}`,
+          `INSTRUCTIONS: ${assessmentData.readingPassage.instructions || 'Read the following passage carefully and answer Questions 1 to 5 based strictly on it.'}`,
+          `\n${assessmentData.readingPassage.text}\n`,
+          `--------------------------------------------------------------------------------`,
+          `QUESTIONS 1 TO 5 ARE BASED DIRECTLY ON THE COMPREHENSION PASSAGE ABOVE:\n`
+        ].join('\n') : '',
+        ...cleanSingleLines.map((line: string, idx: number) => {
+          if (assessmentData.readingPassage && idx === 5) {
+            return `\n--------------------------------------------------------------------------------\nQUESTIONS 6 - ${cleanSingleLines.length}: LEXIS, STRUCTURE, GRAMMAR & VOCABULARY\n${line}`;
+          }
+          return line;
+        }),
         assessmentData.theory && assessmentData.theory.length > 0 ? [
           `\n--------------------------------------------------------------------------------`,
           `SECTION B: THEORY & ESSAY QUESTIONS`,
@@ -470,7 +540,8 @@ export const AiExamCreatorTab: React.FC = () => {
           classLevel: uploadClass,
           term: uploadTerm,
           fileContentText: sourceContent,
-          fileName
+          fileName,
+          additionalInstructions: uploadInstructions
         })
       });
 
@@ -490,6 +561,7 @@ export const AiExamCreatorTab: React.FC = () => {
           term: uploadTerm,
           curriculumStandard: 'NERDC / WAEC WASSCE',
           summary: `12-week comprehensive syllabus for ${uploadSubject} (${uploadClass})`,
+          additionalInstructions: uploadInstructions,
           weeklyTopics: Array.from({ length: 12 }, (_, i) => ({
             week: i + 1,
             topic: `Week ${i + 1}: ${uploadSubject} Unit ${i + 1}`,
@@ -1079,25 +1151,49 @@ export const AiExamCreatorTab: React.FC = () => {
           </div>
         </div>
 
-        {/* Second Row: Specific Topics, Strict Single Line Formatting & Paper Saver */}
+        {/* Second Row: Specific Topics, Additional Instructions & Paper Saver Toggle */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 pt-2 border-t border-slate-100 text-xs">
-          {/* Specific Syllabus Topics */}
-          <div className="lg:col-span-2 space-y-1.5">
-            <label className="font-bold text-slate-700 flex items-center justify-between">
-              <span>Specific Topics / Curriculum Scope (Optional)</span>
-              <span className="text-slate-400 font-normal">
-                {activeGroundedScheme ? 'Auto-grounded in uploaded scheme of work' : 'Leave blank for full term'}
-              </span>
-            </label>
-            <input
-              type="text"
-              value={customTopics}
-              onChange={(e) => setCustomTopics(e.target.value)}
-              placeholder={activeGroundedScheme 
-                ? `e.g. Grounded in: ${activeGroundedScheme.summary?.slice(0, 70)}...` 
-                : isEarlyYears ? "e.g. Identification of domestic animals, numbers 1-10" : "e.g. Hydrocarbons, Photosynthesis, Organic Chemistry"}
-              className="w-full p-2.5 rounded-xl border border-slate-300 text-slate-800 focus:ring-2 focus:ring-purple-500 outline-hidden"
-            />
+          {/* Specific Syllabus Topics & Additional Instructions */}
+          <div className="lg:col-span-2 space-y-2.5">
+            <div className="space-y-1.5">
+              <label className="font-bold text-slate-700 flex items-center justify-between">
+                <span>Specific Topics / Curriculum Scope (Optional)</span>
+                <span className="text-slate-400 font-normal">
+                  {activeGroundedScheme ? 'Auto-grounded in uploaded scheme of work' : 'Leave blank for full term'}
+                </span>
+              </label>
+              <input
+                type="text"
+                value={customTopics}
+                onChange={(e) => setCustomTopics(e.target.value)}
+                placeholder={activeGroundedScheme 
+                  ? `e.g. Grounded in: ${activeGroundedScheme.summary?.slice(0, 70)}...` 
+                  : isEarlyYears ? "e.g. Identification of domestic animals, numbers 1-10" : "e.g. Hydrocarbons, Photosynthesis, Organic Chemistry"}
+                className="w-full p-2.5 rounded-xl border border-slate-300 text-slate-800 focus:ring-2 focus:ring-purple-500 outline-hidden"
+              />
+            </div>
+
+            {/* Additional Tutor Instructions / Guidelines */}
+            <div className="space-y-1.5">
+              <label className="font-bold text-purple-900 flex items-center justify-between">
+                <span className="flex items-center gap-1.5 font-black">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                  <span>Additional Tutor Instructions / Focus Guidelines (Optional)</span>
+                </span>
+                <span className="text-slate-400 font-normal">
+                  {activeGroundedScheme?.additionalInstructions ? 'Active scheme instructions saved' : 'Special directions for Calvin AI'}
+                </span>
+              </label>
+              <input
+                type="text"
+                value={additionalInstructions}
+                onChange={(e) => setAdditionalInstructions(e.target.value)}
+                placeholder={activeGroundedScheme?.additionalInstructions 
+                  ? `Active guideline: "${activeGroundedScheme.additionalInstructions.slice(0, 55)}..." (or type new override)` 
+                  : "e.g. For English: ensure reading passage is youth-oriented; questions 1-5 comprehension; strictly no asterisks or physics"}
+                className="w-full p-2.5 rounded-xl border border-purple-200 bg-purple-50/30 text-slate-800 focus:ring-2 focus:ring-purple-500 outline-hidden text-xs"
+              />
+            </div>
           </div>
 
           {/* Format Punctuation Style Toggle */}
@@ -1452,8 +1548,33 @@ export const AiExamCreatorTab: React.FC = () => {
                   </div>
 
                   <div className="text-xs text-slate-600 italic">
-                    {currentAssessment.instructions}
+                    {cleanAsterisks(currentAssessment.instructions)}
                   </div>
+
+                  {/* Compulsory Reading Comprehension Passage (for English Language) */}
+                  {currentAssessment.readingPassage && (
+                    <div className="p-4 sm:p-5 rounded-2xl bg-amber-50/70 border-2 border-amber-300/80 text-xs space-y-2.5">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-amber-200 pb-2 gap-1.5">
+                        <div className="flex items-center gap-2">
+                          <span className="px-2 py-0.5 rounded-md bg-amber-200 text-amber-900 font-black text-[10px] uppercase">
+                            Comprehension Passage
+                          </span>
+                          <h3 className="font-black text-sm text-slate-900 uppercase">
+                            {cleanAsterisks(currentAssessment.readingPassage.title || "Reading Passage")}
+                          </h3>
+                        </div>
+                        <span className="text-[11px] font-bold text-amber-900 bg-amber-100/80 px-2 py-0.5 rounded-md">
+                          Questions 1 to 5 are based strictly on this passage
+                        </span>
+                      </div>
+                      <div className="text-xs text-amber-950 italic font-semibold">
+                        {cleanAsterisks(currentAssessment.readingPassage.instructions || "Read the passage below carefully and answer Questions 1 to 5 based strictly on it.")}
+                      </div>
+                      <div className="text-xs text-slate-800 leading-relaxed whitespace-pre-line font-serif p-3 sm:p-4 rounded-xl bg-white border border-amber-200/60 shadow-2xs">
+                        {cleanAsterisks(currentAssessment.readingPassage.text)}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Question Grid: Strict Single Line Format */}
                   <div className={`gap-x-6 gap-y-2 text-xs ${
@@ -1464,34 +1585,45 @@ export const AiExamCreatorTab: React.FC = () => {
                       : 'space-y-1.5'
                   }`}>
                     {currentAssessment.objectives.map((item, idx) => {
-                      const cleanQ = item.question.replace(/^\[.*?\]\s*/, '').trim();
+                      const rawQ = item.question.replace(/^\[.*?\]\s*/, '').trim();
+                      const cleanQ = cleanAsterisks(rawQ);
                       const punct = cleanQ.endsWith('?') || cleanQ.endsWith('.') || cleanQ.endsWith(':') ? '' : '.';
+                      const optA = cleanAsterisks(item.optionA);
+                      const optB = cleanAsterisks(item.optionB);
+                      const optC = cleanAsterisks(item.optionC);
+                      const optD = item.optionD ? cleanAsterisks(item.optionD) : '';
                       return (
-                        <div 
-                          key={item.id} 
-                          className="py-1 px-1.5 rounded hover:bg-slate-50 transition-colors font-medium text-slate-900 text-xs leading-normal"
-                        >
-                          {singleLineStyle === 'parenthesized' ? (
-                            <span>
-                              ({item.id}. {item.pictorialSymbol && <span className="mr-1">{item.pictorialSymbol}</span>}
-                              {cleanQ}{punct} <strong className="text-blue-900 font-bold">A)</strong> {item.optionA} <strong className="text-blue-900 font-bold">B)</strong> {item.optionB} <strong className="text-blue-900 font-bold">C)</strong> {item.optionC} {item.optionD && <><strong className="text-blue-900 font-bold">D)</strong> {item.optionD}</>})
-                            </span>
-                          ) : (
-                            <span>
-                              <span className="font-bold text-slate-950">{item.id}. </span>
-                              {item.pictorialSymbol && <span className="mr-1">{item.pictorialSymbol}</span>}
-                              <span>{cleanQ}{punct} </span>
-                              <strong className="text-blue-900 font-bold">A)</strong> {item.optionA}{' '}
-                              <strong className="text-blue-900 font-bold">B)</strong> {item.optionB}{' '}
-                              <strong className="text-blue-900 font-bold">C)</strong> {item.optionC}{' '}
-                              {item.optionD && (
-                                <>
-                                  <strong className="text-blue-900 font-bold">D)</strong> {item.optionD}
-                                </>
-                              )}
-                            </span>
+                        <React.Fragment key={item.id}>
+                          {currentAssessment.readingPassage && idx === 5 && (
+                            <div className="col-span-full py-1.5 px-3 my-2 rounded-lg bg-blue-50 border border-blue-200 text-blue-950 font-bold uppercase text-[10.5px]">
+                              Questions 6 to {currentAssessment.objectives.length}: Lexis, Structure, Grammar & Vocabulary
+                            </div>
                           )}
-                        </div>
+                          <div 
+                            className="py-1 px-1.5 rounded hover:bg-slate-50 transition-colors font-medium text-slate-900 text-xs leading-normal"
+                          >
+                            {singleLineStyle === 'parenthesized' ? (
+                              <span>
+                                ({item.id}. {item.pictorialSymbol && <span className="mr-1">{item.pictorialSymbol}</span>}
+                                {cleanQ}{punct} <strong className="text-blue-900 font-bold">A)</strong> {optA} <strong className="text-blue-900 font-bold">B)</strong> {optB} <strong className="text-blue-900 font-bold">C)</strong> {optC} {optD && <><strong className="text-blue-900 font-bold">D)</strong> {optD}</>})
+                              </span>
+                            ) : (
+                              <span>
+                                <span className="font-bold text-slate-950">{item.id}. </span>
+                                {item.pictorialSymbol && <span className="mr-1">{item.pictorialSymbol}</span>}
+                                <span>{cleanQ}{punct} </span>
+                                <strong className="text-blue-900 font-bold">A)</strong> {optA}{' '}
+                                <strong className="text-blue-900 font-bold">B)</strong> {optB}{' '}
+                                <strong className="text-blue-900 font-bold">C)</strong> {optC}{' '}
+                                {optD && (
+                                  <>
+                                    <strong className="text-blue-900 font-bold">D)</strong> {optD}
+                                  </>
+                                )}
+                              </span>
+                            )}
+                          </div>
+                        </React.Fragment>
                       );
                     })}
                   </div>
@@ -1521,7 +1653,7 @@ export const AiExamCreatorTab: React.FC = () => {
                             </span>
                           </div>
                           <div className="text-slate-800 whitespace-pre-line leading-relaxed font-medium">
-                            {t.questionText}
+                            {cleanAsterisks(t.questionText)}
                           </div>
                         </div>
                       ))}
@@ -1564,6 +1696,27 @@ export const AiExamCreatorTab: React.FC = () => {
                 const chosen = cbtAnswers[item.id];
                 return (
                   <div className="space-y-6">
+                    {/* Comprehension Passage for CBT (Questions 1 to 5) */}
+                    {currentAssessment.readingPassage && cbtCurrentIndex < 5 && (
+                      <div className="p-4 sm:p-5 rounded-2xl bg-amber-50 border-2 border-amber-300/80 text-xs space-y-2">
+                        <div className="flex items-center justify-between border-b border-amber-200 pb-1.5 font-bold">
+                          <span className="uppercase font-black text-amber-950 flex items-center gap-1.5">
+                            <span className="px-2 py-0.5 rounded bg-amber-200 text-amber-900 text-[10px]">Passage</span>
+                            <span>{cleanAsterisks(currentAssessment.readingPassage.title || 'Comprehension Passage')}</span>
+                          </span>
+                          <span className="text-[10px] text-amber-800 font-bold">
+                            Question {cbtCurrentIndex + 1} of 5 relates to this passage
+                          </span>
+                        </div>
+                        <div className="text-[11px] text-amber-900 italic font-medium">
+                          {cleanAsterisks(currentAssessment.readingPassage.instructions || "Read the passage carefully and answer Questions 1 to 5 based strictly on it.")}
+                        </div>
+                        <div className="text-slate-800 leading-relaxed font-serif text-xs max-h-48 overflow-y-auto pr-2 bg-white/90 p-3 rounded-xl border border-amber-200/60">
+                          {cleanAsterisks(currentAssessment.readingPassage.text)}
+                        </div>
+                      </div>
+                    )}
+
                     <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
                       <div className="flex items-center gap-2">
                         <span className="w-7 h-7 rounded-lg bg-blue-900 text-white font-black text-xs flex items-center justify-center">
@@ -1573,17 +1726,17 @@ export const AiExamCreatorTab: React.FC = () => {
                           <span className="text-xl">{item.pictorialSymbol}</span>
                         )}
                         <span className="font-bold text-slate-900 text-sm">
-                          {item.question.replace(/^\[.*?\]\s*/, '')}
+                          {cleanAsterisks(item.question.replace(/^\[.*?\]\s*/, ''))}
                         </span>
                       </div>
 
                       {/* Options */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 text-xs">
                         {[
-                          { key: 'A', text: item.optionA },
-                          { key: 'B', text: item.optionB },
-                          { key: 'C', text: item.optionC },
-                          ...(item.optionD ? [{ key: 'D', text: item.optionD }] : [])
+                          { key: 'A', text: cleanAsterisks(item.optionA) },
+                          { key: 'B', text: cleanAsterisks(item.optionB) },
+                          { key: 'C', text: cleanAsterisks(item.optionC) },
+                          ...(item.optionD ? [{ key: 'D', text: cleanAsterisks(item.optionD) }] : [])
                         ].map((opt) => {
                           const isSelected = chosen === opt.key;
                           return (
@@ -1694,29 +1847,55 @@ export const AiExamCreatorTab: React.FC = () => {
 
           {/* VIEW 3: QUESTION CARDS */}
           {activeView === 'cards' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {currentAssessment.objectives.map((item, idx) => (
-                <div key={item.id} className="bg-white rounded-3xl p-5 shadow-sm border border-slate-200 text-xs space-y-3">
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                    <span className="font-black text-blue-900">
-                      Question #{idx + 1}
+            <div className="space-y-4">
+              {/* Reading Passage Card if present */}
+              {currentAssessment.readingPassage && (
+                <div className="bg-amber-50/80 rounded-3xl p-5 sm:p-6 border-2 border-amber-300/80 text-xs space-y-2.5">
+                  <div className="flex items-center justify-between border-b border-amber-200 pb-2">
+                    <span className="font-black text-amber-950 uppercase text-sm">
+                      Comprehension Reading Passage: {cleanAsterisks(currentAssessment.readingPassage.title || "Passage")}
                     </span>
-                    <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 font-bold border border-emerald-200">
-                      Answer: Option {item.correctOption}
+                    <span className="text-amber-800 font-bold text-[11px] bg-amber-200/60 px-2 py-0.5 rounded-md">
+                      Questions 1 to 5 are based strictly on this passage
                     </span>
                   </div>
-
-                  <div className="font-semibold text-slate-900 text-sm">
-                    {item.pictorialSymbol && <span className="mr-2 text-lg">{item.pictorialSymbol}</span>}
-                    {item.question.replace(/^\[.*?\]\s*/, '')}
+                  <div className="text-xs text-amber-900 italic font-semibold">
+                    {cleanAsterisks(currentAssessment.readingPassage.instructions || "Read the passage carefully and answer Questions 1 to 5 based strictly on it.")}
                   </div>
-
-                  <div className="p-2.5 rounded-xl bg-slate-50 font-mono text-[11px] text-slate-800 border border-slate-200">
-                    <span className="text-[10px] text-slate-400 font-bold block uppercase mb-0.5">Strict Single-Line Format</span>
-                    {formatSingleLine(item, idx, singleLineStyle)}
+                  <div className="text-slate-800 font-serif leading-relaxed whitespace-pre-line bg-white p-4 rounded-2xl border border-amber-200/50 shadow-2xs">
+                    {cleanAsterisks(currentAssessment.readingPassage.text)}
                   </div>
                 </div>
-              ))}
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {currentAssessment.objectives.map((item, idx) => (
+                  <div key={item.id} className="bg-white rounded-3xl p-5 shadow-sm border border-slate-200 text-xs space-y-3">
+                    <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                      <span className="font-black text-blue-900">
+                        Question #{idx + 1} {idx < 5 && currentAssessment.readingPassage && (
+                          <span className="text-amber-700 font-bold ml-1.5 text-[10px] bg-amber-100 px-1.5 py-0.5 rounded">
+                            Comprehension
+                          </span>
+                        )}
+                      </span>
+                      <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 font-bold border border-emerald-200">
+                        Answer: Option {item.correctOption}
+                      </span>
+                    </div>
+
+                    <div className="font-semibold text-slate-900 text-sm">
+                      {item.pictorialSymbol && <span className="mr-2 text-lg">{item.pictorialSymbol}</span>}
+                      {cleanAsterisks(item.question.replace(/^\[.*?\]\s*/, ''))}
+                    </div>
+
+                    <div className="p-2.5 rounded-xl bg-slate-50 font-mono text-[11px] text-slate-800 border border-slate-200">
+                      <span className="text-[10px] text-slate-400 font-bold block uppercase mb-0.5">Strict Single-Line Format</span>
+                      {formatSingleLine(item, idx, singleLineStyle)}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
@@ -1965,6 +2144,27 @@ export const AiExamCreatorTab: React.FC = () => {
                 />
               </div>
             )}
+
+            {/* Additional Instructions / Guidelines when sending Scheme of Work */}
+            <div className="space-y-1.5 p-3 rounded-2xl bg-emerald-50/50 border border-emerald-200">
+              <label className="font-bold text-slate-800 flex items-center justify-between">
+                <span className="flex items-center gap-1.5 text-emerald-950 font-black">
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Additional Tutor Instructions / Focus Guidelines (Optional)</span>
+                </span>
+                <span className="text-[10.5px] text-slate-400 font-normal">e.g. Special exam rules</span>
+              </label>
+              <textarea
+                rows={2}
+                value={uploadInstructions}
+                onChange={(e) => setUploadInstructions(e.target.value)}
+                placeholder="E.g. For English: ensure reading passage is youth-oriented; questions 1-5 must test reading comprehension; strictly no mathematics or physics formulas; avoid bold asterisks..."
+                className="w-full p-2.5 rounded-xl border border-emerald-300 bg-white text-slate-800 text-xs font-medium focus:ring-2 focus:ring-emerald-500 placeholder:text-slate-400"
+              />
+              <p className="text-[10px] text-slate-500 leading-tight">
+                Calvin AI will remember these special guidelines whenever synthesizing exam papers for this scheme.
+              </p>
+            </div>
 
             <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-100">
               <button

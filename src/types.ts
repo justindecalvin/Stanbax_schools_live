@@ -401,6 +401,7 @@ export interface SchemeOfWork {
   uploadedAt?: string;
   uploadedBy?: string;
   rawText?: string;
+  additionalInstructions?: string;
   isAiLearned: boolean;
   lastUpdated: string;
 }
