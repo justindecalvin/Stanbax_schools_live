@@ -552,7 +552,7 @@ interface SchoolContextType {
   assignClassPrefects: (classId: string, prefectStudentId?: string, assistantPrefectStudentId?: string) => void;
   assignClubLeaders: (clubId: string, presidentStudentId?: string, vicePresidentStudentId?: string, memberStudentIds?: string[]) => void;
   assignStudentPrefectBadge: (studentId: string, prefectRole?: string, prefectBadge?: string) => void;
-  updateStudentChatSettings: (studentId: string, settings: { showOnlineStatus?: boolean; allowDirectMessages?: boolean }) => void;
+  updateStudentChatSettings: (studentId: string, settings: { showOnlineStatus?: boolean; allowDirectMessages?: boolean; dmPermission?: 'classmates_only' | 'anyone' }) => void;
   ephemeralStatuses: UserEphemeralStatus[];
   postEphemeralStatus: (status: Omit<UserEphemeralStatus, 'id' | 'createdAt' | 'expiresAt' | 'views'>) => void;
   deleteEphemeralStatus: (id: string) => void;
@@ -5392,11 +5392,11 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     });
   };
 
-  const updateStudentChatSettings = (studentId: string, settings: { showOnlineStatus?: boolean; allowDirectMessages?: boolean }) => {
+  const updateStudentChatSettings = (studentId: string, settings: { showOnlineStatus?: boolean; allowDirectMessages?: boolean; dmPermission?: 'classmates_only' | 'anyone' }) => {
     setStudents(prev => {
       const updated = prev.map(s => s.id === studentId ? {
         ...s,
-        chatSettings: { ...(s.chatSettings || { showOnlineStatus: true, allowDirectMessages: true }), ...settings }
+        chatSettings: { ...(s.chatSettings || { showOnlineStatus: true, allowDirectMessages: true, dmPermission: 'anyone' }), ...settings }
       } : s);
       try { localStorage.setItem('stanbax_students', JSON.stringify(updated)); } catch {}
       return updated;

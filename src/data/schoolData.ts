@@ -430,7 +430,12 @@ export const DEMO_STUDENT: StudentProfile = {
   feeTotal: 265000,
   feePaid: 185000,
   feeBalance: 80000,
-  feeStatus: 'Partially Paid'
+  feeStatus: 'Partially Paid',
+  chatSettings: {
+    showOnlineStatus: true,
+    allowDirectMessages: true,
+    dmPermission: 'anyone'
+  }
 };
 
 export const DEMO_STUDENTS: StudentProfile[] = [

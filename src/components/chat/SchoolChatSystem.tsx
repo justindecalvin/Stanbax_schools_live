@@ -27,7 +27,10 @@ import {
   Play,
   Pause,
   Camera,
-  Maximize2
+  Maximize2,
+  ArrowLeft,
+  ExternalLink,
+  Globe
 } from '../RealIcons';
 
 import { SchoolLogo } from '../SchoolLogo';
@@ -96,10 +99,30 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
   const [newChanDirectUser, setNewChanDirectUser] = useState('');
   const [newChanReadOnly, setNewChanReadOnly] = useState(false);
 
-  // Peer-to-Peer Student Messaging State
+  // Peer-to-Peer Student Messaging State & Overlay Card
+  interface OverlayPeerChat {
+    id: string;
+    name: string;
+    role: 'student' | 'tutor' | 'parent';
+    channelId: string;
+    grade?: string;
+    subtext?: string;
+    prefectBadge?: string;
+  }
+
   const [showDirectPeerModal, setShowDirectPeerModal] = useState(false);
   const [peerSearchTerm, setPeerSearchTerm] = useState('');
   const [peerTab, setPeerTab] = useState<'classmates' | 'clubs' | 'tutors'>('classmates');
+  const [overlayPeerChat, setOverlayPeerChat] = useState<OverlayPeerChat | null>(null);
+  const [overlayMessageText, setOverlayMessageText] = useState('');
+  const overlayMessagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll overlay chat messages
+  useEffect(() => {
+    if (overlayPeerChat) {
+      overlayMessagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [chatMessages, overlayPeerChat]);
 
   // Media Attachments & Voice Note State
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -147,31 +170,88 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
   // Start or open a 1:1 direct chat between students (or with tutors).
   // Note: 'admin-1' is included in directParticipantIds in background for admin supervision,
   // but NEVER exposed in the UI or student views.
-  const handleStartDirectChat = (targetId: string, targetName: string, _targetRole: 'student' | 'tutor' | 'parent' = 'student') => {
-    const existing = chatChannels.find(c => 
+  const handleStartDirectChat = (targetId: string, targetName: string, targetRole: 'student' | 'tutor' | 'parent' = 'student') => {
+    // Check direct messaging permission if current user is a student
+    if (isStudent && targetRole === 'student') {
+      const targetStudent = students.find(s => s.id === targetId);
+      if (targetStudent) {
+        if (targetStudent.chatSettings?.allowDirectMessages === false) {
+          return;
+        }
+        if (targetStudent.chatSettings?.dmPermission === 'classmates_only') {
+          const isSameClass = (currentStudent?.classId && currentStudent.classId === targetStudent.classId) ||
+                              (currentStudent?.grade && currentStudent.grade === targetStudent.grade);
+          if (!isSameClass) {
+            return;
+          }
+        }
+      }
+    }
+
+    let targetChan = chatChannels.find(c => 
       c.type === 'direct' && 
       c.directParticipantIds?.includes(currentUserId) && 
       c.directParticipantIds?.includes(targetId)
     );
 
-    if (existing) {
-      setActiveChannelId(existing.id);
-      setShowDirectPeerModal(false);
-      return;
+    if (!targetChan) {
+      targetChan = addChatChannel({
+        name: targetName,
+        type: 'direct',
+        description: `Direct private consultation between ${currentUserName} and ${targetName}.`,
+        directParticipantIds: [currentUserId, targetId, 'admin-1'],
+        directParticipantNames: [currentUserName, targetName],
+        createdBy: currentUserId,
+        isReadOnly: false
+      });
     }
 
-    const newChan = addChatChannel({
+    const targetStudent = students.find(s => s.id === targetId);
+    const targetTutor = tutors.find(t => t.id === targetId);
+
+    // Overlay chat in a card directly on top of previous list of users!
+    setOverlayPeerChat({
+      id: targetId,
       name: targetName,
-      type: 'direct',
-      description: `Private study dialogue between ${currentUserName} and ${targetName}.`,
-      directParticipantIds: [currentUserId, targetId, 'admin-1'],
-      directParticipantNames: [currentUserName, targetName],
-      createdBy: currentUserId,
-      isReadOnly: false
+      role: targetRole,
+      channelId: targetChan.id,
+      grade: targetStudent?.grade,
+      subtext: targetStudent 
+        ? `${targetStudent.grade} • ${targetStudent.house ? `${targetStudent.house} House` : 'Stanbax Standard'}` 
+        : (targetTutor?.assignedSubjects?.join(', ') || 'Faculty Tutor'),
+      prefectBadge: targetStudent?.prefectBadge
+    });
+    setOverlayMessageText('');
+    setShowDirectPeerModal(true);
+  };
+
+  const handleSendOverlayMessage = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!overlayMessageText.trim() || !overlayPeerChat) return;
+
+    sendChatMessage({
+      channelId: overlayPeerChat.channelId,
+      senderId: currentUserId,
+      senderName: currentUserName,
+      senderRole: currentUserRole,
+      senderBadge: currentStudent?.prefectBadge,
+      senderSubtext: isStudent && currentStudent ? currentStudent.grade : (isTutor ? 'Faculty Tutor' : 'Stanbax Member'),
+      content: overlayMessageText.trim()
     });
 
-    setActiveChannelId(newChan.id);
-    setShowDirectPeerModal(false);
+    setOverlayMessageText('');
+    setTimeout(() => {
+      overlayMessagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 50);
+  };
+
+  const handleExpandToMainChat = () => {
+    if (overlayPeerChat) {
+      setActiveChannelId(overlayPeerChat.channelId);
+      setOverlayPeerChat(null);
+      setShowDirectPeerModal(false);
+      setMobileView('conversation');
+    }
   };
 
   // Filter channels based on user authorization:
@@ -905,12 +985,22 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
                         className={`flex gap-3 max-w-2xl ${isMine ? 'ml-auto flex-row-reverse' : ''}`}
                       >
                         {/* Avatar */}
-                        <div className={`w-9 h-9 rounded-2xl flex items-center justify-center font-black text-xs shrink-0 shadow-xs overflow-hidden ${
-                          isMsgAdmin || activeChannel.type === 'announcement' ? '' :
-                          isMsgTutor ? 'bg-blue-900 text-amber-300' :
-                          isMsgParent ? 'bg-amber-100 text-amber-900 border border-amber-300' :
-                          'bg-indigo-700 text-white'
-                        }`}>
+                        <div 
+                          onClick={() => {
+                            if (!isMine && msg.senderId && !isMsgAdmin && activeChannel.type !== 'announcement') {
+                              handleStartDirectChat(msg.senderId, msg.senderName, msg.senderRole as any);
+                            }
+                          }}
+                          title={!isMine && !isMsgAdmin ? `Click to direct message ${msg.senderName}` : undefined}
+                          className={`w-9 h-9 rounded-2xl flex items-center justify-center font-black text-xs shrink-0 shadow-xs overflow-hidden ${
+                            !isMine && !isMsgAdmin && activeChannel.type !== 'announcement' ? 'cursor-pointer hover:ring-2 hover:ring-indigo-400 transition-all' : ''
+                          } ${
+                            isMsgAdmin || activeChannel.type === 'announcement' ? '' :
+                            isMsgTutor ? 'bg-blue-900 text-amber-300' :
+                            isMsgParent ? 'bg-amber-100 text-amber-900 border border-amber-300' :
+                            'bg-indigo-700 text-white'
+                          }`}
+                        >
                           {isMsgAdmin || activeChannel.type === 'announcement' ? (
                             <SchoolLogo size="xs" showText={false} />
                           ) : (
@@ -922,7 +1012,19 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
                         <div className={`space-y-1 ${isMine ? 'items-end' : ''}`}>
                           {/* Meta header */}
                           <div className={`flex items-center gap-1.5 flex-wrap text-[11px] ${isMine ? 'justify-end' : ''}`}>
-                            <span className="font-black text-neutral-900">{msg.senderName}</span>
+                            <span 
+                              onClick={() => {
+                                if (!isMine && msg.senderId && !isMsgAdmin && activeChannel.type !== 'announcement') {
+                                  handleStartDirectChat(msg.senderId, msg.senderName, msg.senderRole as any);
+                                }
+                              }}
+                              className={`font-black text-neutral-900 ${
+                                !isMine && !isMsgAdmin && activeChannel.type !== 'announcement' ? 'cursor-pointer hover:text-indigo-600 transition' : ''
+                              }`}
+                              title={!isMine && !isMsgAdmin ? `Click to direct message ${msg.senderName}` : undefined}
+                            >
+                              {msg.senderName}
+                            </span>
                             
                             {/* Role Tag */}
                             <span className={`px-1.5 py-0.2 rounded text-[9px] font-extrabold uppercase ${
@@ -1348,19 +1450,19 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
       )}
 
       {/* ========================================================================= */}
-      {/* MODAL 2: DIRECT PEER-TO-PEER MESSAGING MODAL                              */}
+      {/* MODAL 2: DIRECT PEER-TO-PEER MESSAGING MODAL & CHAT OVERLAY CARD          */}
       {/* ========================================================================= */}
       {showDirectPeerModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-xs overflow-y-auto">
-          <div className="bg-white rounded-3xl shadow-2xl border border-stone-200 w-full max-w-xl overflow-hidden my-8 animate-in fade-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-stone-900/60 backdrop-blur-xs overflow-y-auto">
+          <div className="bg-white rounded-3xl shadow-2xl border border-stone-200 w-full max-w-xl overflow-hidden my-4 sm:my-6 relative min-h-[580px] max-h-[85vh] flex flex-col animate-in fade-in zoom-in-95 duration-150">
             {/* Modal Header */}
-            <div className="bg-gradient-to-r from-indigo-900 via-indigo-950 to-neutral-900 text-white p-6 flex items-center justify-between">
+            <div className="bg-gradient-to-r from-indigo-900 via-indigo-950 to-neutral-900 text-white p-5 sm:p-6 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-md">
+                <div className="w-10 h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-md shrink-0">
                   <MessageSquare className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-extrabold text-lg text-white">Private Direct Message</h3>
+                  <h3 className="font-extrabold text-base sm:text-lg text-white">Private Direct Message</h3>
                   <p className="text-xs text-indigo-200">
                     Connect 1-on-1 with a fellow scholar or academic tutor
                   </p>
@@ -1368,15 +1470,39 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
               </div>
               <button 
                 type="button"
-                onClick={() => setShowDirectPeerModal(false)}
+                onClick={() => {
+                  setOverlayPeerChat(null);
+                  setShowDirectPeerModal(false);
+                }}
                 className="text-stone-400 hover:text-white p-2 rounded-xl hover:bg-stone-800 transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
-              {/* Notice Card: Admin sees admin notice, students see clean peer study prompt (NEVER revealing admin access) */}
+            {/* Student DM Privacy Bar (Allows student to see & change their direct messaging preference) */}
+            {isStudent && currentStudent && (
+              <div className="bg-indigo-950/70 border-b border-indigo-800/60 px-4 sm:px-6 py-2.5 flex items-center justify-between text-xs text-indigo-200 shrink-0">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Lock className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                  <span className="truncate">
+                    Your DM Privacy: <strong className="text-white">{currentStudent.chatSettings?.dmPermission === 'classmates_only' ? 'Fellow Classmates Only' : 'Anyone at Stanbax'}</strong>
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowPrivacySettingsModal(true)}
+                  className="px-2.5 py-1 rounded-lg bg-indigo-800/80 hover:bg-indigo-700 text-amber-300 font-bold text-[11px] transition cursor-pointer flex items-center gap-1 shrink-0"
+                >
+                  <Settings className="w-3 h-3" />
+                  <span>Configure</span>
+                </button>
+              </div>
+            )}
+
+            {/* Directory Content (The Previous List of Users) */}
+            <div className="p-4 sm:p-6 space-y-4 flex-1 overflow-y-auto">
+              {/* Notice Card */}
               {isAdmin ? (
                 <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 flex items-start gap-3">
                   <ShieldCheck className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
@@ -1480,13 +1606,22 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
                       );
 
                       // Check student direct chat preference:
-                      // Fellow students cannot chat if disabled, but admin/tutors can
+                      // Fellow classmates can chat unless scholar completely turned off direct chats
                       const peerChatDisabled = isStudent && s.chatSettings?.allowDirectMessages === false;
 
                       return (
                         <div
                           key={s.id}
-                          className="p-3 rounded-2xl border border-neutral-200 hover:border-indigo-300 hover:bg-indigo-50/30 transition flex items-center justify-between gap-3 bg-white shadow-2xs"
+                          onClick={() => {
+                            if (!peerChatDisabled) {
+                              handleStartDirectChat(s.id, s.name, 'student');
+                            }
+                          }}
+                          className={`p-3 rounded-2xl border transition flex items-center justify-between gap-3 bg-white shadow-2xs ${
+                            peerChatDisabled 
+                              ? 'border-neutral-200 opacity-75' 
+                              : 'border-neutral-200 hover:border-indigo-300 hover:bg-indigo-50/30 cursor-pointer'
+                          }`}
                         >
                           <div className="flex items-center gap-3 min-w-0">
                             <div className="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-black text-sm shrink-0 relative">
@@ -1512,7 +1647,7 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
 
                           {peerChatDisabled ? (
                             <span 
-                              className="px-3 py-1.5 rounded-xl bg-neutral-100 text-neutral-400 font-semibold text-xs cursor-not-allowed"
+                              className="px-3 py-1.5 rounded-xl bg-neutral-100 text-neutral-400 font-semibold text-xs cursor-not-allowed shrink-0"
                               title="This scholar has chosen not to receive direct chats from fellow students."
                             >
                               Chat Disabled
@@ -1520,7 +1655,10 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
                           ) : (
                             <button
                               type="button"
-                              onClick={() => handleStartDirectChat(s.id, s.name, 'student')}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleStartDirectChat(s.id, s.name, 'student');
+                              }}
                               className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-xs transition flex items-center gap-1.5 cursor-pointer shrink-0"
                             >
                               <Send className="w-3 h-3" />
@@ -1573,12 +1711,28 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
                         c.directParticipantIds?.includes(s.id)
                       );
 
-                      const peerChatDisabled = isStudent && s.chatSettings?.allowDirectMessages === false;
+                      // Check classmate privacy preference:
+                      // If target student set dmPermission to 'classmates_only', non-classmate peers cannot direct message
+                      const isClassmate = isStudent && currentStudent && (
+                        (currentStudent.classId && s.classId === currentStudent.classId) || 
+                        (currentStudent.grade && s.grade === currentStudent.grade)
+                      );
+                      const onlyClassmatesAllowed = isStudent && s.chatSettings?.dmPermission === 'classmates_only' && !isClassmate;
+                      const peerChatDisabled = isStudent && (s.chatSettings?.allowDirectMessages === false || onlyClassmatesAllowed);
 
                       return (
                         <div
                           key={s.id}
-                          className="p-3 rounded-2xl border border-neutral-200 hover:border-emerald-300 hover:bg-emerald-50/30 transition flex items-center justify-between gap-3 bg-white shadow-2xs"
+                          onClick={() => {
+                            if (!peerChatDisabled) {
+                              handleStartDirectChat(s.id, s.name, 'student');
+                            }
+                          }}
+                          className={`p-3 rounded-2xl border transition flex items-center justify-between gap-3 bg-white shadow-2xs ${
+                            peerChatDisabled 
+                              ? 'border-neutral-200 opacity-75' 
+                              : 'border-neutral-200 hover:border-emerald-300 hover:bg-emerald-50/30 cursor-pointer'
+                          }`}
                         >
                           <div className="flex items-center gap-3 min-w-0">
                             <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-black text-sm shrink-0">
@@ -1593,13 +1747,29 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
                           </div>
 
                           {peerChatDisabled ? (
-                            <span className="px-3 py-1.5 rounded-xl bg-neutral-100 text-neutral-400 font-semibold text-xs cursor-not-allowed">
-                              Chat Disabled
-                            </span>
+                            onlyClassmatesAllowed ? (
+                              <span 
+                                className="px-2.5 py-1 rounded-xl bg-neutral-100 text-neutral-500 font-bold text-[11px] flex items-center gap-1 border border-neutral-200 shrink-0"
+                                title={`${s.name} only accepts direct messages from fellow classmates in ${s.grade || 'their class'}.`}
+                              >
+                                <Lock className="w-3 h-3 text-neutral-400" />
+                                <span>Classmates Only</span>
+                              </span>
+                            ) : (
+                              <span 
+                                className="px-3 py-1.5 rounded-xl bg-neutral-100 text-neutral-400 font-semibold text-xs cursor-not-allowed shrink-0"
+                                title="This scholar has chosen not to receive direct chats from fellow students."
+                              >
+                                Chat Disabled
+                              </span>
+                            )
                           ) : (
                             <button
                               type="button"
-                              onClick={() => handleStartDirectChat(s.id, s.name, 'student')}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleStartDirectChat(s.id, s.name, 'student');
+                              }}
                               className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-xs transition flex items-center gap-1.5 cursor-pointer shrink-0"
                             >
                               <Send className="w-3 h-3" />
@@ -1639,7 +1809,8 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
                       return (
                         <div
                           key={t.id}
-                          className="p-3 rounded-2xl border border-neutral-200 hover:border-blue-300 hover:bg-blue-50/30 transition flex items-center justify-between gap-3 bg-white shadow-2xs"
+                          onClick={() => handleStartDirectChat(t.id, t.name, 'tutor')}
+                          className="p-3 rounded-2xl border border-neutral-200 hover:border-blue-300 hover:bg-blue-50/30 transition flex items-center justify-between gap-3 bg-white shadow-2xs cursor-pointer"
                         >
                           <div className="flex items-center gap-3 min-w-0">
                             <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-900 flex items-center justify-center font-black text-sm shrink-0">
@@ -1662,7 +1833,10 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
 
                           <button
                             type="button"
-                            onClick={() => handleStartDirectChat(t.id, t.name, 'tutor')}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleStartDirectChat(t.id, t.name, 'tutor');
+                            }}
                             className="px-3.5 py-1.5 rounded-xl bg-blue-900 hover:bg-blue-800 text-amber-300 font-bold text-xs shadow-xs transition flex items-center gap-1.5 cursor-pointer shrink-0"
                           >
                             <Send className="w-3 h-3" />
@@ -1676,15 +1850,172 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
               </div>
             </div>
 
-            <div className="p-4 bg-neutral-50 border-t border-neutral-200 flex justify-end">
+            {/* Modal Footer */}
+            <div className="p-4 bg-neutral-50 border-t border-neutral-200 flex justify-end shrink-0">
               <button
                 type="button"
-                onClick={() => setShowDirectPeerModal(false)}
-                className="px-5 py-2 rounded-xl bg-neutral-900 text-white font-bold text-xs"
+                onClick={() => {
+                  setOverlayPeerChat(null);
+                  setShowDirectPeerModal(false);
+                }}
+                className="px-5 py-2 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white font-bold text-xs cursor-pointer transition shadow-xs"
               >
                 Close Directory
               </button>
             </div>
+
+            {/* ========================================================================= */}
+            {/* DIRECT CHAT OVERLAY CARD (OVERLAYS IN A CARD ON PREVIOUS LIST OF USERS)    */}
+            {/* ========================================================================= */}
+            {overlayPeerChat && (
+              <div className="absolute inset-0 z-30 bg-stone-950/40 backdrop-blur-2xs flex flex-col p-2.5 sm:p-4 animate-in fade-in duration-200">
+                <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-stone-200/90 flex-1 flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+                  {/* Overlay Card Header */}
+                  <div className="bg-gradient-to-r from-indigo-900 via-indigo-950 to-neutral-900 text-white p-3.5 sm:p-4 flex items-center justify-between gap-3 shrink-0">
+                    <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+                      <button
+                        type="button"
+                        onClick={() => setOverlayPeerChat(null)}
+                        className="px-2.5 py-1 -ml-1 rounded-xl text-white/90 hover:text-white hover:bg-white/10 transition flex items-center gap-1.5 text-xs font-bold cursor-pointer shrink-0 border border-white/20"
+                        title="Return to previous list of users"
+                      >
+                        <ArrowLeft className="w-4 h-4" />
+                        <span className="hidden sm:inline">Scholars</span>
+                      </button>
+
+                      <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-black text-sm shrink-0 shadow-sm relative">
+                        {overlayPeerChat.name.charAt(0)}
+                        <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white" />
+                      </div>
+
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <h4 className="font-black text-xs sm:text-sm text-white truncate max-w-[160px] sm:max-w-[240px]">
+                            {overlayPeerChat.name}
+                          </h4>
+                          {overlayPeerChat.prefectBadge && (
+                            <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black bg-amber-400 text-amber-950 shrink-0">
+                              {overlayPeerChat.prefectBadge}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[10px] sm:text-[11px] text-indigo-200 truncate">
+                          {overlayPeerChat.subtext || 'Academic Direct Consultation'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={handleExpandToMainChat}
+                        className="px-2.5 py-1.5 rounded-xl text-indigo-200 hover:text-white hover:bg-white/10 transition text-xs font-bold flex items-center gap-1 cursor-pointer"
+                        title="Expand into full Community Hub view"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline text-[11px]">Full Hub</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOverlayPeerChat(null);
+                          setShowDirectPeerModal(false);
+                        }}
+                        className="p-1.5 rounded-xl text-white/70 hover:text-white hover:bg-white/10 transition cursor-pointer"
+                        title="Close"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Return Breadcrumb strip */}
+                  <div className="px-3.5 py-1.5 bg-indigo-50/90 border-b border-indigo-100 flex items-center justify-between text-xs text-indigo-950 shrink-0">
+                    <span className="font-semibold text-[11px] flex items-center gap-1.5">
+                      <ShieldCheck className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                      <span>1-on-1 Academic Message Overlay</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setOverlayPeerChat(null)}
+                      className="text-indigo-700 hover:text-indigo-900 font-extrabold text-[11px] flex items-center gap-1 cursor-pointer underline"
+                    >
+                      ← Back to user list
+                    </button>
+                  </div>
+
+                  {/* Messages scroll area */}
+                  <div className="flex-1 p-3.5 sm:p-4 overflow-y-auto space-y-3 bg-stone-50/60">
+                    {chatMessages.filter(m => m.channelId === overlayPeerChat.channelId).length === 0 ? (
+                      <div className="h-full min-h-[200px] flex flex-col items-center justify-center text-center p-6 space-y-2.5">
+                        <div className="w-12 h-12 rounded-2xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold shadow-xs">
+                          <MessageSquare className="w-6 h-6" />
+                        </div>
+                        <h5 className="font-extrabold text-sm text-neutral-900">
+                          Academic Collaboration with {overlayPeerChat.name}
+                        </h5>
+                        <p className="text-xs text-neutral-500 max-w-xs leading-relaxed">
+                          Ask homework questions, coordinate study groups, or share notes. Your conversation is secure and focused on learning.
+                        </p>
+                      </div>
+                    ) : (
+                      chatMessages.filter(m => m.channelId === overlayPeerChat.channelId).map((msg) => {
+                        const isMine = msg.senderId === currentUserId;
+                        return (
+                          <div
+                            key={msg.id}
+                            className={`flex flex-col ${isMine ? 'items-end' : 'items-start'}`}
+                          >
+                            <div className="flex items-center gap-1.5 text-[10px] text-neutral-400 mb-1 px-1">
+                              <span className="font-bold text-neutral-700">{msg.senderName}</span>
+                              <span>•</span>
+                              <span>{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                            </div>
+                            <div
+                              className={`max-w-[85%] p-3.5 rounded-2xl text-xs sm:text-[13px] leading-relaxed ${
+                                isMine
+                                  ? 'bg-neutral-900 text-white rounded-tr-xs shadow-xs'
+                                  : 'bg-white border border-neutral-200 text-neutral-800 rounded-tl-xs shadow-2xs'
+                              }`}
+                            >
+                              {msg.content}
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                    <div ref={overlayMessagesEndRef} />
+                  </div>
+
+                  {/* Send Form */}
+                  <form
+                    onSubmit={handleSendOverlayMessage}
+                    className="p-3 bg-white border-t border-neutral-200 flex items-center gap-2 shrink-0"
+                  >
+                    <input
+                      type="text"
+                      value={overlayMessageText}
+                      onChange={(e) => setOverlayMessageText(e.target.value)}
+                      placeholder={`Type message to ${overlayPeerChat.name.split(' ')[0]}...`}
+                      className="flex-1 px-4 py-2.5 rounded-xl bg-neutral-100 border border-neutral-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      autoFocus
+                    />
+                    <button
+                      type="submit"
+                      disabled={!overlayMessageText.trim()}
+                      className={`px-4 py-2.5 rounded-xl font-bold text-xs transition flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                        overlayMessageText.trim()
+                          ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-xs'
+                          : 'bg-neutral-100 text-neutral-400 cursor-not-allowed'
+                      }`}
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Send</span>
+                    </button>
+                  </form>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

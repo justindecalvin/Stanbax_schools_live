@@ -12,7 +12,10 @@ import {
   Settings,
   UserCheck,
   UserX,
-  Plus
+  Plus,
+  GraduationCap,
+  Globe,
+  Lock
 } from 'lucide-react';
 
 // ============================================================================
@@ -610,13 +613,17 @@ export const StudentChatPrivacyModal: React.FC<StudentChatPrivacyModalProps> = (
   const [allowDMs, setAllowDMs] = useState<boolean>(
     student.chatSettings?.allowDirectMessages !== false
   );
+  const [dmPermission, setDmPermission] = useState<'classmates_only' | 'anyone'>(
+    student.chatSettings?.dmPermission || 'anyone'
+  );
   const [savedSuccess, setSavedSuccess] = useState(false);
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     updateStudentChatSettings(student.id, {
       showOnlineStatus: showOnline,
-      allowDirectMessages: allowDMs
+      allowDirectMessages: allowDMs,
+      dmPermission
     });
     setSavedSuccess(true);
     setTimeout(() => {
@@ -692,6 +699,84 @@ export const StudentChatPrivacyModal: React.FC<StudentChatPrivacyModalProps> = (
               <div className="w-11 h-6 bg-neutral-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600" />
             </label>
           </div>
+
+          {/* Setting 3: Direct Message Audience Permission (Fellow Classmates vs Anyone) */}
+          {allowDMs && (
+            <div className="p-4 rounded-2xl border border-indigo-100 bg-indigo-50/40 space-y-3 animate-in fade-in duration-150">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Lock className="w-4 h-4 text-indigo-700" />
+                  <h5 className="font-extrabold text-xs text-neutral-900">Direct Message Audience</h5>
+                </div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded-full">
+                  Scholar Privacy
+                </span>
+              </div>
+              <p className="text-[11px] text-neutral-600 leading-relaxed">
+                Choose which scholars at Stanbax College are permitted to message you privately:
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                {/* Option A: Fellow Classmates Only */}
+                <div
+                  onClick={() => setDmPermission('classmates_only')}
+                  className={`p-3 rounded-2xl border cursor-pointer transition flex flex-col justify-between gap-2 text-left ${
+                    dmPermission === 'classmates_only'
+                      ? 'border-indigo-600 bg-white shadow-xs ring-2 ring-indigo-500/20'
+                      : 'border-neutral-200 bg-white/70 hover:border-neutral-300'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-7 h-7 rounded-xl flex items-center justify-center ${
+                        dmPermission === 'classmates_only' ? 'bg-indigo-600 text-white' : 'bg-neutral-100 text-neutral-600'
+                      }`}>
+                        <GraduationCap className="w-4 h-4" />
+                      </div>
+                      <span className="font-black text-xs text-neutral-900">Classmates Only</span>
+                    </div>
+                    <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+                      dmPermission === 'classmates_only' ? 'border-indigo-600 bg-indigo-600' : 'border-neutral-300'
+                    }`}>
+                      {dmPermission === 'classmates_only' && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-neutral-500 leading-tight">
+                    Only scholars in {student.grade ? student.grade : 'your class'} and tutors can direct message you.
+                  </p>
+                </div>
+
+                {/* Option B: Anyone */}
+                <div
+                  onClick={() => setDmPermission('anyone')}
+                  className={`p-3 rounded-2xl border cursor-pointer transition flex flex-col justify-between gap-2 text-left ${
+                    dmPermission === 'anyone'
+                      ? 'border-indigo-600 bg-white shadow-xs ring-2 ring-indigo-500/20'
+                      : 'border-neutral-200 bg-white/70 hover:border-neutral-300'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-7 h-7 rounded-xl flex items-center justify-center ${
+                        dmPermission === 'anyone' ? 'bg-indigo-600 text-white' : 'bg-neutral-100 text-neutral-600'
+                      }`}>
+                        <Globe className="w-4 h-4" />
+                      </div>
+                      <span className="font-black text-xs text-neutral-900">Anyone</span>
+                    </div>
+                    <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+                      dmPermission === 'anyone' ? 'border-indigo-600 bg-indigo-600' : 'border-neutral-300'
+                    }`}>
+                      {dmPermission === 'anyone' && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-neutral-500 leading-tight">
+                    Any scholar (clubs, other grades, societies) and faculty can direct message you.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {savedSuccess && (
             <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2">

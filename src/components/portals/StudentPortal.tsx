@@ -1304,9 +1304,17 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
                 </p>
               </div>
 
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-white/10 border border-white/10 text-xs text-indigo-200 shrink-0">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="font-bold text-white">Private Peer Chat Enabled</span>
+              <div className="flex flex-wrap items-center gap-2.5">
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-white/10 border border-white/10 text-xs text-indigo-200 shrink-0">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="font-bold text-white">Private Peer Chat</span>
+                </div>
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-amber-400/15 border border-amber-400/30 text-xs text-amber-200 shrink-0">
+                  <span className="font-medium text-amber-300">Audience:</span>
+                  <span className="font-black text-white">
+                    {student.chatSettings?.dmPermission === 'classmates_only' ? 'Classmates Only' : 'Anyone'}
+                  </span>
+                </div>
               </div>
             </div>
 

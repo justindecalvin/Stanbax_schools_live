@@ -257,6 +257,7 @@ export interface StudentProfile {
   chatSettings?: {
     showOnlineStatus?: boolean;
     allowDirectMessages?: boolean;
+    dmPermission?: 'classmates_only' | 'anyone';
   };
 }
 
