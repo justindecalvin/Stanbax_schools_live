@@ -442,6 +442,13 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToWebsite }) => 
           {activeTab === 'faqs' && <AdminFaqSubTab />}
         </main>
       </div>
+
+      {/* School Prefect Badges Modal */}
+      {showPrefectModal && (
+        <SchoolPrefectBadgesModal
+          onClose={() => setShowPrefectModal(false)}
+        />
+      )}
     </div>
   );
 };
