@@ -76,10 +76,12 @@ import {
   ChatChannel,
   SchoolChatMessage,
   GalleryPhoto,
-  UserEphemeralStatus
+  UserEphemeralStatus,
+  SchoolNewsArticle
 } from '../types';
 import { cleanExpiredStatuses, create16HourStatus, INITIAL_EPHEMERAL_STATUSES } from '../data/defaultEphemeralStatuses';
 import { DEFAULT_GALLERY_PHOTOS } from '../data/defaultGalleryPhotos';
+import { DEFAULT_NEWS_ARTICLES } from '../data/defaultNewsArticles';
 import { defaultSchemesOfWork } from '../data/defaultSchemesOfWork';
 import { INITIAL_LESSON_NOTES } from '../data/initialLessonNotes';
 import { DEFAULT_FAQ_ITEMS, DEFAULT_FAQ_CONTENT } from '../data/faqData';
@@ -553,6 +555,19 @@ interface SchoolContextType {
   postEphemeralStatus: (status: Omit<UserEphemeralStatus, 'id' | 'createdAt' | 'expiresAt' | 'views'>) => void;
   deleteEphemeralStatus: (id: string) => void;
   markEphemeralStatusViewed: (statusId: string, viewerId: string) => void;
+
+  // 31. School News & Blog System (Press Club President & Nominated Editors)
+  newsArticles: SchoolNewsArticle[];
+  addNewsArticle: (article: Omit<SchoolNewsArticle, 'id' | 'publishedAt'>) => void;
+  updateNewsArticle: (id: string, updates: Partial<SchoolNewsArticle>) => void;
+  deleteNewsArticle: (id: string) => void;
+  likeNewsArticle: (id: string) => void;
+  pressClubPresidentStudentId: string | undefined;
+  pressClubEditorStudentIds: string[];
+  assignPressClubPresident: (studentId: string | undefined) => void;
+  nominatePressClubEditor: (studentId: string) => void;
+  removePressClubEditor: (studentId: string) => void;
+  resetNewsArticlesToDefault: () => void;
 }
 
 const SchoolContext = createContext<SchoolContextType | undefined>(undefined);
@@ -5317,6 +5332,15 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return updated;
     });
 
+    const targetClub = clubsList.find(c => c.id === clubId);
+    if (targetClub && (targetClub.name.toLowerCase().includes('press') || targetClub.name.toLowerCase().includes('media'))) {
+      setPressClubPresidentStudentId(presidentStudentId);
+      try {
+        if (presidentStudentId) localStorage.setItem('stanbax_press_president', presidentStudentId);
+        else localStorage.removeItem('stanbax_press_president');
+      } catch {}
+    }
+
     setStudents(prev => {
       const targetClub = clubsList.find(c => c.id === clubId);
       const clubName = targetClub?.name;
@@ -5428,6 +5452,106 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       try { localStorage.setItem('stanbax_ephemeral_statuses', JSON.stringify(updated)); } catch {}
       return updated;
     });
+  };
+
+  // 31. School News & Blog System (Managed by Press Club President & Nominated Editors)
+  const [newsArticles, setNewsArticles] = useState<SchoolNewsArticle[]>(() => {
+    try {
+      const saved = localStorage.getItem('stanbax_news_articles');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return DEFAULT_NEWS_ARTICLES;
+  });
+
+  const [pressClubPresidentStudentId, setPressClubPresidentStudentId] = useState<string | undefined>(() => {
+    try {
+      const saved = localStorage.getItem('stanbax_press_president');
+      if (saved) return saved;
+    } catch {}
+    return 'stu-1'; // Default: Tiwa Adeleke
+  });
+
+  const [pressClubEditorStudentIds, setPressClubEditorStudentIds] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('stanbax_press_editors');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return ['stu-2', 'stu-3']; // Default editors: Babatunde Akindele, Chinedu Eze
+  });
+
+  const addNewsArticle = (article: Omit<SchoolNewsArticle, 'id' | 'publishedAt'>) => {
+    const newArt: SchoolNewsArticle = {
+      ...article,
+      id: `news-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      publishedAt: new Date().toISOString(),
+      likesCount: 0,
+      viewsCount: 1
+    };
+    setNewsArticles(prev => {
+      const updated = [newArt, ...prev];
+      try { localStorage.setItem('stanbax_news_articles', JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+  };
+
+  const updateNewsArticle = (id: string, updates: Partial<SchoolNewsArticle>) => {
+    setNewsArticles(prev => {
+      const updated = prev.map(a => a.id === id ? { ...a, ...updates } : a);
+      try { localStorage.setItem('stanbax_news_articles', JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+  };
+
+  const deleteNewsArticle = (id: string) => {
+    setNewsArticles(prev => {
+      const updated = prev.filter(a => a.id !== id);
+      try { localStorage.setItem('stanbax_news_articles', JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+  };
+
+  const likeNewsArticle = (id: string) => {
+    setNewsArticles(prev => {
+      const updated = prev.map(a => a.id === id ? { ...a, likesCount: (a.likesCount || 0) + 1 } : a);
+      try { localStorage.setItem('stanbax_news_articles', JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+  };
+
+  const assignPressClubPresident = (studentId: string | undefined) => {
+    setPressClubPresidentStudentId(studentId);
+    try {
+      if (studentId) localStorage.setItem('stanbax_press_president', studentId);
+      else localStorage.removeItem('stanbax_press_president');
+    } catch {}
+  };
+
+  const nominatePressClubEditor = (studentId: string) => {
+    setPressClubEditorStudentIds(prev => {
+      if (prev.includes(studentId)) return prev;
+      const updated = [...prev, studentId];
+      try { localStorage.setItem('stanbax_press_editors', JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+  };
+
+  const removePressClubEditor = (studentId: string) => {
+    setPressClubEditorStudentIds(prev => {
+      const updated = prev.filter(id => id !== studentId);
+      try { localStorage.setItem('stanbax_press_editors', JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+  };
+
+  const resetNewsArticlesToDefault = () => {
+    setNewsArticles(DEFAULT_NEWS_ARTICLES);
+    setPressClubPresidentStudentId('stu-1');
+    setPressClubEditorStudentIds(['stu-2', 'stu-3']);
+    try {
+      localStorage.setItem('stanbax_news_articles', JSON.stringify(DEFAULT_NEWS_ARTICLES));
+      localStorage.setItem('stanbax_press_president', 'stu-1');
+      localStorage.setItem('stanbax_press_editors', JSON.stringify(['stu-2', 'stu-3']));
+    } catch {}
   };
 
   // 15B. Dynamic Available Academic Sessions across current & archives
@@ -5746,7 +5870,19 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         ephemeralStatuses,
         postEphemeralStatus,
         deleteEphemeralStatus,
-        markEphemeralStatusViewed
+        markEphemeralStatusViewed,
+        // 31. School News & Blog System
+        newsArticles,
+        addNewsArticle,
+        updateNewsArticle,
+        deleteNewsArticle,
+        likeNewsArticle,
+        pressClubPresidentStudentId,
+        pressClubEditorStudentIds,
+        assignPressClubPresident,
+        nominatePressClubEditor,
+        removePressClubEditor,
+        resetNewsArticlesToDefault
       }}
     >
       {children}

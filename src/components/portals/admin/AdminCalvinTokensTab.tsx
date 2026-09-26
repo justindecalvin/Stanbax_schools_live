@@ -25,7 +25,6 @@ import {
   CheckSquare,
   Square,
   Bell,
-  Sparkles,
   MessageSquare
 } from 'lucide-react';
 import { useSchool } from '../../../context/SchoolContext';

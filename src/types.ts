@@ -5,6 +5,7 @@ export type PageSection =
   | 'student-life'
   | 'faculty'
   | 'calendar'
+  | 'news-blog'
   | 'notices'
   | 'contact'
   | 'gallery'
@@ -1022,5 +1023,42 @@ export interface UserEphemeralStatus {
   createdAt: string; // ISO string
   expiresAt: string; // ISO string (16 hours after createdAt)
   views?: string[]; // IDs of users who viewed this status
+}
+
+// 7. School News & Blog System (Managed by Press Club President & Nominated Editors)
+export type SchoolNewsCategory = 
+  | 'All'
+  | 'Campus News'
+  | 'Academic Honors'
+  | 'Sports Desk'
+  | 'Arts & Culture'
+  | 'STEM & Innovation'
+  | 'Executive Bulletin';
+
+export interface SchoolNewsAuthor {
+  id: string;
+  name: string;
+  role: 'Press Club President' | 'Press Club Editor' | 'Staff Patron' | 'Principal Administrator';
+  gradeOrTitle?: string;
+  avatar?: string;
+}
+
+export interface SchoolNewsArticle {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string;
+  content: string;
+  category: 'Campus News' | 'Academic Honors' | 'Sports Desk' | 'Arts & Culture' | 'STEM & Innovation' | 'Executive Bulletin';
+  coverImage: string;
+  publishedAt: string; // ISO string or human date
+  readTime: string; // e.g. "3 min read"
+  author: SchoolNewsAuthor;
+  tags: string[];
+  isFeatured?: boolean;
+  externalSource?: string;
+  externalUrl?: string;
+  likesCount?: number;
+  viewsCount?: number;
 }
 

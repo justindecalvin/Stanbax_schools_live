@@ -40,14 +40,14 @@ export const AcademicCalendarSection: React.FC = () => {
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="inline-flex p-1 rounded-xl bg-[#F0EAE0] border border-[#EAE2CE]">
+          <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 w-full md:w-auto">
+            <div className="inline-flex p-1 rounded-xl bg-[#F0EAE0] border border-[#EAE2CE] overflow-x-auto max-w-full">
               {terms.map((term) => (
                 <button
                   key={term}
                   type="button"
                   onClick={() => setSelectedTerm(term)}
-                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                     selectedTerm === term
                       ? 'bg-[#111827] text-amber-300 shadow-xs'
                       : 'text-neutral-700 hover:text-neutral-950'
@@ -61,7 +61,7 @@ export const AcademicCalendarSection: React.FC = () => {
             <button
               type="button"
               onClick={handleDownload}
-              className="px-4 py-2 rounded-xl bg-white hover:bg-[#F0EAE0] text-neutral-800 text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer border border-[#EAE2CE]"
+              className="px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-white hover:bg-[#F0EAE0] text-neutral-800 text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer border border-[#EAE2CE] shrink-0"
             >
               <Download className="w-3.5 h-3.5 text-red-600" />
               <span>Print Calendar</span>

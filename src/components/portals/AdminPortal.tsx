@@ -48,7 +48,7 @@ import { AdminSchemeOfWorkTab } from './admin/AdminSchemeOfWorkTab';
 import { AdminCampusGalleryTab } from './admin/AdminCampusGalleryTab';
 import { SchoolChatSystem } from '../chat/SchoolChatSystem';
 import { SchoolPrefectBadgesModal } from '../chat/ChatLeadershipModals';
-import { Bot, Sparkles } from 'lucide-react';
+import { Bot, Newspaper, Compass } from 'lucide-react';
 
 interface AdminPortalProps {
   onBackToWebsite: () => void;
@@ -105,7 +105,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToWebsite }) => 
     { id: 'overview', label: 'Dashboard Overview', icon: Layers },
     { id: 'chat', label: 'Community Chat Hub', icon: MessageSquare, badge: 'Live' },
     { id: 'calvin_tokens', label: 'Calvin AI Tokens', icon: Bot, badge: availableTokensCount > 0 ? `${availableTokensCount} Ready` : undefined },
-    { id: 'scheme_of_work', label: 'Schemes of Work (AI Brain)', icon: Sparkles, badge: 'Curriculum' },
+    { id: 'scheme_of_work', label: 'Schemes of Work (Curriculum Matrix)', icon: Compass, badge: 'Curriculum' },
     { id: 'calendar', label: 'Term Calendar & Events', icon: Calendar },
     { id: 'gallery', label: 'Campus Gallery & Photos', icon: Camera, badge: `${galleryPhotos?.length || 0} Photos` },
     { id: 'students', label: 'Scholars & Alumni', icon: GraduationCap, badge: students.length },
@@ -334,6 +334,22 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onBackToWebsite }) => 
                     <Layout className="w-5 h-5 text-red-600 mb-2 group-hover:scale-110 transition-transform" />
                     <div className="font-bold text-xs text-stone-900">School Logo & CMS</div>
                     <div className="text-[11px] text-red-600 font-semibold">Change logo & website</div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onBackToWebsite();
+                      setTimeout(() => {
+                        const el = document.getElementById('news-blog');
+                        if (el) el.scrollIntoView({ behavior: 'smooth' });
+                      }, 100);
+                    }}
+                    className="p-4 rounded-xl border border-amber-200 bg-amber-50/40 hover:border-amber-500 hover:bg-amber-50 text-left transition-all group"
+                  >
+                    <Newspaper className="w-5 h-5 text-amber-700 mb-2 group-hover:scale-110 transition-transform" />
+                    <div className="font-bold text-xs text-stone-900">News & Blog Gazette</div>
+                    <div className="text-[11px] text-amber-700 font-semibold">Press desk & dispatches</div>
                   </button>
 
                   <button

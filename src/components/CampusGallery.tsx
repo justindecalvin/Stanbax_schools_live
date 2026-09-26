@@ -18,7 +18,8 @@ import {
   Calendar,
   MapPin,
   CheckCircle2,
-  Sparkles,
+  Star,
+  Bookmark,
   Building,
   Trophy,
   Palette,
@@ -296,7 +297,7 @@ export const CampusGallery: React.FC<CampusGalleryProps> = ({
   const categoryLabels: Record<GalleryCategory, { label: string; icon: React.ElementType }> = {
     all: { label: 'All Photos', icon: Camera },
     facilities: { label: 'Facilities & Labs', icon: Building },
-    events: { label: 'School Events', icon: Sparkles },
+    events: { label: 'School Events', icon: Calendar },
     sports: { label: 'Sports & Athletics', icon: Trophy },
     academics: { label: 'Academic Life', icon: BookOpen },
     arts: { label: 'Creative Arts', icon: Palette }
@@ -451,7 +452,7 @@ export const CampusGallery: React.FC<CampusGalleryProps> = ({
                 }`}
                 title="Filter Featured Landmark Photos"
               >
-                <Sparkles className="w-3.5 h-3.5" />
+                <Star className="w-3.5 h-3.5 fill-current" />
                 <span className="hidden sm:inline">Featured Only</span>
               </button>
             </div>
@@ -518,7 +519,7 @@ export const CampusGallery: React.FC<CampusGalleryProps> = ({
 
                       {photo.featured && (
                         <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-400 text-amber-950 flex items-center gap-1 shadow-xs">
-                          <Sparkles className="w-2.5 h-2.5 fill-current" />
+                          <Star className="w-2.5 h-2.5 fill-current" />
                           <span>Featured</span>
                         </span>
                       )}
@@ -720,18 +721,18 @@ export const CampusGallery: React.FC<CampusGalleryProps> = ({
           >
             <div className="max-w-5xl mx-auto flex flex-col md:flex-row md:items-end justify-between gap-4">
               <div className="space-y-1 max-w-2xl">
-                <div className="flex items-center gap-3">
-                  <h3 className="text-lg sm:text-xl font-black text-white tracking-tight">
+                <div className="flex items-center gap-3 flex-wrap">
+                  <h3 className="text-base sm:text-xl font-black text-white tracking-tight break-words">
                     {activePhoto.title}
                   </h3>
                   {activePhoto.date && (
-                    <span className="text-xs font-bold text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-full border border-amber-400/30">
+                    <span className="text-xs font-bold text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-full border border-amber-400/30 shrink-0">
                       {activePhoto.date}
                     </span>
                   )}
                 </div>
 
-                <p className="text-xs sm:text-sm text-stone-300 leading-relaxed font-medium">
+                <p className="text-xs sm:text-sm text-stone-300 leading-relaxed font-medium break-words">
                   {activePhoto.caption}
                 </p>
 
@@ -820,7 +821,7 @@ export const CampusGallery: React.FC<CampusGalleryProps> = ({
                         : 'bg-stone-50 text-stone-600 border-stone-200 hover:bg-stone-100'
                     }`}
                   >
-                    <Sparkles className="w-3.5 h-3.5" />
+                    <Bookmark className="w-3.5 h-3.5" />
                     <span>Curated Presets</span>
                   </button>
                   <button

@@ -20,6 +20,7 @@ import { CareerAdvisorModal } from './components/CareerAdvisorModal';
 import { FAQSection } from './components/FAQSection';
 import { UserTourModal } from './components/UserTourModal';
 import { CampusGallery } from './components/CampusGallery';
+import { SchoolNewsBlogSection } from './components/SchoolNewsBlogSection';
 import { Compass, X } from 'lucide-react';
 
 // Dedicated Subpages & Portals
@@ -206,6 +207,10 @@ const MainAppContent: React.FC = () => {
 
         <div id="calendar">
           <AcademicCalendarSection />
+        </div>
+
+        <div id="news-blog">
+          <SchoolNewsBlogSection onOpenAdmissions={() => setIsAdmissionsOpen(true)} />
         </div>
 
         <div id="notices">

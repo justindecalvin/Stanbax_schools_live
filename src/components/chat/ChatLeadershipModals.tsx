@@ -8,7 +8,6 @@ import {
   Users, 
   Check, 
   ShieldCheck, 
-  Sparkles, 
   Star,
   Settings,
   UserCheck,
@@ -438,7 +437,7 @@ export const SchoolPrefectBadgesModal: React.FC<SchoolPrefectBadgesModalProps> =
           {/* Assignment Form */}
           <form onSubmit={handleAssign} className="p-4 bg-amber-50/60 rounded-2xl border border-amber-200 space-y-4">
             <h5 className="font-extrabold text-xs text-amber-950 uppercase tracking-wider flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-amber-700" />
+              <Award className="w-3.5 h-3.5 text-amber-700" />
               <span>Confer Official School Prefect Badge</span>
             </h5>
 

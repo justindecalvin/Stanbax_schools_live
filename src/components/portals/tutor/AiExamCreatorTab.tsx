@@ -26,7 +26,6 @@ import {
   ExternalLink,
   ChevronDown,
   Upload,
-  Sparkles,
   Zap,
   Target,
   Search,
@@ -682,7 +681,7 @@ export const AiExamCreatorTab: React.FC = () => {
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2">
               <span className="px-3 py-1 rounded-full bg-purple-500/30 text-purple-200 border border-purple-400/40 font-black text-xs uppercase tracking-wider flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                <Zap className="w-3.5 h-3.5 text-amber-300" />
                 <span>Calvin AI Exam & Quiz Studio</span>
               </span>
               <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 font-bold text-xs">
@@ -1177,7 +1176,7 @@ export const AiExamCreatorTab: React.FC = () => {
             <div className="space-y-1.5">
               <label className="font-bold text-purple-900 flex items-center justify-between">
                 <span className="flex items-center gap-1.5 font-black">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                  <FileText className="w-3.5 h-3.5 text-amber-500" />
                   <span>Additional Tutor Instructions / Focus Guidelines (Optional)</span>
                 </span>
                 <span className="text-slate-400 font-normal">
@@ -1286,7 +1285,7 @@ export const AiExamCreatorTab: React.FC = () => {
             id="generate-ai-exam-btn"
             className="px-6 py-3 rounded-2xl bg-gradient-to-r from-purple-700 via-indigo-600 to-blue-700 hover:from-purple-800 hover:to-blue-800 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
           >
-            <Sparkles className="w-4 h-4 text-amber-300" />
+            <Zap className="w-4 h-4 text-amber-300" />
             <span>{isGenerating ? 'Synthesizing Questions...' : `Generate ${selectedPreset.toUpperCase()} with Calvin AI`}</span>
           </button>
         </div>
@@ -2149,7 +2148,7 @@ export const AiExamCreatorTab: React.FC = () => {
             <div className="space-y-1.5 p-3 rounded-2xl bg-emerald-50/50 border border-emerald-200">
               <label className="font-bold text-slate-800 flex items-center justify-between">
                 <span className="flex items-center gap-1.5 text-emerald-950 font-black">
-                  <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                   <span>Additional Tutor Instructions / Focus Guidelines (Optional)</span>
                 </span>
                 <span className="text-[10.5px] text-slate-400 font-normal">e.g. Special exam rules</span>
@@ -2180,7 +2179,7 @@ export const AiExamCreatorTab: React.FC = () => {
                 onClick={handleUploadAndLearnScheme}
                 className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold cursor-pointer shadow-md disabled:opacity-50 flex items-center gap-1.5"
               >
-                <Sparkles className="w-4 h-4" />
+                <FileCheck className="w-4 h-4" />
                 <span>{isUploadingScheme ? 'Calvin AI is Learning...' : 'Train & Ground Calvin AI'}</span>
               </button>
             </div>

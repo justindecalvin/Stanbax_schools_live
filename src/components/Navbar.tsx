@@ -46,6 +46,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     { label: 'Campus Gallery', section: 'gallery' },
     { label: 'Faculty', section: 'faculty' },
     { label: 'Academic Calendar', section: 'calendar' },
+    { label: 'News & Blog', section: 'news-blog' },
     { label: 'Notices', section: 'notices' },
     { label: 'Contact', section: 'contact' }
   ];

@@ -73,7 +73,9 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
     getClassRankings,
     acceptTokenPromptAndActivate,
     dismissTokenPrompt,
-    houseStandings
+    houseStandings,
+    pressClubPresidentStudentId,
+    pressClubEditorStudentIds
   } = useSchool();
 
   // Automatic class ranking calculation
@@ -949,6 +951,42 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
               className="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-blue-950 text-xs font-black shrink-0 transition-colors shadow-sm cursor-pointer"
             >
               View Official Transcript
+            </button>
+          </div>
+        )}
+
+        {/* Press Club Leadership & Editorial Desk Banner */}
+        {((student.id === pressClubPresidentStudentId) || (pressClubEditorStudentIds && pressClubEditorStudentIds.includes(student.id))) && (
+          <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-red-950 via-stone-900 to-amber-950 text-white shadow-md border border-amber-500/40 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-amber-400 text-slate-950 flex items-center justify-center font-black shrink-0 shadow-sm">
+                <Crown className="w-6 h-6 text-neutral-950 fill-neutral-900" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-black text-base text-amber-300">
+                    {student.id === pressClubPresidentStudentId ? 'Appointed Press Club President' : 'Nominated Press Club Editor'}
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full bg-red-600/70 text-white text-[10px] font-extrabold uppercase border border-red-400/40">
+                    The Stanbax Gazette
+                  </span>
+                </div>
+                <p className="text-xs text-amber-100/90 mt-0.5 leading-relaxed">
+                  You are officially authorized to curate, draft, and publish news dispatches to the School News & Blog. {student.id === pressClubPresidentStudentId && 'As President, you can also nominate peer student editors to the editorial board.'}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                onBackToWebsite();
+                setTimeout(() => {
+                  const el = document.getElementById('news-blog');
+                  if (el) el.scrollIntoView({ behavior: 'smooth' });
+                }, 100);
+              }}
+              className="px-4 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-neutral-950 text-xs font-black shrink-0 transition-colors shadow-sm cursor-pointer whitespace-nowrap"
+            >
+              Open Press Room & Gazette
             </button>
           </div>
         )}

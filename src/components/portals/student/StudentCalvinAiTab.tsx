@@ -18,7 +18,7 @@ import {
   ShieldCheck,
   Zap,
   Bell,
-  Sparkles,
+  Compass,
   ChevronDown,
   ChevronUp,
   X
@@ -846,7 +846,11 @@ ${tier === 'premium' ? '✨ Premium Masterclass Privilege: Ask me to solve a spe
                 </span>
                 {student.tokenPrompt.tier && (
                   <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-950 border border-amber-300 flex items-center gap-1">
-                    <Sparkles className="w-3 h-3 text-amber-600" />
+                    {student.tokenPrompt.tier === 'premium' ? (
+                      <Crown className="w-3 h-3 text-amber-600 fill-amber-500" />
+                    ) : (
+                      <Award className="w-3 h-3 text-amber-600" />
+                    )}
                     <span>{student.tokenPrompt.tier === 'premium' ? 'Premium Masterclass' : 'Regular Pass'}</span>
                   </span>
                 )}
@@ -939,7 +943,7 @@ ${tier === 'premium' ? '✨ Premium Masterclass Privilege: Ask me to solve a spe
             <div className="px-4 py-2.5 bg-stone-100/80 border-b border-stone-200/80 flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-1.5 overflow-x-auto py-0.5 max-w-full no-scrollbar">
                 <span className="text-[10px] font-black text-stone-600 uppercase tracking-wider shrink-0 flex items-center gap-1 mr-1">
-                  <Sparkles className="w-3 h-3 text-indigo-600" />
+                  <Compass className="w-3 h-3 text-indigo-600" />
                   <span>Scheme:</span>
                 </span>
                 {availableSubjectsList.map(subj => {

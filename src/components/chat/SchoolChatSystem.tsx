@@ -12,7 +12,6 @@ import {
   ShieldCheck, 
   Eye, 
   GraduationCap, 
-  Sparkles, 
   Search, 
   X, 
   Crown,
@@ -21,9 +20,12 @@ import {
   Star,
   Settings,
   Clock,
-  UserCheck
+  UserCheck,
+  ChevronLeft,
+  Megaphone
 } from '../RealIcons';
 
+import { SchoolLogo } from '../SchoolLogo';
 import { EphemeralStatusManager } from './EphemeralStatusManager';
 import { 
   ClassLeadershipModal, 
@@ -65,6 +67,9 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
   const [activeChannelId, setActiveChannelId] = useState<string>(() => {
     return chatChannels[0]?.id || 'chan-gen-announcement';
   });
+
+  // Mobile View state (allows switching between channels directory and active chat on small screens)
+  const [mobileView, setMobileView] = useState<'channels' | 'conversation'>('channels');
 
   const [messageText, setMessageText] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -536,13 +541,13 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
                     }`}
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
-                        chan.type === 'announcement' ? 'bg-amber-100 text-amber-900' :
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 overflow-hidden ${
+                        chan.type === 'announcement' ? '' :
                         chan.type === 'class' ? 'bg-blue-100 text-blue-900' :
                         chan.type === 'club' ? 'bg-emerald-100 text-emerald-900' :
                         'bg-indigo-100 text-indigo-900'
                       }`}>
-                        {chan.type === 'announcement' && <Sparkles className="w-4 h-4" />}
+                        {chan.type === 'announcement' && <SchoolLogo size="xs" showText={false} />}
                         {chan.type === 'class' && <GraduationCap className="w-4 h-4" />}
                         {chan.type === 'club' && <Users className="w-4 h-4" />}
                         {chan.type === 'direct' && <Lock className="w-4 h-4" />}
@@ -622,42 +627,56 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
               )}
 
               {/* Active Channel Header */}
-              <div className="p-4 border-b border-neutral-200 flex items-center justify-between gap-4 bg-white/80 backdrop-blur-xs">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h4 className="font-black text-sm sm:text-base text-neutral-900 truncate">
-                      {activeChannel.type === 'direct' 
-                        ? (isAdmin 
-                            ? (activeChannel.directParticipantNames && activeChannel.directParticipantNames.length >= 2 
-                                ? `${activeChannel.directParticipantNames[0]} ↔ ${activeChannel.directParticipantNames[1]}` 
-                                : activeChannel.name)
-                            : (activeChannel.directParticipantNames?.find(n => !n.includes(currentUserName) && n !== 'admin-1' && !n.toLowerCase().includes('admin')) || activeChannel.name))
-                        : activeChannel.name}
-                    </h4>
-
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
-                      activeChannel.type === 'announcement' ? 'bg-amber-100 text-amber-900' :
-                      activeChannel.type === 'class' ? 'bg-blue-100 text-blue-900' :
-                      activeChannel.type === 'club' ? 'bg-emerald-100 text-emerald-900' :
-                      'bg-indigo-100 text-indigo-900'
-                    }`}>
-                      {activeChannel.type === 'direct' ? (isAdmin ? '1:1 Audited' : '1:1 Private') : activeChannel.type}
-                    </span>
-
-                    {activeChannel.isReadOnly && (
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-neutral-100 text-neutral-600 flex items-center gap-1">
-                        <Lock className="w-2.5 h-2.5" /> Read-Only
-                      </span>
-                    )}
+              <div className="p-3.5 sm:p-4 border-b border-neutral-200 flex items-center justify-between gap-3 sm:gap-4 bg-white/80 backdrop-blur-xs">
+                <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                  <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 overflow-hidden ${
+                    activeChannel.type === 'announcement' ? '' :
+                    activeChannel.type === 'class' ? 'bg-blue-100 text-blue-900' :
+                    activeChannel.type === 'club' ? 'bg-emerald-100 text-emerald-900' :
+                    'bg-indigo-100 text-indigo-900'
+                  }`}>
+                    {activeChannel.type === 'announcement' && <SchoolLogo size="xs" showText={false} />}
+                    {activeChannel.type === 'class' && <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5" />}
+                    {activeChannel.type === 'club' && <Users className="w-4 h-4 sm:w-5 sm:h-5" />}
+                    {activeChannel.type === 'direct' && <Lock className="w-4 h-4 sm:w-5 sm:h-5" />}
                   </div>
 
-                  <p className="text-xs text-neutral-500 truncate mt-0.5">
-                    {activeChannel.type === 'direct'
-                      ? (isAdmin
-                          ? 'Private student dialogue visible to administrators for safeguarding and student protection.'
-                          : 'Private 1-on-1 dialogue. Keep exchanges academic, respectful, and safe.')
-                      : (activeChannel.description || 'Welcome to this school discussion forum. Keep interactions respectful and academic.')}
-                  </p>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                      <h4 className="font-black text-xs sm:text-base text-neutral-900 break-words line-clamp-1">
+                        {activeChannel.type === 'direct' 
+                          ? (isAdmin 
+                              ? (activeChannel.directParticipantNames && activeChannel.directParticipantNames.length >= 2 
+                                  ? `${activeChannel.directParticipantNames[0]} ↔ ${activeChannel.directParticipantNames[1]}` 
+                                  : activeChannel.name)
+                              : (activeChannel.directParticipantNames?.find(n => !n.includes(currentUserName) && n !== 'admin-1' && !n.toLowerCase().includes('admin')) || activeChannel.name))
+                          : activeChannel.name}
+                      </h4>
+
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase shrink-0 ${
+                        activeChannel.type === 'announcement' ? 'bg-amber-100 text-amber-900' :
+                        activeChannel.type === 'class' ? 'bg-blue-100 text-blue-900' :
+                        activeChannel.type === 'club' ? 'bg-emerald-100 text-emerald-900' :
+                        'bg-indigo-100 text-indigo-900'
+                      }`}>
+                        {activeChannel.type === 'direct' ? (isAdmin ? '1:1 Audited' : '1:1 Private') : activeChannel.type}
+                      </span>
+
+                      {activeChannel.isReadOnly && (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-neutral-100 text-neutral-600 flex items-center gap-1 shrink-0">
+                          <Lock className="w-2.5 h-2.5" /> Read-Only
+                        </span>
+                      )}
+                    </div>
+
+                    <p className="text-[11px] sm:text-xs text-neutral-500 break-words line-clamp-1 mt-0.5">
+                      {activeChannel.type === 'direct'
+                        ? (isAdmin
+                            ? 'Private student dialogue visible to administrators for safeguarding and student protection.'
+                            : 'Private 1-on-1 dialogue. Keep exchanges academic, respectful, and safe.')
+                        : (activeChannel.description || 'Welcome to this school discussion forum. Keep interactions respectful and academic.')}
+                    </p>
+                  </div>
                 </div>
 
                 {/* Header Action Buttons (Admin Leadership Controls) */}
@@ -749,13 +768,17 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
                         className={`flex gap-3 max-w-2xl ${isMine ? 'ml-auto flex-row-reverse' : ''}`}
                       >
                         {/* Avatar */}
-                        <div className={`w-9 h-9 rounded-2xl flex items-center justify-center font-black text-xs shrink-0 shadow-xs ${
-                          isMsgAdmin ? 'bg-neutral-900 text-white' :
+                        <div className={`w-9 h-9 rounded-2xl flex items-center justify-center font-black text-xs shrink-0 shadow-xs overflow-hidden ${
+                          isMsgAdmin || activeChannel.type === 'announcement' ? '' :
                           isMsgTutor ? 'bg-blue-900 text-amber-300' :
                           isMsgParent ? 'bg-amber-100 text-amber-900 border border-amber-300' :
                           'bg-indigo-700 text-white'
                         }`}>
-                          {msg.senderName.charAt(0)}
+                          {isMsgAdmin || activeChannel.type === 'announcement' ? (
+                            <SchoolLogo size="xs" showText={false} />
+                          ) : (
+                            msg.senderName.charAt(0)
+                          )}
                         </div>
 
                         {/* Message Bubble Container */}

@@ -9,7 +9,7 @@ import {
   ChevronLeft, 
   ChevronRight, 
   Clock, 
-  Sparkles,
+  CheckCircle2,
   Image as ImageIcon,
   Camera,
   Play,
@@ -618,7 +618,7 @@ export const EphemeralStatusManager: React.FC<EphemeralStatusManagerProps> = ({
 
               {/* WhatsApp Guarantee Note */}
               <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-950 flex items-start gap-2">
-                <Sparkles className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                 <p className="leading-relaxed text-[11px]">
                   <strong>16-Hour Ephemeral Guarantee:</strong> Your status will be visible to classmates and teachers across the School Community Hub and will completely purge from the database after 16 hours.
                 </p>

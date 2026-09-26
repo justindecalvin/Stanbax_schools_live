@@ -76,10 +76,10 @@ export const NoticeBoard: React.FC<NoticeBoardProps> = ({ onOpenAdmissions }) =>
                   </div>
                 </div>
 
-                <h3 className="font-bold text-stone-900 text-base leading-snug mb-2">
+                <h3 className="font-bold text-stone-900 text-base leading-snug mb-2 break-words">
                   {notice.title}
                 </h3>
-                <p className="text-xs text-stone-600 leading-relaxed">
+                <p className="text-xs text-stone-600 leading-relaxed break-words">
                   {notice.content}
                 </p>
               </div>
