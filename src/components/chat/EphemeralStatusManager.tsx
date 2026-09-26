@@ -101,7 +101,7 @@ export const EphemeralStatusManager: React.FC<EphemeralStatusManagerProps> = ({
     if (activeViewingStatusIndex !== null && allOrderedStatuses[activeViewingStatusIndex]) {
       const currentStatus = allOrderedStatuses[activeViewingStatusIndex];
       if (currentStatus.userId !== currentUserId) {
-        markEphemeralStatusViewed(currentStatus.id, currentUserId);
+        markEphemeralStatusViewed(currentStatus.id, currentUserId, currentUserName, currentUserRole);
       }
       setProgress(0);
       setShowViewersSheet(false);
@@ -476,9 +476,27 @@ export const EphemeralStatusManager: React.FC<EphemeralStatusManagerProps> = ({
                   </button>
                 </div>
 
-                <div className="divide-y divide-white/5 pt-2">
+                <div className="divide-y divide-white/10 pt-2">
                   {(!currentViewedStatus.views || currentViewedStatus.views.length === 0) ? (
                     <p className="text-xs text-neutral-400 py-4 text-center">No views yet. Classmates will see your update in their status bar!</p>
+                  ) : currentViewedStatus.viewRecords && currentViewedStatus.viewRecords.length > 0 ? (
+                    currentViewedStatus.viewRecords.map((record, rIdx) => {
+                      const timeStr = new Date(record.viewedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                      return (
+                        <div key={rIdx} className="py-2.5 flex items-center justify-between text-xs">
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-300 flex items-center justify-center font-bold text-[10px]">
+                              {record.userName.charAt(0)}
+                            </div>
+                            <div>
+                              <span className="font-bold text-neutral-100 block">{record.userName}</span>
+                              <span className="text-[10px] text-neutral-400 capitalize">{record.userRole}</span>
+                            </div>
+                          </div>
+                          <span className="text-[11px] text-emerald-400 font-semibold">{timeStr}</span>
+                        </div>
+                      );
+                    })
                   ) : (
                     currentViewedStatus.views.map((viewerId, vIdx) => (
                       <div key={vIdx} className="py-2.5 flex items-center justify-between text-xs">

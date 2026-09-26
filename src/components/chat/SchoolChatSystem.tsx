@@ -22,7 +22,12 @@ import {
   Clock,
   UserCheck,
   ChevronLeft,
-  Megaphone
+  Megaphone,
+  Mic,
+  Play,
+  Pause,
+  Camera,
+  Maximize2
 } from '../RealIcons';
 
 import { SchoolLogo } from '../SchoolLogo';
@@ -95,6 +100,19 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
   const [showDirectPeerModal, setShowDirectPeerModal] = useState(false);
   const [peerSearchTerm, setPeerSearchTerm] = useState('');
   const [peerTab, setPeerTab] = useState<'classmates' | 'clubs' | 'tutors'>('classmates');
+
+  // Media Attachments & Voice Note State
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [isRecordingVoice, setIsRecordingVoice] = useState(false);
+  const [voiceDuration, setVoiceDuration] = useState(0);
+  const [playingVoiceMsgId, setPlayingVoiceMsgId] = useState<string | null>(null);
+  const [expandedImageModalUrl, setExpandedImageModalUrl] = useState<string | null>(null);
+
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const voiceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const chatFileInputRef = useRef<HTMLInputElement>(null);
+  const activeAudioRef = useRef<HTMLAudioElement | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -226,9 +244,123 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
     ? clubs.find(cl => cl.id === activeChannel.clubId || cl.name === activeChannel.clubName || (activeChannel.name && cl.name.includes(activeChannel.name)))
     : null;
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      setSelectedImage(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handleStartVoiceRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioChunksRef.current = [];
+      const recorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = recorder;
+
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      recorder.start();
+      setIsRecordingVoice(true);
+      setVoiceDuration(0);
+
+      voiceTimerRef.current = setInterval(() => {
+        setVoiceDuration(prev => prev + 1);
+      }, 1000);
+    } catch {
+      alert('Microphone access is required to record voice notes. Please allow microphone permissions.');
+    }
+  };
+
+  const handleStopAndSendVoiceRecording = () => {
+    if (!mediaRecorderRef.current || !activeChannel) return;
+    const recorder = mediaRecorderRef.current;
+    if (voiceTimerRef.current) clearInterval(voiceTimerRef.current);
+    const durationToSave = voiceDuration || 1;
+
+    recorder.onstop = () => {
+      const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64Audio = reader.result as string;
+        sendChatMessage({
+          channelId: activeChannel.id,
+          senderId: currentUserId,
+          senderName: currentUserName,
+          senderRole: currentUserRole,
+          senderSubtext: currentUserSubtext || (
+            isAdmin ? 'School Administration' :
+            isTutor ? 'Faculty Educator' :
+            isParent ? 'Guardian' : 'Scholar'
+          ),
+          content: `🎤 Voice Note (${durationToSave}s)`,
+          audioVoiceNote: {
+            url: base64Audio,
+            durationSeconds: durationToSave
+          }
+        });
+      };
+      reader.readAsDataURL(audioBlob);
+
+      recorder.stream.getTracks().forEach(track => track.stop());
+    };
+
+    recorder.stop();
+    setIsRecordingVoice(false);
+    setVoiceDuration(0);
+  };
+
+  const handleCancelVoiceRecording = () => {
+    if (voiceTimerRef.current) clearInterval(voiceTimerRef.current);
+    if (mediaRecorderRef.current) {
+      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+      mediaRecorderRef.current = null;
+    }
+    audioChunksRef.current = [];
+    setIsRecordingVoice(false);
+    setVoiceDuration(0);
+  };
+
+  const handleTogglePlayVoice = (msgId: string, audioUrl: string) => {
+    if (playingVoiceMsgId === msgId) {
+      if (activeAudioRef.current) {
+        activeAudioRef.current.pause();
+      }
+      setPlayingVoiceMsgId(null);
+      return;
+    }
+
+    if (activeAudioRef.current) {
+      activeAudioRef.current.pause();
+    }
+
+    const audio = new Audio(audioUrl);
+    activeAudioRef.current = audio;
+    setPlayingVoiceMsgId(msgId);
+
+    audio.onended = () => {
+      setPlayingVoiceMsgId(null);
+    };
+    audio.onerror = () => {
+      setPlayingVoiceMsgId(null);
+    };
+
+    audio.play().catch(() => {
+      setPlayingVoiceMsgId(null);
+    });
+  };
+
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!messageText.trim() || !activeChannel) return;
+    if ((!messageText.trim() && !selectedImage) || !activeChannel) return;
 
     if (activeChannel.isReadOnly && !isAdmin) {
       alert('This channel is currently read-only. Only school administrators may publish messages here.');
@@ -245,10 +377,15 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
         isTutor ? 'Faculty Educator' :
         isParent ? 'Guardian' : 'Scholar'
       ),
-      content: messageText.trim()
+      content: messageText.trim() || '📷 Photo Attachment',
+      imageAttachment: selectedImage ? {
+        url: selectedImage,
+        caption: messageText.trim()
+      } : undefined
     });
 
     setMessageText('');
+    setSelectedImage(null);
   };
 
   const handleCreateChannel = (e: React.FormEvent) => {
@@ -835,7 +972,67 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
                                   : '[This message was deleted]'}
                               </span>
                             ) : (
-                              <p className="whitespace-pre-wrap">{msg.content}</p>
+                              <div className="space-y-2">
+                                {/* Image Attachment */}
+                                {msg.imageAttachment && (
+                                  <div 
+                                    onClick={() => setExpandedImageModalUrl(msg.imageAttachment!.url)}
+                                    className="rounded-2xl overflow-hidden max-w-xs cursor-pointer group/img relative border border-white/20"
+                                  >
+                                    <img 
+                                      src={msg.imageAttachment.url} 
+                                      alt="Attachment" 
+                                      className="w-full max-h-60 object-cover group-hover/img:scale-102 transition-transform" 
+                                    />
+                                    <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/img:opacity-100 flex items-center justify-center transition-opacity text-white text-xs font-bold gap-1">
+                                      <Maximize2 className="w-4 h-4" />
+                                      <span>View Fullscreen</span>
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Voice Note Player */}
+                                {msg.audioVoiceNote && (
+                                  <div className={`p-2.5 rounded-2xl flex items-center gap-3 ${isMine ? 'bg-white/10 text-white' : 'bg-neutral-100 text-neutral-800'}`}>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleTogglePlayVoice(msg.id, msg.audioVoiceNote!.url)}
+                                      className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 cursor-pointer shadow-xs transition ${
+                                        isMine ? 'bg-amber-400 text-neutral-950 hover:bg-amber-300' : 'bg-neutral-900 text-white hover:bg-neutral-800'
+                                      }`}
+                                    >
+                                      {playingVoiceMsgId === msg.id ? (
+                                        <Pause className="w-4 h-4" />
+                                      ) : (
+                                        <Play className="w-4 h-4 ml-0.5" />
+                                      )}
+                                    </button>
+
+                                    {/* Waveform Visualization Bars */}
+                                    <div className="flex-1 flex items-center gap-1 h-6">
+                                      {[40, 70, 30, 90, 60, 100, 45, 80, 50, 85, 35, 75, 55, 95, 65, 40].map((h, i) => (
+                                        <span 
+                                          key={i} 
+                                          className={`w-1 rounded-full transition-all duration-200 ${
+                                            playingVoiceMsgId === msg.id 
+                                              ? (isMine ? 'bg-amber-300 animate-pulse' : 'bg-neutral-900 animate-pulse') 
+                                              : (isMine ? 'bg-white/40' : 'bg-neutral-300')
+                                          }`} 
+                                          style={{ height: `${Math.max(20, h)}%` }} 
+                                        />
+                                      ))}
+                                    </div>
+
+                                    <div className="text-[11px] font-mono font-bold shrink-0">
+                                      {Math.floor(msg.audioVoiceNote.durationSeconds / 60)}:{(msg.audioVoiceNote.durationSeconds % 60).toString().padStart(2, '0')}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {msg.content && (!msg.audioVoiceNote || !msg.content.startsWith('🎤')) && (!msg.imageAttachment || msg.content !== '📷 Photo Attachment') && (
+                                  <p className="whitespace-pre-wrap">{msg.content}</p>
+                                )}
+                              </div>
                             )}
 
                             {/* Admin moderation quick actions (HIDDEN FROM STUDENTS) */}
@@ -880,22 +1077,95 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
                     <span>This channel is locked by the School Administration. Comments are disabled.</span>
                   </div>
                 ) : (
-                  <form onSubmit={handleSendMessage} className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      value={messageText}
-                      onChange={(e) => setMessageText(e.target.value)}
-                      placeholder={`Message ${activeChannel.name}...`}
-                      className="flex-1 px-4 py-3 rounded-2xl bg-neutral-50 border border-neutral-300 text-xs sm:text-sm text-neutral-800 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white"
-                    />
-                    <button
-                      type="submit"
-                      disabled={!messageText.trim()}
-                      className="p-3 rounded-2xl bg-neutral-900 hover:bg-neutral-800 disabled:opacity-40 text-white transition cursor-pointer shadow-sm active:scale-95"
-                      title="Send Message"
-                    >
-                      <Send className="w-4 h-4 text-amber-400" />
-                    </button>
+                  <form onSubmit={handleSendMessage} className="space-y-2">
+                    {/* Selected Image Preview Chip */}
+                    {selectedImage && (
+                      <div className="flex items-center gap-2 p-2 bg-neutral-100 rounded-2xl max-w-sm">
+                        <img src={selectedImage} alt="Preview" className="w-12 h-12 object-cover rounded-xl border border-neutral-300" />
+                        <span className="text-xs text-neutral-700 flex-1 truncate font-bold">Photo attached</span>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedImage(null)}
+                          className="p-1 hover:bg-neutral-200 rounded-lg text-neutral-500 cursor-pointer"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Recording Voice Note Active Overlay */}
+                    {isRecordingVoice ? (
+                      <div className="flex items-center justify-between p-2.5 bg-rose-50 border border-rose-200 rounded-2xl text-rose-900 animate-in fade-in">
+                        <div className="flex items-center gap-3">
+                          <span className="w-3 h-3 rounded-full bg-rose-600 animate-ping" />
+                          <span className="text-xs font-black font-mono">
+                            Recording Voice: {Math.floor(voiceDuration / 60)}:{(voiceDuration % 60).toString().padStart(2, '0')}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={handleCancelVoiceRecording}
+                            className="px-3 py-1.5 rounded-xl bg-white border border-rose-300 text-xs font-bold text-rose-700 hover:bg-rose-100 cursor-pointer"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleStopAndSendVoiceRecording}
+                            className="px-4 py-1.5 rounded-xl bg-rose-600 text-white text-xs font-black shadow-xs hover:bg-rose-700 flex items-center gap-1.5 cursor-pointer"
+                          >
+                            <Send className="w-3.5 h-3.5" />
+                            <span>Send Voice Note</span>
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        {/* Hidden Image File Input */}
+                        <input
+                          type="file"
+                          ref={chatFileInputRef}
+                          accept="image/*"
+                          onChange={handleFileSelect}
+                          className="hidden"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => chatFileInputRef.current?.click()}
+                          className="p-3 rounded-2xl bg-neutral-100 hover:bg-neutral-200 text-neutral-600 transition cursor-pointer"
+                          title="Attach Photo or Document"
+                        >
+                          <Camera className="w-4 h-4" />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={handleStartVoiceRecording}
+                          className="p-3 rounded-2xl bg-neutral-100 hover:bg-neutral-200 text-neutral-600 transition cursor-pointer"
+                          title="Record Voice Note"
+                        >
+                          <Mic className="w-4 h-4" />
+                        </button>
+
+                        <input
+                          type="text"
+                          value={messageText}
+                          onChange={(e) => setMessageText(e.target.value)}
+                          placeholder={`Message ${activeChannel.name}...`}
+                          className="flex-1 px-4 py-3 rounded-2xl bg-neutral-50 border border-neutral-300 text-xs sm:text-sm text-neutral-800 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white"
+                        />
+
+                        <button
+                          type="submit"
+                          disabled={!messageText.trim() && !selectedImage}
+                          className="p-3 rounded-2xl bg-neutral-900 hover:bg-neutral-800 disabled:opacity-40 text-white transition cursor-pointer shadow-sm active:scale-95"
+                          title="Send Message"
+                        >
+                          <Send className="w-4 h-4 text-amber-400" />
+                        </button>
+                      </div>
+                    )}
                   </form>
                 )}
               </div>

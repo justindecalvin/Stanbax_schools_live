@@ -77,7 +77,9 @@ import {
   SchoolChatMessage,
   GalleryPhoto,
   UserEphemeralStatus,
-  SchoolNewsArticle
+  SchoolNewsArticle,
+  StudentArticleSubmission,
+  StatusViewerRecord
 } from '../types';
 import { cleanExpiredStatuses, create16HourStatus, INITIAL_EPHEMERAL_STATUSES } from '../data/defaultEphemeralStatuses';
 import { DEFAULT_GALLERY_PHOTOS } from '../data/defaultGalleryPhotos';
@@ -554,7 +556,7 @@ interface SchoolContextType {
   ephemeralStatuses: UserEphemeralStatus[];
   postEphemeralStatus: (status: Omit<UserEphemeralStatus, 'id' | 'createdAt' | 'expiresAt' | 'views'>) => void;
   deleteEphemeralStatus: (id: string) => void;
-  markEphemeralStatusViewed: (statusId: string, viewerId: string) => void;
+  markEphemeralStatusViewed: (statusId: string, viewerId: string, viewerName?: string, viewerRole?: string) => void;
 
   // 31. School News & Blog System (Press Club President & Nominated Editors)
   newsArticles: SchoolNewsArticle[];
@@ -568,6 +570,9 @@ interface SchoolContextType {
   nominatePressClubEditor: (studentId: string) => void;
   removePressClubEditor: (studentId: string) => void;
   resetNewsArticlesToDefault: () => void;
+  studentSubmissions: StudentArticleSubmission[];
+  submitArticleForReview: (submission: Omit<StudentArticleSubmission, 'id' | 'submittedAt' | 'status'>) => void;
+  reviewStudentSubmission: (id: string, decision: 'approved' | 'rejected', reason?: string) => void;
 }
 
 const SchoolContext = createContext<SchoolContextType | undefined>(undefined);
@@ -5441,11 +5446,25 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     });
   };
 
-  const markEphemeralStatusViewed = (statusId: string, viewerId: string) => {
+  const markEphemeralStatusViewed = (statusId: string, viewerId: string, viewerName?: string, viewerRole?: string) => {
     setEphemeralStatuses(prev => {
       const updated = prev.map(s => {
-        if (s.id === statusId && !s.views?.includes(viewerId)) {
-          return { ...s, views: [...(s.views || []), viewerId] };
+        if (s.id === statusId) {
+          const views = s.views || [];
+          const viewRecords = s.viewRecords || [];
+          if (!views.includes(viewerId)) {
+            const newRecord: StatusViewerRecord = {
+              userId: viewerId,
+              userName: viewerName || 'School Scholar',
+              userRole: viewerRole || 'student',
+              viewedAt: new Date().toISOString()
+            };
+            return {
+              ...s,
+              views: [...views, viewerId],
+              viewRecords: [...viewRecords, newRecord]
+            };
+          }
         }
         return s;
       });
@@ -5552,6 +5571,71 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       localStorage.setItem('stanbax_press_president', 'stu-1');
       localStorage.setItem('stanbax_press_editors', JSON.stringify(['stu-2', 'stu-3']));
     } catch {}
+  };
+
+  // Student Article Submissions ("Letters to the Editor")
+  const [studentSubmissions, setStudentSubmissions] = useState<StudentArticleSubmission[]>(() => {
+    try {
+      const saved = localStorage.getItem('stanbax_student_submissions');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return [
+      {
+        id: 'sub-sample-1',
+        studentId: 'stu-3',
+        studentName: 'Chinedu Eze',
+        studentGrade: 'SSS 1 Commercial',
+        title: 'Why Robotics and Financial Literacy Should Be Taught in Junior Classes',
+        category: 'STEM & Innovation',
+        content: 'As young scholars navigating the 21st century, understanding both algorithmic problem solving and financial discipline prepares us for tertiary scholarship and entrepreneurial ventures. Our JETS club experience proves that even early secondary students can build functional hardware prototypes and understand economic value creation.',
+        submittedAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+        status: 'pending'
+      }
+    ];
+  });
+
+  const submitArticleForReview = (submission: Omit<StudentArticleSubmission, 'id' | 'submittedAt' | 'status'>) => {
+    const newSub: StudentArticleSubmission = {
+      ...submission,
+      id: `sub-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      submittedAt: new Date().toISOString(),
+      status: 'pending'
+    };
+    setStudentSubmissions(prev => {
+      const updated = [newSub, ...prev];
+      try { localStorage.setItem('stanbax_student_submissions', JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+  };
+
+  const reviewStudentSubmission = (id: string, decision: 'approved' | 'rejected', reason?: string) => {
+    setStudentSubmissions(prev => {
+      const target = prev.find(s => s.id === id);
+      if (target && decision === 'approved') {
+        addNewsArticle({
+          title: target.title,
+          slug: target.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 50),
+          category: target.category,
+          excerpt: target.content.slice(0, 140) + '...',
+          content: target.content,
+          coverImage: 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?q=80&w=1200&auto=format&fit=crop',
+          readTime: `${Math.max(2, Math.round(target.content.split(' ').length / 180))} min read`,
+          tags: ['Student Voice', 'Letters to Editor', target.category],
+          isFeatured: false,
+          author: {
+            id: target.studentId,
+            name: target.studentName,
+            role: 'Press Club Editor',
+            gradeOrTitle: target.studentGrade
+          },
+          likesCount: 1,
+          viewsCount: 1
+        });
+      }
+      const updated = prev.map(s => s.id === id ? { ...s, status: decision, rejectionReason: reason } : s);
+      try { localStorage.setItem('stanbax_student_submissions', JSON.stringify(updated)); } catch {}
+      return updated;
+    });
   };
 
   // 15B. Dynamic Available Academic Sessions across current & archives
@@ -5882,7 +5966,10 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         assignPressClubPresident,
         nominatePressClubEditor,
         removePressClubEditor,
-        resetNewsArticlesToDefault
+        resetNewsArticlesToDefault,
+        studentSubmissions,
+        submitArticleForReview,
+        reviewStudentSubmission
       }}
     >
       {children}

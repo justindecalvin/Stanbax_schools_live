@@ -1007,6 +1007,21 @@ export interface SchoolChatMessage {
   }>;
   flaggedByAdmin?: boolean;
   deletedByAdmin?: boolean;
+  audioVoiceNote?: {
+    url: string;
+    durationSeconds: number;
+  };
+  imageAttachment?: {
+    url: string;
+    caption?: string;
+  };
+}
+
+export interface StatusViewerRecord {
+  userId: string;
+  userName: string;
+  userRole: string;
+  viewedAt: string;
 }
 
 export interface UserEphemeralStatus {
@@ -1023,6 +1038,7 @@ export interface UserEphemeralStatus {
   createdAt: string; // ISO string
   expiresAt: string; // ISO string (16 hours after createdAt)
   views?: string[]; // IDs of users who viewed this status
+  viewRecords?: StatusViewerRecord[]; // Detailed viewers for the "Seen by" tray
 }
 
 // 7. School News & Blog System (Managed by Press Club President & Nominated Editors)
@@ -1060,5 +1076,18 @@ export interface SchoolNewsArticle {
   externalUrl?: string;
   likesCount?: number;
   viewsCount?: number;
+}
+
+export interface StudentArticleSubmission {
+  id: string;
+  studentId: string;
+  studentName: string;
+  studentGrade: string;
+  title: string;
+  category: 'Campus News' | 'Academic Honors' | 'Sports Desk' | 'Arts & Culture' | 'STEM & Innovation' | 'Executive Bulletin';
+  content: string;
+  submittedAt: string;
+  status: 'pending' | 'approved' | 'rejected';
+  rejectionReason?: string;
 }
 
