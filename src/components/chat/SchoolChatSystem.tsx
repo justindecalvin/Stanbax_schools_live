@@ -22,6 +22,7 @@ import {
   Clock,
   UserCheck,
   ChevronLeft,
+  ChevronRight,
   Megaphone,
   Mic,
   Play,
@@ -99,31 +100,12 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
   const [newChanDirectUser, setNewChanDirectUser] = useState('');
   const [newChanReadOnly, setNewChanReadOnly] = useState(false);
 
-  // Peer-to-Peer Student Messaging State & Overlay Card
-  interface OverlayPeerChat {
-    id: string;
-    name: string;
-    role: 'student' | 'tutor' | 'parent';
-    channelId: string;
-    grade?: string;
-    subtext?: string;
-    prefectBadge?: string;
-  }
+  // Direct Chat & Pop-Up Overlay State
+  const [activePopupChannelId, setActivePopupChannelId] = useState<string | null>(null);
 
   const [showDirectPeerModal, setShowDirectPeerModal] = useState(false);
   const [peerSearchTerm, setPeerSearchTerm] = useState('');
   const [peerTab, setPeerTab] = useState<'classmates' | 'clubs' | 'tutors'>('classmates');
-  const [overlayPeerChat, setOverlayPeerChat] = useState<OverlayPeerChat | null>(null);
-  const [overlayMessageText, setOverlayMessageText] = useState('');
-  const [mobileChatView, setMobileChatView] = useState<'channels' | 'messages'>('channels');
-  const overlayMessagesEndRef = useRef<HTMLDivElement>(null);
-
-  // Auto-scroll overlay chat messages
-  useEffect(() => {
-    if (overlayPeerChat) {
-      overlayMessagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [chatMessages, overlayPeerChat]);
 
   // Media Attachments & Voice Note State
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -139,11 +121,6 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
   const activeAudioRef = useRef<HTMLAudioElement | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  // Auto-scroll messages to bottom
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [chatMessages, activeChannelId]);
 
   // Determine user permissions
   const isAdmin = currentUserRole === 'admin';
@@ -177,12 +154,14 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
       const targetStudent = students.find(s => s.id === targetId);
       if (targetStudent) {
         if (targetStudent.chatSettings?.allowDirectMessages === false) {
+          alert(`${targetName} has direct messages disabled in their chat privacy settings.`);
           return;
         }
         if (targetStudent.chatSettings?.dmPermission === 'classmates_only') {
           const isSameClass = (currentStudent?.classId && currentStudent.classId === targetStudent.classId) ||
                               (currentStudent?.grade && currentStudent.grade === targetStudent.grade);
           if (!isSameClass) {
+            alert(`${targetName} only accepts direct messages from fellow classmates.`);
             return;
           }
         }
@@ -207,52 +186,10 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
       });
     }
 
-    const targetStudent = students.find(s => s.id === targetId);
-    const targetTutor = tutors.find(t => t.id === targetId);
-
-    // Overlay chat in a card directly on top of previous list of users!
-    setOverlayPeerChat({
-      id: targetId,
-      name: targetName,
-      role: targetRole,
-      channelId: targetChan.id,
-      grade: targetStudent?.grade,
-      subtext: targetStudent 
-        ? `${targetStudent.grade} • ${targetStudent.house ? `${targetStudent.house} House` : 'Stanbax Standard'}` 
-        : (targetTutor?.assignedSubjects?.join(', ') || 'Faculty Tutor'),
-      prefectBadge: targetStudent?.prefectBadge
-    });
-    setOverlayMessageText('');
-    setShowDirectPeerModal(true);
-  };
-
-  const handleSendOverlayMessage = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!overlayMessageText.trim() || !overlayPeerChat) return;
-
-    sendChatMessage({
-      channelId: overlayPeerChat.channelId,
-      senderId: currentUserId,
-      senderName: currentUserName,
-      senderRole: currentUserRole,
-      senderBadge: currentStudent?.prefectBadge,
-      senderSubtext: isStudent && currentStudent ? currentStudent.grade : (isTutor ? 'Faculty Tutor' : 'Stanbax Member'),
-      content: overlayMessageText.trim()
-    });
-
-    setOverlayMessageText('');
-    setTimeout(() => {
-      overlayMessagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, 50);
-  };
-
-  const handleExpandToMainChat = () => {
-    if (overlayPeerChat) {
-      setActiveChannelId(overlayPeerChat.channelId);
-      setOverlayPeerChat(null);
-      setShowDirectPeerModal(false);
-      setMobileView('conversation');
-    }
+    // Immediately pop up the direct chat overlay!
+    setActiveChannelId(targetChan.id);
+    setActivePopupChannelId(targetChan.id);
+    setShowDirectPeerModal(false);
   };
 
   // Filter channels based on user authorization:
@@ -311,10 +248,21 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
     return matchesFilter && matchesSearch;
   });
 
-  const activeChannel = chatChannels.find(c => c.id === activeChannelId) || displayedChannels[0] || chatChannels[0];
+  const activePopupChannel = activePopupChannelId
+    ? (chatChannels.find(c => c.id === activePopupChannelId) || null)
+    : null;
+
+  const activeChannel = activePopupChannel || chatChannels.find(c => c.id === activeChannelId) || displayedChannels[0] || chatChannels[0];
 
   // Channel messages
   const activeMessages = chatMessages.filter(m => m.channelId === activeChannel?.id);
+
+  // Auto-scroll messages to bottom
+  useEffect(() => {
+    if (activePopupChannelId) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [chatMessages, activePopupChannelId, activeChannel?.id]);
 
   // Active channel context for leadership management
   const activeClassObj = activeChannel?.type === 'class'
@@ -509,6 +457,7 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
     });
 
     setActiveChannelId(created.id);
+    setActivePopupChannelId(created.id);
     setShowNewChannelModal(false);
     setNewChanName('');
     setNewChanDesc('');
@@ -558,7 +507,7 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-3xl border border-[#EAE2CE] shadow-sm overflow-hidden flex flex-col h-[min(840px,calc(100dvh-130px))] min-h-[500px]">
+    <div className="bg-white rounded-3xl border border-[#EAE2CE] shadow-sm overflow-hidden flex flex-col min-h-[500px]">
       
       {/* ========================================================================= */}
       {/* TOP WHATSAPP-STYLE 16-HOUR EPHEMERAL STATUS STORY STRIP                   */}
@@ -574,729 +523,829 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
         }
       />
 
-      <div className="flex-1 flex flex-col md:flex-row overflow-hidden min-h-0">
-        {/* ========================================================================= */}
-        {/* LEFT SIDEBAR: CHANNELS & DIRECT CHATS DIRECTORY                           */}
-        {/* ========================================================================= */}
-        <div className={`w-full md:w-80 lg:w-96 border-r border-neutral-200 bg-neutral-50/70 flex-col shrink-0 min-h-0 ${
-          mobileChatView === 'channels' ? 'flex flex-1 md:flex-initial' : 'hidden md:flex'
-        }`}>
-          {/* Header */}
-          <div className="p-4 border-b border-neutral-200 space-y-3 bg-white">
-            <div className="flex items-center justify-between">
+      {/* ========================================================================= */}
+      {/* CHAT LIST HUB (CLEAN DIRECTORY OF ALL DISCUSSIONS & CHATS)                */}
+      {/* ========================================================================= */}
+      <div className="p-4 sm:p-6 space-y-4 flex-1 flex flex-col">
+        {/* Top Header Control Bar */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-neutral-100">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-md shrink-0">
+              <MessageSquare className="w-5 h-5" />
+            </div>
+            <div>
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-red-600 text-white flex items-center justify-center shadow-xs">
-                  <MessageSquare className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-black text-neutral-900 leading-tight">School Community Hub</h3>
-                  <div className="flex items-center gap-1.5 text-[10px] text-neutral-500 font-bold">
-                    {/* Online indicator dot if enabled */}
-                    {isStudent && currentStudent?.chatSettings?.showOnlineStatus !== false && (
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" title="Online Presence Active" />
-                    )}
-                    <span>{currentUserRole.toUpperCase()} • {currentUserName.split(' ')[0]}</span>
-                  </div>
-                </div>
+                <h3 className="text-base sm:text-lg font-black text-neutral-900 leading-tight">School Community Hub</h3>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-indigo-100 text-indigo-800">
+                  {currentUserRole}
+                </span>
               </div>
-
-              <div className="flex items-center gap-1.5">
-                {/* Student Privacy Settings button */}
-                {isStudent && currentStudent && (
-                  <button
-                    type="button"
-                    onClick={() => setShowPrivacySettingsModal(true)}
-                    className="p-1.5 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-xs font-bold transition cursor-pointer"
-                    title="Chat Privacy & Presence Settings"
-                  >
-                    <Settings className="w-4 h-4" />
-                  </button>
-                )}
-
-                {/* Message peer button */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPeerSearchTerm('');
-                    setShowDirectPeerModal(true);
-                  }}
-                  className="px-2.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs"
-                  title="Message a classmate or teacher privately"
-                >
-                  <MessageSquare className="w-3.5 h-3.5" />
-                  <span className="text-[11px] font-extrabold whitespace-nowrap">
-                    {isAdmin ? 'Message User' : '+ Message'}
+              <div className="flex items-center gap-2 text-xs text-neutral-500 font-semibold mt-0.5">
+                {isStudent && currentStudent?.chatSettings?.showOnlineStatus !== false && (
+                  <span className="flex items-center gap-1 text-emerald-600 font-bold">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    Online
                   </span>
-                </button>
-
-                {/* Admin School Prefects & Badges control */}
-                {isAdmin && (
-                  <button
-                    type="button"
-                    onClick={() => setShowPrefectBadgesModal(true)}
-                    className="p-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-neutral-950 text-xs font-black transition flex items-center gap-1 cursor-pointer shadow-xs"
-                    title="Confer & Manage School Prefect Badges (Principal Administrator)"
-                  >
-                    <Crown className="w-4 h-4 fill-neutral-950" />
-                  </button>
                 )}
-
-                {/* Admin Create Channel control */}
-                {isAdmin && (
-                  <button
-                    type="button"
-                    onClick={() => setShowNewChannelModal(true)}
-                    className="p-1.5 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-bold transition flex items-center gap-1 cursor-pointer shadow-xs"
-                    title="Create Chat Channel"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </button>
+                <span>•</span>
+                <span>{currentUserName}</span>
+                {currentUserSubtext && (
+                  <>
+                    <span>•</span>
+                    <span className="text-neutral-400 truncate max-w-[200px]">{currentUserSubtext}</span>
+                  </>
                 )}
               </div>
-            </div>
-
-            {/* Quick Action: Chat My Class Teacher (for students) */}
-            {isStudent && studentClassTeacher && (
-              <div className="p-2.5 rounded-2xl bg-indigo-50/90 border border-indigo-200 flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2 min-w-0">
-                  <div className="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-black text-xs shrink-0">
-                    👨‍🏫
-                  </div>
-                  <div className="min-w-0">
-                    <span className="text-[10px] font-bold text-indigo-700 uppercase tracking-wider block">Class Teacher</span>
-                    <span className="text-xs font-black text-neutral-900 truncate block">{studentClassTeacher.name}</span>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => handleStartDirectChat(studentClassTeacher.id, studentClassTeacher.name, 'tutor')}
-                  className="px-2.5 py-1 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-extrabold shrink-0 cursor-pointer shadow-xs"
-                >
-                  Direct Chat
-                </button>
-              </div>
-            )}
-
-            {/* Search bar */}
-            <div className="relative">
-              <Search className="w-3.5 h-3.5 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder={isStudent ? "Search your class, clubs, or chats..." : "Search chat forums or peer DMs..."}
-                className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-neutral-100 border border-neutral-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-            </div>
-
-            {/* Channel Type Filters */}
-            <div className="flex items-center gap-1 overflow-x-auto pb-1 text-[11px] font-bold">
-              {(['all', 'class', 'club', 'direct', 'announcement'] as const).map(tab => (
-                <button
-                  key={tab}
-                  type="button"
-                  onClick={() => setChannelFilter(tab)}
-                  className={`px-2.5 py-1 rounded-lg uppercase tracking-wider text-[10px] whitespace-nowrap transition cursor-pointer flex items-center gap-1 ${
-                    channelFilter === tab 
-                      ? 'bg-neutral-900 text-white shadow-xs' 
-                      : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
-                  }`}
-                >
-                  {tab === 'direct' && <Lock className="w-2.5 h-2.5" />}
-                  <span>
-                    {tab === 'all' ? 'All' : tab === 'direct' ? (isAdmin ? 'Private DMs' : 'Private Chats') : tab}
-                  </span>
-                  {tab === 'direct' && (
-                    <span className={`px-1 rounded-xs font-black text-[9px] ${
-                      channelFilter === tab ? 'bg-amber-400 text-neutral-950' : 'bg-neutral-200 text-neutral-700'
-                    }`}>
-                      {authorizedChannels.filter(c => c.type === 'direct').length}
-                    </span>
-                  )}
-                </button>
-              ))}
             </div>
           </div>
 
-          {/* Channels List */}
-          <div className="flex-1 overflow-y-auto p-2 space-y-1">
-            {displayedChannels.length === 0 ? (
-              <div className="p-6 text-center text-xs text-neutral-400">
+          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+            {/* Student Privacy Settings button */}
+            {isStudent && currentStudent && (
+              <button
+                type="button"
+                onClick={() => setShowPrivacySettingsModal(true)}
+                className="px-3 py-2 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-xs font-bold transition cursor-pointer flex items-center gap-1.5"
+                title="Chat Privacy & Presence Settings"
+              >
+                <Settings className="w-4 h-4 text-neutral-500" />
+                <span className="hidden md:inline">Privacy</span>
+              </button>
+            )}
+
+            {/* Message peer button */}
+            <button
+              type="button"
+              onClick={() => {
+                setPeerSearchTerm('');
+                setShowDirectPeerModal(true);
+              }}
+              className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black transition flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
+              title="Message a classmate or teacher privately"
+            >
+              <MessageSquare className="w-4 h-4" />
+              <span>{isAdmin ? 'Message User' : '+ New Message'}</span>
+            </button>
+
+            {/* Admin School Prefects & Badges control */}
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={() => setShowPrefectBadgesModal(true)}
+                className="px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-neutral-950 text-xs font-black transition flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
+                title="Confer & Manage School Prefect Badges (Principal Administrator)"
+              >
+                <Crown className="w-4 h-4 fill-neutral-950" />
+                <span className="hidden sm:inline">Prefects</span>
+              </button>
+            )}
+
+            {/* Admin Create Channel control */}
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={() => setShowNewChannelModal(true)}
+                className="px-3 py-2 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
+                title="Create Chat Channel"
+              >
+                <Plus className="w-4 h-4 text-amber-400" />
+                <span className="hidden sm:inline">New Channel</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Quick Action: Chat My Class Teacher (for students) */}
+        {isStudent && studentClassTeacher && (
+          <div className="p-3.5 rounded-2xl bg-gradient-to-r from-indigo-50 via-blue-50 to-indigo-50 border border-indigo-200 flex items-center justify-between gap-3 shadow-2xs">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-black text-base shrink-0 shadow-xs">
+                👨‍🏫
+              </div>
+              <div className="min-w-0">
+                <span className="text-[10px] font-extrabold text-indigo-700 uppercase tracking-wider block">Assigned Form Master / Class Teacher</span>
+                <span className="text-xs sm:text-sm font-black text-neutral-900 truncate block">{studentClassTeacher.name}</span>
+                <span className="text-[11px] text-neutral-500 truncate block">{studentClassTeacher.assignedSubjects?.join(', ') || 'Faculty Educator'}</span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => handleStartDirectChat(studentClassTeacher.id, studentClassTeacher.name, 'tutor')}
+              className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black shrink-0 cursor-pointer shadow-xs active:scale-95 flex items-center gap-1.5"
+            >
+              <Send className="w-3.5 h-3.5 text-amber-300" />
+              <span>Direct Chat</span>
+            </button>
+          </div>
+        )}
+
+        {/* Search bar & Category filter tabs */}
+        <div className="space-y-3">
+          <div className="relative">
+            <Search className="w-4 h-4 text-neutral-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder={isStudent ? "Search your class, clubs, classmates, or direct chats..." : "Search chat forums, scholars, tutors, or topics..."}
+              className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-neutral-100 border border-neutral-200 text-xs sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition"
+            />
+          </div>
+
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs font-bold scrollbar-none">
+            {(['all', 'class', 'club', 'direct', 'announcement'] as const).map(tab => (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setChannelFilter(tab)}
+                className={`px-3 py-1.5 rounded-xl uppercase tracking-wider text-[11px] whitespace-nowrap transition cursor-pointer flex items-center gap-1.5 ${
+                  channelFilter === tab 
+                    ? 'bg-neutral-900 text-white shadow-xs' 
+                    : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                }`}
+              >
+                {tab === 'direct' && <Lock className="w-3 h-3" />}
+                <span>
+                  {tab === 'all' ? 'All Chats' : tab === 'class' ? (isStudent ? 'My Class' : 'Classes') : tab === 'club' ? 'Clubs' : tab === 'direct' ? (isAdmin ? 'Private DMs' : 'Direct Messages') : 'Bulletins'}
+                </span>
+                {tab === 'direct' && (
+                  <span className={`px-1.5 py-0.2 rounded-md font-black text-[10px] ${
+                    channelFilter === tab ? 'bg-amber-400 text-neutral-950' : 'bg-neutral-200 text-neutral-700'
+                  }`}>
+                    {authorizedChannels.filter(c => c.type === 'direct').length}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* CHAT LIST ITEMS */}
+        <div className="space-y-2 pt-1 flex-1 overflow-y-auto">
+          {displayedChannels.length === 0 ? (
+            <div className="p-12 text-center text-xs text-neutral-400 bg-neutral-50/60 rounded-3xl border border-dashed border-neutral-200 space-y-3 my-4">
+              <MessageSquare className="w-10 h-10 mx-auto text-neutral-300" />
+              <p className="font-semibold text-neutral-600">
                 {isStudent 
-                  ? 'No accessible channels found. You have access to your class, enrolled clubs, and private chats.' 
+                  ? 'No matching discussion channels found. You have access to your class, enrolled clubs, and private chats.' 
                   : 'No matching discussion channels found.'}
-              </div>
-            ) : (
-              displayedChannels.map(chan => {
-                const isSelected = activeChannel?.id === chan.id;
-                const isDirect = chan.type === 'direct';
-
-                let displayName = chan.name;
-                let displayDesc = chan.description || `${chan.type.toUpperCase()} discussion channel`;
-
-                if (isDirect) {
-                  if (isAdmin) {
-                    displayName = chan.directParticipantNames && chan.directParticipantNames.length >= 2
-                      ? `${chan.directParticipantNames[0]} ↔ ${chan.directParticipantNames[1]}`
-                      : chan.name;
-                    displayDesc = 'Private Peer Dialogue • Administrator Safeguarding Active';
-                  } else {
-                    // For student: DO NOT show admin in participants, show clean 1:1 description
-                    const otherName = chan.directParticipantNames?.find(n => !n.includes(currentUserName) && n !== 'admin-1' && !n.toLowerCase().includes('admin'));
-                    if (otherName) displayName = otherName;
-                    displayDesc = 'Private 1:1 Study Chat';
-                  }
-                }
-
-                return (
-                  <button
-                    key={chan.id}
-                    type="button"
-                    onClick={() => {
-                      setActiveChannelId(chan.id);
-                      setMobileChatView('messages');
-                    }}
-                    className={`w-full text-left p-3 rounded-2xl transition flex items-center justify-between gap-3 cursor-pointer ${
-                      isSelected 
-                        ? 'bg-white text-neutral-900 shadow-sm border border-neutral-200 font-black' 
-                        : 'hover:bg-white/80 text-neutral-700'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 overflow-hidden ${
-                        chan.type === 'announcement' ? '' :
-                        chan.type === 'class' ? 'bg-blue-100 text-blue-900' :
-                        chan.type === 'club' ? 'bg-emerald-100 text-emerald-900' :
-                        'bg-indigo-100 text-indigo-900'
-                      }`}>
-                        {chan.type === 'announcement' && <SchoolLogo size="xs" showText={false} />}
-                        {chan.type === 'class' && <GraduationCap className="w-4 h-4" />}
-                        {chan.type === 'club' && <Users className="w-4 h-4" />}
-                        {chan.type === 'direct' && <Lock className="w-4 h-4" />}
-                      </div>
-
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-xs truncate block">{displayName}</span>
-                          {chan.isReadOnly && (
-                            <Lock className="w-3 h-3 text-neutral-400 shrink-0" />
-                          )}
-                        </div>
-                        <span className="text-[10px] text-neutral-400 truncate block">
-                          {displayDesc}
-                        </span>
-                      </div>
-                    </div>
-
-                    <span className={`text-[9px] px-1.5 py-0.5 rounded-md uppercase font-extrabold shrink-0 ${
-                      isDirect
-                        ? isAdmin ? 'bg-amber-100 text-amber-900 border border-amber-300' : 'bg-indigo-100 text-indigo-700 border border-indigo-200'
-                        : 'bg-neutral-100 text-neutral-600'
-                    }`}>
-                      {isDirect ? (isAdmin ? '1:1 Audited' : '1:1 Private') : chan.type}
-                    </span>
-                  </button>
-                );
-              })
-            )}
-          </div>
-
-          {/* Admin reset / control footer */}
-          {isAdmin && (
-            <div className="p-3 border-t border-neutral-200 bg-white flex items-center justify-between text-xs">
-              <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider">
-                Admin Moderation Active
-              </span>
+              </p>
               <button
                 type="button"
                 onClick={() => {
-                  if (confirm('Reset chat channels and messages to standard school default?')) {
-                    resetChatToDefault();
-                  }
+                  setPeerSearchTerm('');
+                  setShowDirectPeerModal(true);
                 }}
-                className="text-[11px] text-red-600 hover:text-red-700 font-bold cursor-pointer"
+                className="px-4 py-2 rounded-xl bg-indigo-600 text-white font-bold text-xs shadow-xs hover:bg-indigo-500 cursor-pointer"
               >
-                Reset Chat
+                + Start a Private Chat
               </button>
             </div>
-          )}
-        </div>
+          ) : (
+            displayedChannels.map(chan => {
+              const isDirect = chan.type === 'direct';
 
-        {/* ========================================================================= */}
-        {/* RIGHT SIDEBAR: ACTIVE CHAT FORUM CONVERSATION                             */}
-        {/* ========================================================================= */}
-        <div className={`flex-1 flex-col bg-white overflow-hidden min-h-0 ${
-          mobileChatView === 'messages' ? 'flex' : 'hidden md:flex'
-        }`}>
-          {activeChannel ? (
-            <>
-              {/* Safeguarding Notice Banner: SHOWN TO ADMIN ONLY! Never allow students to know admin has access! */}
-              {activeChannel.type === 'direct' && isAdmin && (
-                <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-b border-amber-200 px-4 py-2.5 flex items-center justify-between text-xs text-amber-950">
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-lg bg-amber-500 text-white flex items-center justify-center shrink-0">
-                      <Eye className="w-3.5 h-3.5" />
-                    </div>
-                    <div>
-                      <span className="font-extrabold text-amber-900">Administrator Safeguarding Oversight: </span>
-                      <span className="text-amber-800">
-                        Observing private dialogue between <strong>{activeChannel.directParticipantNames?.[0] || 'Scholar A'}</strong> and <strong>{activeChannel.directParticipantNames?.[1] || 'Scholar B'}</strong>.
-                      </span>
-                    </div>
-                  </div>
-                  <span className="px-2.5 py-0.5 rounded-full bg-amber-200 text-amber-900 text-[10px] font-black uppercase tracking-wider shrink-0 border border-amber-300">
-                    Admin Audited
-                  </span>
-                </div>
-              )}
+              let displayName = chan.name;
+              let displayDesc = chan.description || `${chan.type.toUpperCase()} discussion channel`;
+              let participantPrefectBadge: string | undefined;
+              let isParticipantOnline = false;
 
-              {/* Active Channel Header */}
-              <div className="p-3.5 sm:p-4 border-b border-neutral-200 flex items-center justify-between gap-3 sm:gap-4 bg-white/80 backdrop-blur-xs">
-                <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-                  <button
-                    type="button"
-                    onClick={() => setMobileChatView('channels')}
-                    className="md:hidden p-1.5 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-xs font-bold transition flex items-center gap-1 cursor-pointer shrink-0"
-                    title="Return to channels"
-                  >
-                    <ArrowLeft className="w-4 h-4" />
-                    <span className="text-[11px] font-bold">Chats</span>
-                  </button>
+              if (isDirect) {
+                if (isAdmin) {
+                  displayName = chan.directParticipantNames && chan.directParticipantNames.length >= 2
+                    ? `${chan.directParticipantNames[0]} ↔ ${chan.directParticipantNames[1]}`
+                    : chan.name;
+                  displayDesc = 'Private Peer Dialogue • Administrator Safeguarding Active';
+                } else {
+                  // For student/tutor/parent: find the other participant's name
+                  const otherName = chan.directParticipantNames?.find(n => !n.includes(currentUserName) && n !== 'admin-1' && !n.toLowerCase().includes('admin'));
+                  if (otherName) displayName = otherName;
+                  displayDesc = 'Private 1-on-1 Study Chat';
 
-                  <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 overflow-hidden ${
-                    activeChannel.type === 'announcement' ? '' :
-                    activeChannel.type === 'class' ? 'bg-blue-100 text-blue-900' :
-                    activeChannel.type === 'club' ? 'bg-emerald-100 text-emerald-900' :
-                    'bg-indigo-100 text-indigo-900'
-                  }`}>
-                    {activeChannel.type === 'announcement' && <SchoolLogo size="xs" showText={false} />}
-                    {activeChannel.type === 'class' && <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5" />}
-                    {activeChannel.type === 'club' && <Users className="w-4 h-4 sm:w-5 sm:h-5" />}
-                    {activeChannel.type === 'direct' && <Lock className="w-4 h-4 sm:w-5 sm:h-5" />}
-                  </div>
+                  const otherStudent = students.find(s => s.name === displayName || s.id === chan.directParticipantIds?.find(id => id !== currentUserId && id !== 'admin-1'));
+                  if (otherStudent) {
+                    participantPrefectBadge = otherStudent.prefectBadge;
+                    isParticipantOnline = otherStudent.chatSettings?.showOnlineStatus !== false;
+                  }
+                }
+              }
 
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-                      <h4 className="font-black text-xs sm:text-base text-neutral-900 break-words line-clamp-1">
-                        {activeChannel.type === 'direct' 
-                          ? (isAdmin 
-                              ? (activeChannel.directParticipantNames && activeChannel.directParticipantNames.length >= 2 
-                                  ? `${activeChannel.directParticipantNames[0]} ↔ ${activeChannel.directParticipantNames[1]}` 
-                                  : activeChannel.name)
-                              : (activeChannel.directParticipantNames?.find(n => !n.includes(currentUserName) && n !== 'admin-1' && !n.toLowerCase().includes('admin')) || activeChannel.name))
-                          : activeChannel.name}
-                      </h4>
+              // Get last message in this channel for preview
+              const channelMessages = chatMessages.filter(m => m.channelId === chan.id);
+              const lastMsg = channelMessages[channelMessages.length - 1];
 
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase shrink-0 ${
-                        activeChannel.type === 'announcement' ? 'bg-amber-100 text-amber-900' :
-                        activeChannel.type === 'class' ? 'bg-blue-100 text-blue-900' :
-                        activeChannel.type === 'club' ? 'bg-emerald-100 text-emerald-900' :
-                        'bg-indigo-100 text-indigo-900'
-                      }`}>
-                        {activeChannel.type === 'direct' ? (isAdmin ? '1:1 Audited' : '1:1 Private') : activeChannel.type}
-                      </span>
+              let lastMsgSnippet = displayDesc;
+              let lastMsgTime: string | null = null;
 
-                      {activeChannel.isReadOnly && (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-neutral-100 text-neutral-600 flex items-center gap-1 shrink-0">
-                          <Lock className="w-2.5 h-2.5" /> Read-Only
-                        </span>
+              if (lastMsg) {
+                if (lastMsg.audioVoiceNote) {
+                  lastMsgSnippet = `🎤 Voice Note (${lastMsg.audioVoiceNote.durationSeconds}s)`;
+                } else if (lastMsg.imageAttachment) {
+                  lastMsgSnippet = '📷 Photo Attachment';
+                } else if (lastMsg.content) {
+                  const author = lastMsg.senderId === currentUserId ? 'You' : lastMsg.senderName.split(' ')[0];
+                  lastMsgSnippet = `${author}: ${lastMsg.content}`;
+                }
+
+                try {
+                  const date = new Date(lastMsg.timestamp);
+                  lastMsgTime = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                } catch {
+                  lastMsgTime = null;
+                }
+              }
+
+              return (
+                <div
+                  key={chan.id}
+                  onClick={() => {
+                    setActiveChannelId(chan.id);
+                    setActivePopupChannelId(chan.id);
+                  }}
+                  className="w-full text-left p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl border border-neutral-200/90 hover:border-indigo-300 hover:bg-indigo-50/20 bg-white transition flex items-center justify-between gap-3 cursor-pointer shadow-2xs hover:shadow-xs group"
+                >
+                  <div className="flex items-center gap-3 sm:gap-3.5 min-w-0">
+                    <div className={`w-11 h-11 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center shrink-0 overflow-hidden relative shadow-2xs ${
+                      chan.type === 'announcement' ? 'bg-amber-100' :
+                      chan.type === 'class' ? 'bg-blue-100 text-blue-900' :
+                      chan.type === 'club' ? 'bg-emerald-100 text-emerald-900' :
+                      'bg-indigo-100 text-indigo-900'
+                    }`}>
+                      {chan.type === 'announcement' && <SchoolLogo size="xs" showText={false} />}
+                      {chan.type === 'class' && <GraduationCap className="w-5 h-5" />}
+                      {chan.type === 'club' && <Users className="w-5 h-5" />}
+                      {chan.type === 'direct' && (
+                        <>
+                          <span className="font-black text-sm">{displayName.charAt(0)}</span>
+                          {isParticipantOnline && (
+                            <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 border-2 border-white" />
+                          )}
+                        </>
                       )}
                     </div>
 
-                    <p className="text-[11px] sm:text-xs text-neutral-500 break-words line-clamp-1 mt-0.5">
-                      {activeChannel.type === 'direct'
-                        ? (isAdmin
-                            ? 'Private student dialogue visible to administrators for safeguarding and student protection.'
-                            : 'Private 1-on-1 dialogue. Keep exchanges academic, respectful, and safe.')
-                        : (activeChannel.description || 'Welcome to this school discussion forum. Keep interactions respectful and academic.')}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Header Action Buttons (Admin Leadership Controls) */}
-                <div className="flex items-center gap-2 shrink-0">
-                  {/* Class Leadership button (Admin Only) */}
-                  {isAdmin && activeChannel.type === 'class' && activeClassObj && (
-                    <button
-                      type="button"
-                      onClick={() => setShowClassLeadershipModal(true)}
-                      className="px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-950 border border-amber-300 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs"
-                      title="Select Class Prefect & Assistant Prefect"
-                    >
-                      <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
-                      <span className="hidden sm:inline">Class Prefects</span>
-                    </button>
-                  )}
-
-                  {/* Club Leadership button (Admin Only) */}
-                  {isAdmin && activeChannel.type === 'club' && activeClubObj && (
-                    <button
-                      type="button"
-                      onClick={() => setShowClubLeadershipModal(true)}
-                      className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-950 border border-emerald-300 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs"
-                      title="Select Club President, Vice President & Members"
-                    >
-                      <Crown className="w-3.5 h-3.5 fill-emerald-600 text-emerald-600" />
-                      <span className="hidden sm:inline">Club Leaders</span>
-                    </button>
-                  )}
-
-                  {/* Admin Channel Controls: Lock / Unlock & Delete */}
-                  {isAdmin && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => updateChatChannel(activeChannel.id, { isReadOnly: !activeChannel.isReadOnly })}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer border ${
-                          activeChannel.isReadOnly
-                            ? 'bg-amber-50 text-amber-900 border-amber-300'
-                            : 'bg-neutral-50 text-neutral-700 border-neutral-200 hover:bg-neutral-100'
-                        }`}
-                        title={activeChannel.isReadOnly ? 'Unlock Channel for user replies' : 'Lock Channel as Read-Only'}
-                      >
-                        <Lock className="w-3.5 h-3.5" />
-                        <span className="hidden md:inline">{activeChannel.isReadOnly ? 'Unlock' : 'Lock'}</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (confirm(`Delete channel "${activeChannel.name}" and all its messages?`)) {
-                            deleteChatChannel(activeChannel.id);
-                            setActiveChannelId(chatChannels[0]?.id || '');
-                          }
-                        }}
-                        className="p-1.5 rounded-xl text-neutral-400 hover:text-red-600 hover:bg-red-50 transition cursor-pointer"
-                        title="Delete Channel (Admin Control)"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              {/* Messages Scroll Area */}
-              <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 bg-neutral-50/40">
-                {activeMessages.length === 0 ? (
-                  <div className="h-full flex flex-col items-center justify-center text-center p-8 space-y-3">
-                    <div className="w-12 h-12 rounded-2xl bg-neutral-100 text-neutral-400 flex items-center justify-center">
-                      <MessageSquare className="w-6 h-6" />
-                    </div>
-                    <h5 className="font-black text-sm text-neutral-800">No messages in this channel yet</h5>
-                    <p className="text-xs text-neutral-500 max-w-sm">
-                      Start the conversation! Scholars, faculty tutors, and parents can collaborate, discuss study topics, and exchange ideas.
-                    </p>
-                  </div>
-                ) : (
-                  activeMessages.map((msg) => {
-                    const isMine = msg.senderId === currentUserId;
-                    const isMsgAdmin = msg.senderRole === 'admin';
-                    const isMsgTutor = msg.senderRole === 'tutor';
-                    const isMsgParent = msg.senderRole === 'parent';
-                    const senderBadge = getSenderBadge(msg);
-
-                    return (
-                      <div 
-                        key={msg.id}
-                        className={`flex gap-3 max-w-2xl ${isMine ? 'ml-auto flex-row-reverse' : ''}`}
-                      >
-                        {/* Avatar */}
-                        <div 
-                          onClick={() => {
-                            if (!isMine && msg.senderId && !isMsgAdmin && activeChannel.type !== 'announcement') {
-                              handleStartDirectChat(msg.senderId, msg.senderName, msg.senderRole as any);
-                            }
-                          }}
-                          title={!isMine && !isMsgAdmin ? `Click to direct message ${msg.senderName}` : undefined}
-                          className={`w-9 h-9 rounded-2xl flex items-center justify-center font-black text-xs shrink-0 shadow-xs overflow-hidden ${
-                            !isMine && !isMsgAdmin && activeChannel.type !== 'announcement' ? 'cursor-pointer hover:ring-2 hover:ring-indigo-400 transition-all' : ''
-                          } ${
-                            isMsgAdmin || activeChannel.type === 'announcement' ? '' :
-                            isMsgTutor ? 'bg-blue-900 text-amber-300' :
-                            isMsgParent ? 'bg-amber-100 text-amber-900 border border-amber-300' :
-                            'bg-indigo-700 text-white'
-                          }`}
-                        >
-                          {isMsgAdmin || activeChannel.type === 'announcement' ? (
-                            <SchoolLogo size="xs" showText={false} />
-                          ) : (
-                            msg.senderName.charAt(0)
-                          )}
-                        </div>
-
-                        {/* Message Bubble Container */}
-                        <div className={`space-y-1 ${isMine ? 'items-end' : ''}`}>
-                          {/* Meta header */}
-                          <div className={`flex items-center gap-1.5 flex-wrap text-[11px] ${isMine ? 'justify-end' : ''}`}>
-                            <span 
-                              onClick={() => {
-                                if (!isMine && msg.senderId && !isMsgAdmin && activeChannel.type !== 'announcement') {
-                                  handleStartDirectChat(msg.senderId, msg.senderName, msg.senderRole as any);
-                                }
-                              }}
-                              className={`font-black text-neutral-900 ${
-                                !isMine && !isMsgAdmin && activeChannel.type !== 'announcement' ? 'cursor-pointer hover:text-indigo-600 transition' : ''
-                              }`}
-                              title={!isMine && !isMsgAdmin ? `Click to direct message ${msg.senderName}` : undefined}
-                            >
-                              {msg.senderName}
-                            </span>
-                            
-                            {/* Role Tag */}
-                            <span className={`px-1.5 py-0.2 rounded text-[9px] font-extrabold uppercase ${
-                              isMsgAdmin ? 'bg-neutral-900 text-white' :
-                              isMsgTutor ? 'bg-blue-100 text-blue-900' :
-                              isMsgParent ? 'bg-amber-100 text-amber-900' :
-                              'bg-neutral-100 text-neutral-700'
-                            }`}>
-                              {msg.senderRole}
-                            </span>
-
-                            {/* Official Leadership Badge (Prefect, President, Vice President, etc.) */}
-                            {senderBadge && (
-                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black shadow-2xs flex items-center gap-1 ${
-                                senderBadge.includes('President') ? 'bg-amber-100 text-amber-900 border border-amber-300' :
-                                senderBadge.includes('Vice') ? 'bg-emerald-100 text-emerald-900 border border-emerald-300' :
-                                senderBadge.includes('Prefect') ? 'bg-indigo-100 text-indigo-900 border border-indigo-300' :
-                                'bg-purple-100 text-purple-900 border border-purple-300'
-                              }`}>
-                                {senderBadge}
-                              </span>
-                            )}
-
-                            {msg.senderSubtext && !senderBadge && (
-                              <span className="text-neutral-400 font-medium truncate max-w-[140px]">
-                                • {msg.senderSubtext}
-                              </span>
-                            )}
-
-                            <span className="text-[10px] text-neutral-400">
-                              {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </span>
-                          </div>
-
-                          {/* Bubble: Students never see flagged rose styling or mention of admin moderation */}
-                          <div className={`p-4 rounded-3xl text-xs sm:text-sm leading-relaxed relative group ${
-                            isMine 
-                              ? 'bg-neutral-900 text-white rounded-tr-xs shadow-sm' 
-                              : (isAdmin && msg.flaggedByAdmin)
-                              ? 'bg-rose-50 border border-rose-200 text-rose-950 rounded-tl-xs'
-                              : 'bg-white border border-neutral-200 text-neutral-800 rounded-tl-xs shadow-xs'
-                          }`}>
-                            {msg.deletedByAdmin ? (
-                              <span className="italic text-neutral-400">
-                                {isAdmin 
-                                  ? '[This message was removed by the School Administrator for violating conduct policy.]' 
-                                  : '[This message was deleted]'}
-                              </span>
-                            ) : (
-                              <div className="space-y-2">
-                                {/* Image Attachment */}
-                                {msg.imageAttachment && (
-                                  <div 
-                                    onClick={() => setExpandedImageModalUrl(msg.imageAttachment!.url)}
-                                    className="rounded-2xl overflow-hidden max-w-xs cursor-pointer group/img relative border border-white/20"
-                                  >
-                                    <img 
-                                      src={msg.imageAttachment.url} 
-                                      alt="Attachment" 
-                                      className="w-full max-h-60 object-cover group-hover/img:scale-102 transition-transform" 
-                                    />
-                                    <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/img:opacity-100 flex items-center justify-center transition-opacity text-white text-xs font-bold gap-1">
-                                      <Maximize2 className="w-4 h-4" />
-                                      <span>View Fullscreen</span>
-                                    </div>
-                                  </div>
-                                )}
-
-                                {/* Voice Note Player */}
-                                {msg.audioVoiceNote && (
-                                  <div className={`p-2.5 rounded-2xl flex items-center gap-3 ${isMine ? 'bg-white/10 text-white' : 'bg-neutral-100 text-neutral-800'}`}>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleTogglePlayVoice(msg.id, msg.audioVoiceNote!.url)}
-                                      className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 cursor-pointer shadow-xs transition ${
-                                        isMine ? 'bg-amber-400 text-neutral-950 hover:bg-amber-300' : 'bg-neutral-900 text-white hover:bg-neutral-800'
-                                      }`}
-                                    >
-                                      {playingVoiceMsgId === msg.id ? (
-                                        <Pause className="w-4 h-4" />
-                                      ) : (
-                                        <Play className="w-4 h-4 ml-0.5" />
-                                      )}
-                                    </button>
-
-                                    {/* Waveform Visualization Bars */}
-                                    <div className="flex-1 flex items-center gap-1 h-6">
-                                      {[40, 70, 30, 90, 60, 100, 45, 80, 50, 85, 35, 75, 55, 95, 65, 40].map((h, i) => (
-                                        <span 
-                                          key={i} 
-                                          className={`w-1 rounded-full transition-all duration-200 ${
-                                            playingVoiceMsgId === msg.id 
-                                              ? (isMine ? 'bg-amber-300 animate-pulse' : 'bg-neutral-900 animate-pulse') 
-                                              : (isMine ? 'bg-white/40' : 'bg-neutral-300')
-                                          }`} 
-                                          style={{ height: `${Math.max(20, h)}%` }} 
-                                        />
-                                      ))}
-                                    </div>
-
-                                    <div className="text-[11px] font-mono font-bold shrink-0">
-                                      {Math.floor(msg.audioVoiceNote.durationSeconds / 60)}:{(msg.audioVoiceNote.durationSeconds % 60).toString().padStart(2, '0')}
-                                    </div>
-                                  </div>
-                                )}
-
-                                {msg.content && (!msg.audioVoiceNote || !msg.content.startsWith('🎤')) && (!msg.imageAttachment || msg.content !== '📷 Photo Attachment') && (
-                                  <p className="whitespace-pre-wrap">{msg.content}</p>
-                                )}
-                              </div>
-                            )}
-
-                            {/* Admin moderation quick actions (HIDDEN FROM STUDENTS) */}
-                            {isAdmin && !msg.deletedByAdmin && (
-                              <div className="hidden group-hover:flex items-center gap-1.5 absolute -top-3 right-2 bg-white px-2 py-0.5 rounded-full border border-neutral-300 shadow-sm text-[10px]">
-                                <button
-                                  type="button"
-                                  onClick={() => flagChatMessage(msg.id, !msg.flaggedByAdmin)}
-                                  className={`p-1 hover:text-amber-600 cursor-pointer ${msg.flaggedByAdmin ? 'text-amber-600' : 'text-neutral-400'}`}
-                                  title={msg.flaggedByAdmin ? 'Unflag message' : 'Flag message'}
-                                >
-                                  <Flag className="w-3 h-3" />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    if (confirm('Delete this message as administrator?')) {
-                                      deleteChatMessage(msg.id);
-                                    }
-                                  }}
-                                  className="p-1 hover:text-red-600 text-neutral-400 cursor-pointer"
-                                  title="Delete Message"
-                                >
-                                  <Trash2 className="w-3 h-3" />
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-                <div ref={messagesEndRef} />
-              </div>
-
-              {/* Input Composer */}
-              <div className="p-3 sm:p-4 bg-white border-t border-neutral-200">
-                {activeChannel.isReadOnly && !isAdmin ? (
-                  <div className="p-3 rounded-2xl bg-neutral-100 text-neutral-500 text-xs text-center flex items-center justify-center gap-2">
-                    <Lock className="w-4 h-4" />
-                    <span>This channel is locked by the School Administration. Comments are disabled.</span>
-                  </div>
-                ) : (
-                  <form onSubmit={handleSendMessage} className="space-y-2">
-                    {/* Selected Image Preview Chip */}
-                    {selectedImage && (
-                      <div className="flex items-center gap-2 p-2 bg-neutral-100 rounded-2xl max-w-sm">
-                        <img src={selectedImage} alt="Preview" className="w-12 h-12 object-cover rounded-xl border border-neutral-300" />
-                        <span className="text-xs text-neutral-700 flex-1 truncate font-bold">Photo attached</span>
-                        <button
-                          type="button"
-                          onClick={() => setSelectedImage(null)}
-                          className="p-1 hover:bg-neutral-200 rounded-lg text-neutral-500 cursor-pointer"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                    )}
-
-                    {/* Recording Voice Note Active Overlay */}
-                    {isRecordingVoice ? (
-                      <div className="flex items-center justify-between p-2.5 bg-rose-50 border border-rose-200 rounded-2xl text-rose-900 animate-in fade-in">
-                        <div className="flex items-center gap-3">
-                          <span className="w-3 h-3 rounded-full bg-rose-600 animate-ping" />
-                          <span className="text-xs font-black font-mono">
-                            Recording Voice: {Math.floor(voiceDuration / 60)}:{(voiceDuration % 60).toString().padStart(2, '0')}
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                        <span className="text-xs sm:text-sm font-black text-neutral-900 truncate group-hover:text-indigo-950 transition">
+                          {displayName}
+                        </span>
+                        {participantPrefectBadge && (
+                          <span className="px-2 py-0.2 rounded-full text-[9px] font-black bg-amber-400 text-amber-950 shadow-2xs">
+                            {participantPrefectBadge}
                           </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={handleCancelVoiceRecording}
-                            className="px-3 py-1.5 rounded-xl bg-white border border-rose-300 text-xs font-bold text-rose-700 hover:bg-rose-100 cursor-pointer"
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            type="button"
-                            onClick={handleStopAndSendVoiceRecording}
-                            className="px-4 py-1.5 rounded-xl bg-rose-600 text-white text-xs font-black shadow-xs hover:bg-rose-700 flex items-center gap-1.5 cursor-pointer"
-                          >
-                            <Send className="w-3.5 h-3.5" />
-                            <span>Send Voice Note</span>
-                          </button>
-                        </div>
+                        )}
+                        {chan.isReadOnly && (
+                          <span title="Read-only broadcast">
+                            <Lock className="w-3 h-3 text-neutral-400 shrink-0" />
+                          </span>
+                        )}
                       </div>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        {/* Hidden Image File Input */}
-                        <input
-                          type="file"
-                          ref={chatFileInputRef}
-                          accept="image/*"
-                          onChange={handleFileSelect}
-                          className="hidden"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => chatFileInputRef.current?.click()}
-                          className="p-3 rounded-2xl bg-neutral-100 hover:bg-neutral-200 text-neutral-600 transition cursor-pointer"
-                          title="Attach Photo or Document"
-                        >
-                          <Camera className="w-4 h-4" />
-                        </button>
+                      <p className="text-[11px] sm:text-xs text-neutral-500 truncate mt-0.5 group-hover:text-neutral-700 transition font-medium">
+                        {lastMsgSnippet}
+                      </p>
+                    </div>
+                  </div>
 
-                        <button
-                          type="button"
-                          onClick={handleStartVoiceRecording}
-                          className="p-3 rounded-2xl bg-neutral-100 hover:bg-neutral-200 text-neutral-600 transition cursor-pointer"
-                          title="Record Voice Note"
-                        >
-                          <Mic className="w-4 h-4" />
-                        </button>
+                  <div className="flex items-center gap-2.5 shrink-0">
+                    <div className="flex flex-col items-end gap-1">
+                      {lastMsgTime && (
+                        <span className="text-[10px] sm:text-[11px] font-bold text-neutral-400">
+                          {lastMsgTime}
+                        </span>
+                      )}
+                      <span className={`text-[9px] sm:text-[10px] px-2 py-0.5 rounded-md uppercase font-extrabold ${
+                        isDirect
+                          ? isAdmin ? 'bg-amber-100 text-amber-900 border border-amber-300' : 'bg-indigo-100 text-indigo-700 border border-indigo-200'
+                          : chan.type === 'class' ? 'bg-blue-100 text-blue-800'
+                          : chan.type === 'club' ? 'bg-emerald-100 text-emerald-800'
+                          : 'bg-neutral-100 text-neutral-600'
+                      }`}>
+                        {isDirect ? (isAdmin ? '1:1 Audited' : 'Direct DM') : chan.type}
+                      </span>
+                    </div>
 
-                        <input
-                          type="text"
-                          value={messageText}
-                          onChange={(e) => setMessageText(e.target.value)}
-                          placeholder={`Message ${activeChannel.name}...`}
-                          className="flex-1 px-4 py-3 rounded-2xl bg-neutral-50 border border-neutral-300 text-xs sm:text-sm text-neutral-800 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white"
-                        />
-
-                        <button
-                          type="submit"
-                          disabled={!messageText.trim() && !selectedImage}
-                          className="p-3 rounded-2xl bg-neutral-900 hover:bg-neutral-800 disabled:opacity-40 text-white transition cursor-pointer shadow-sm active:scale-95"
-                          title="Send Message"
-                        >
-                          <Send className="w-4 h-4 text-amber-400" />
-                        </button>
-                      </div>
-                    )}
-                  </form>
-                )}
-              </div>
-            </>
-          ) : (
-            <div className="flex-1 flex items-center justify-center p-8 text-neutral-400 text-sm">
-              Select or create a discussion channel to view messages.
-            </div>
+                    <div className="w-7 h-7 rounded-xl bg-neutral-50 group-hover:bg-indigo-600 group-hover:text-white text-neutral-400 flex items-center justify-center transition">
+                      <ChevronRight className="w-4 h-4" />
+                    </div>
+                  </div>
+                </div>
+              );
+            })
           )}
         </div>
+
+        {/* Admin reset / control footer */}
+        {isAdmin && (
+          <div className="pt-3 border-t border-neutral-200 flex items-center justify-between text-xs shrink-0">
+            <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider">
+              Admin Safeguarding & Moderation Active
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                if (confirm('Reset chat channels and messages to standard school default?')) {
+                  resetChatToDefault();
+                }
+              }}
+              className="text-[11px] text-red-600 hover:text-red-700 font-bold cursor-pointer"
+            >
+              Reset Chat
+            </button>
+          </div>
+        )}
       </div>
+
+      {/* ========================================================================= */}
+      {/* POP-UP CHAT OVERLAY (POPS UP OVER THE ENTIRE SCREEN WHEN CHAT IS CLICKED) */}
+      {/* ========================================================================= */}
+      {activePopupChannel && (
+        <div 
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 md:p-6 animate-in fade-in duration-200"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setActivePopupChannelId(null);
+            }
+          }}
+        >
+          <div 
+            className="w-full max-w-4xl h-[92vh] max-h-[820px] bg-white rounded-3xl shadow-2xl border border-neutral-200 flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Safeguarding Notice Banner: SHOWN TO ADMIN ONLY! Never allow students to know admin has access! */}
+            {activePopupChannel.type === 'direct' && isAdmin && (
+              <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-b border-amber-200 px-4 py-2.5 flex items-center justify-between text-xs text-amber-950 shrink-0">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-lg bg-amber-500 text-white flex items-center justify-center shrink-0">
+                    <Eye className="w-3.5 h-3.5" />
+                  </div>
+                  <div>
+                    <span className="font-extrabold text-amber-900">Administrator Safeguarding Oversight: </span>
+                    <span className="text-amber-800">
+                      Observing private dialogue between <strong>{activePopupChannel.directParticipantNames?.[0] || 'Scholar A'}</strong> and <strong>{activePopupChannel.directParticipantNames?.[1] || 'Scholar B'}</strong>.
+                    </span>
+                  </div>
+                </div>
+                <span className="px-2.5 py-0.5 rounded-full bg-amber-200 text-amber-900 text-[10px] font-black uppercase tracking-wider shrink-0 border border-amber-300">
+                  Admin Audited
+                </span>
+              </div>
+            )}
+
+            {/* Active Channel Header */}
+            {(() => {
+              const chan = activePopupChannel;
+              const isDirect = chan.type === 'direct';
+
+              let displayName = chan.name;
+              let displayDesc = chan.description || `${chan.type.toUpperCase()} discussion channel`;
+              let participantPrefectBadge: string | undefined;
+              let isParticipantOnline = false;
+
+              if (isDirect) {
+                if (isAdmin) {
+                  displayName = chan.directParticipantNames && chan.directParticipantNames.length >= 2
+                    ? `${chan.directParticipantNames[0]} ↔ ${chan.directParticipantNames[1]}`
+                    : chan.name;
+                  displayDesc = 'Private Peer Dialogue • Administrator Safeguarding Active';
+                } else {
+                  const otherName = chan.directParticipantNames?.find(n => !n.includes(currentUserName) && n !== 'admin-1' && !n.toLowerCase().includes('admin'));
+                  if (otherName) displayName = otherName;
+                  displayDesc = 'Private 1-on-1 Academic Consultation';
+
+                  const otherStudent = students.find(s => s.name === displayName || s.id === chan.directParticipantIds?.find(id => id !== currentUserId && id !== 'admin-1'));
+                  if (otherStudent) {
+                    participantPrefectBadge = otherStudent.prefectBadge;
+                    isParticipantOnline = otherStudent.chatSettings?.showOnlineStatus !== false;
+                  }
+                }
+              }
+
+              return (
+                <div className="p-3.5 sm:p-4 border-b border-neutral-200 flex items-center justify-between gap-3 sm:gap-4 bg-white/95 backdrop-blur-xs shrink-0 shadow-2xs">
+                  <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                    <button
+                      type="button"
+                      onClick={() => setActivePopupChannelId(null)}
+                      className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-xs font-bold transition flex items-center gap-1 cursor-pointer shrink-0"
+                      title="Return to Chat List"
+                    >
+                      <ArrowLeft className="w-4 h-4" />
+                      <span className="hidden sm:inline text-xs font-bold">Back to Chats</span>
+                    </button>
+
+                    <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 overflow-hidden relative shadow-2xs ${
+                      chan.type === 'announcement' ? 'bg-amber-100' :
+                      chan.type === 'class' ? 'bg-blue-100 text-blue-900' :
+                      chan.type === 'club' ? 'bg-emerald-100 text-emerald-900' :
+                      'bg-indigo-100 text-indigo-900'
+                    }`}>
+                      {chan.type === 'announcement' && <SchoolLogo size="xs" showText={false} />}
+                      {chan.type === 'class' && <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5" />}
+                      {chan.type === 'club' && <Users className="w-4 h-4 sm:w-5 sm:h-5" />}
+                      {chan.type === 'direct' && (
+                        <>
+                          <span className="font-black text-sm">{displayName.charAt(0)}</span>
+                          {isParticipantOnline && (
+                            <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white" />
+                          )}
+                        </>
+                      )}
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                        <h4 className="font-black text-xs sm:text-base text-neutral-900 break-words line-clamp-1">
+                          {displayName}
+                        </h4>
+
+                        {participantPrefectBadge && (
+                          <span className="px-2 py-0.2 rounded-full text-[9px] font-black bg-amber-400 text-amber-950 shadow-2xs">
+                            {participantPrefectBadge}
+                          </span>
+                        )}
+
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase shrink-0 ${
+                          chan.type === 'announcement' ? 'bg-amber-100 text-amber-900' :
+                          chan.type === 'class' ? 'bg-blue-100 text-blue-900' :
+                          chan.type === 'club' ? 'bg-emerald-100 text-emerald-900' :
+                          'bg-indigo-100 text-indigo-900'
+                        }`}>
+                          {chan.type === 'direct' ? (isAdmin ? '1:1 Audited' : '1:1 Private') : chan.type}
+                        </span>
+
+                        {chan.isReadOnly && (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-neutral-100 text-neutral-600 flex items-center gap-1 shrink-0">
+                            <Lock className="w-2.5 h-2.5" /> Read-Only
+                          </span>
+                        )}
+                      </div>
+
+                      <p className="text-[11px] sm:text-xs text-neutral-500 break-words line-clamp-1 mt-0.5">
+                        {displayDesc}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Header Action Buttons (Admin Leadership Controls & Close) */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    {/* Class Leadership button (Admin Only) */}
+                    {isAdmin && chan.type === 'class' && activeClassObj && (
+                      <button
+                        type="button"
+                        onClick={() => setShowClassLeadershipModal(true)}
+                        className="px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-950 border border-amber-300 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                        title="Select Class Prefect & Assistant Prefect"
+                      >
+                        <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
+                        <span className="hidden sm:inline">Class Prefects</span>
+                      </button>
+                    )}
+
+                    {/* Club Leadership button (Admin Only) */}
+                    {isAdmin && chan.type === 'club' && activeClubObj && (
+                      <button
+                        type="button"
+                        onClick={() => setShowClubLeadershipModal(true)}
+                        className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-950 border border-emerald-300 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                        title="Select Club President, Vice President & Members"
+                      >
+                        <Crown className="w-3.5 h-3.5 fill-emerald-600 text-emerald-600" />
+                        <span className="hidden sm:inline">Club Leaders</span>
+                      </button>
+                    )}
+
+                    {/* Close Pop-Up Overlay */}
+                    <button
+                      type="button"
+                      onClick={() => setActivePopupChannelId(null)}
+                      className="p-1.5 sm:p-2 rounded-xl text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100 transition cursor-pointer"
+                      title="Close Chat"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Messages Scroll Area */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 bg-neutral-50/40">
+              {activeMessages.length === 0 ? (
+                <div className="h-full min-h-[220px] flex flex-col items-center justify-center text-center p-8 space-y-3">
+                  <div className="w-12 h-12 rounded-2xl bg-neutral-100 text-neutral-400 flex items-center justify-center">
+                    <MessageSquare className="w-6 h-6" />
+                  </div>
+                  <h5 className="font-black text-sm text-neutral-800">No messages in this chat yet</h5>
+                  <p className="text-xs text-neutral-500 max-w-sm">
+                    Start the conversation! Scholars, faculty tutors, and parents can collaborate, discuss study topics, and exchange ideas.
+                  </p>
+                </div>
+              ) : (
+                activeMessages.map((msg) => {
+                  const isMine = msg.senderId === currentUserId;
+                  const isMsgAdmin = msg.senderRole === 'admin';
+                  const isMsgTutor = msg.senderRole === 'tutor';
+                  const isMsgParent = msg.senderRole === 'parent';
+                  const senderBadge = getSenderBadge(msg);
+                  const isClickableName = !isMine && msg.senderId && !isMsgAdmin && activePopupChannel.type !== 'announcement';
+
+                  return (
+                    <div 
+                      key={msg.id}
+                      className={`flex gap-3 max-w-2xl ${isMine ? 'ml-auto flex-row-reverse' : ''}`}
+                    >
+                      {/* Avatar */}
+                      <div 
+                        onClick={() => {
+                          if (isClickableName) {
+                            handleStartDirectChat(msg.senderId, msg.senderName, msg.senderRole as any);
+                          }
+                        }}
+                        title={isClickableName ? `Click to message ${msg.senderName}` : undefined}
+                        className={`w-9 h-9 rounded-2xl flex items-center justify-center font-black text-xs shrink-0 shadow-xs overflow-hidden ${
+                          isClickableName ? 'cursor-pointer hover:ring-2 hover:ring-indigo-400 transition-all' : ''
+                        } ${
+                          isMsgAdmin || activePopupChannel.type === 'announcement' ? '' :
+                          isMsgTutor ? 'bg-blue-900 text-amber-300' :
+                          isMsgParent ? 'bg-amber-100 text-amber-900 border border-amber-300' :
+                          'bg-indigo-700 text-white'
+                        }`}
+                      >
+                        {isMsgAdmin || activePopupChannel.type === 'announcement' ? (
+                          <SchoolLogo size="xs" showText={false} />
+                        ) : (
+                          msg.senderName.charAt(0)
+                        )}
+                      </div>
+
+                      {/* Message Bubble Container */}
+                      <div className={`space-y-1 ${isMine ? 'items-end' : ''}`}>
+                        {/* Meta header */}
+                        <div className={`flex items-center gap-1.5 flex-wrap text-[11px] ${isMine ? 'justify-end' : ''}`}>
+                          <span 
+                            onClick={() => {
+                              if (isClickableName) {
+                                handleStartDirectChat(msg.senderId, msg.senderName, msg.senderRole as any);
+                              }
+                            }}
+                            className={`font-black text-neutral-900 ${
+                              isClickableName ? 'cursor-pointer hover:text-indigo-600 hover:underline transition' : ''
+                            }`}
+                            title={isClickableName ? `Click to message ${msg.senderName}` : undefined}
+                          >
+                            {isMine ? 'You' : msg.senderName}
+                          </span>
+                          
+                          {/* Role Tag */}
+                          <span className={`px-1.5 py-0.2 rounded text-[9px] font-extrabold uppercase ${
+                            isMsgAdmin ? 'bg-neutral-900 text-white' :
+                            isMsgTutor ? 'bg-blue-100 text-blue-900' :
+                            isMsgParent ? 'bg-amber-100 text-amber-900' :
+                            'bg-neutral-100 text-neutral-700'
+                          }`}>
+                            {msg.senderRole}
+                          </span>
+
+                          {/* Official Leadership Badge (Prefect, President, Vice President, etc.) */}
+                          {senderBadge && (
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black shadow-2xs flex items-center gap-1 ${
+                              senderBadge.includes('President') ? 'bg-amber-100 text-amber-900 border border-amber-300' :
+                              senderBadge.includes('Vice') ? 'bg-emerald-100 text-emerald-900 border border-emerald-300' :
+                              senderBadge.includes('Prefect') ? 'bg-indigo-100 text-indigo-900 border border-indigo-300' :
+                              'bg-purple-100 text-purple-900 border border-purple-300'
+                            }`}>
+                              {senderBadge}
+                            </span>
+                          )}
+
+                          {msg.senderSubtext && !senderBadge && (
+                            <span className="text-neutral-400 font-medium truncate max-w-[140px]">
+                              • {msg.senderSubtext}
+                            </span>
+                          )}
+
+                          <span className="text-[10px] text-neutral-400">
+                            • {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+
+                        {/* Bubble */}
+                        <div className={`p-4 rounded-3xl text-xs sm:text-sm leading-relaxed relative group ${
+                          isMine 
+                            ? 'bg-neutral-900 text-white rounded-tr-xs shadow-sm' 
+                            : (isAdmin && msg.flaggedByAdmin)
+                            ? 'bg-rose-50 border border-rose-200 text-rose-950 rounded-tl-xs'
+                            : 'bg-white border border-neutral-200 text-neutral-800 rounded-tl-xs shadow-xs'
+                        }`}>
+                          {msg.deletedByAdmin ? (
+                            <span className="italic text-neutral-400">
+                              {isAdmin 
+                                ? '[This message was removed by the School Administrator for violating conduct policy.]' 
+                                : '[This message was deleted]'}
+                            </span>
+                          ) : (
+                            <div className="space-y-2">
+                              {/* Image Attachment */}
+                              {msg.imageAttachment && (
+                                <div 
+                                  onClick={() => setExpandedImageModalUrl(msg.imageAttachment!.url)}
+                                  className="rounded-2xl overflow-hidden max-w-xs cursor-pointer group/img relative border border-white/20"
+                                >
+                                  <img 
+                                    src={msg.imageAttachment.url} 
+                                    alt="Attachment" 
+                                    className="w-full max-h-60 object-cover group-hover/img:scale-102 transition-transform" 
+                                  />
+                                  <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/img:opacity-100 flex items-center justify-center transition-opacity text-white text-xs font-bold gap-1">
+                                    <Maximize2 className="w-4 h-4" />
+                                    <span>View Fullscreen</span>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Voice Note Player */}
+                              {msg.audioVoiceNote && (
+                                <div className={`p-2.5 rounded-2xl flex items-center gap-3 ${isMine ? 'bg-white/10 text-white' : 'bg-neutral-100 text-neutral-800'}`}>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleTogglePlayVoice(msg.id, msg.audioVoiceNote!.url)}
+                                    className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 cursor-pointer shadow-xs transition ${
+                                      isMine ? 'bg-amber-400 text-neutral-950 hover:bg-amber-300' : 'bg-neutral-900 text-white hover:bg-neutral-800'
+                                    }`}
+                                  >
+                                    {playingVoiceMsgId === msg.id ? (
+                                      <Pause className="w-4 h-4" />
+                                    ) : (
+                                      <Play className="w-4 h-4 ml-0.5" />
+                                    )}
+                                  </button>
+
+                                  {/* Waveform Visualization Bars */}
+                                  <div className="flex-1 flex items-center gap-1 h-6">
+                                    {[40, 70, 30, 90, 60, 100, 45, 80, 50, 85, 35, 75, 55, 95, 65, 40].map((h, i) => (
+                                      <span 
+                                        key={i} 
+                                        className={`w-1 rounded-full transition-all duration-200 ${
+                                          playingVoiceMsgId === msg.id 
+                                            ? (isMine ? 'bg-amber-300 animate-pulse' : 'bg-neutral-900 animate-pulse') 
+                                            : (isMine ? 'bg-white/40' : 'bg-neutral-300')
+                                        }`} 
+                                        style={{ height: `${Math.max(20, h)}%` }} 
+                                      />
+                                    ))}
+                                  </div>
+
+                                  <div className="text-[11px] font-mono font-bold shrink-0">
+                                    {Math.floor(msg.audioVoiceNote.durationSeconds / 60)}:{(msg.audioVoiceNote.durationSeconds % 60).toString().padStart(2, '0')}
+                                  </div>
+                                </div>
+                              )}
+
+                              {msg.content && (!msg.audioVoiceNote || !msg.content.startsWith('🎤')) && (!msg.imageAttachment || msg.content !== '📷 Photo Attachment') && (
+                                <p className="whitespace-pre-wrap">{msg.content}</p>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Admin moderation quick actions */}
+                          {isAdmin && !msg.deletedByAdmin && (
+                            <div className="hidden group-hover:flex items-center gap-1.5 absolute -top-3 right-2 bg-white px-2 py-0.5 rounded-full border border-neutral-300 shadow-sm text-[10px]">
+                              <button
+                                type="button"
+                                onClick={() => flagChatMessage(msg.id, !msg.flaggedByAdmin)}
+                                className={`p-1 hover:text-amber-600 cursor-pointer ${msg.flaggedByAdmin ? 'text-amber-600' : 'text-neutral-400'}`}
+                                title={msg.flaggedByAdmin ? 'Unflag message' : 'Flag message'}
+                              >
+                                <Flag className="w-3 h-3" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (confirm('Delete this message as administrator?')) {
+                                    deleteChatMessage(msg.id);
+                                  }
+                                }}
+                                className="p-1 hover:text-red-600 text-neutral-400 cursor-pointer"
+                                title="Delete Message"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Input Composer */}
+            <div className="p-3 sm:p-4 bg-white border-t border-neutral-200 shrink-0">
+              {activePopupChannel.isReadOnly && !isAdmin ? (
+                <div className="p-3 rounded-2xl bg-neutral-100 text-neutral-500 text-xs text-center flex items-center justify-center gap-2">
+                  <Lock className="w-4 h-4" />
+                  <span>This channel is locked by the School Administration. Comments are disabled.</span>
+                </div>
+              ) : (
+                <form onSubmit={handleSendMessage} className="space-y-2">
+                  {/* Selected Image Preview Chip */}
+                  {selectedImage && (
+                    <div className="flex items-center gap-2 p-2 bg-neutral-100 rounded-2xl max-w-sm">
+                      <img src={selectedImage} alt="Preview" className="w-12 h-12 object-cover rounded-xl border border-neutral-300" />
+                      <span className="text-xs text-neutral-700 flex-1 truncate font-bold">Photo attached</span>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedImage(null)}
+                        className="p-1 hover:bg-neutral-200 rounded-lg text-neutral-500 cursor-pointer"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Recording Voice Note Active Overlay */}
+                  {isRecordingVoice ? (
+                    <div className="flex items-center justify-between p-2.5 bg-rose-50 border border-rose-200 rounded-2xl text-rose-900 animate-in fade-in">
+                      <div className="flex items-center gap-3">
+                        <span className="w-3 h-3 rounded-full bg-rose-600 animate-ping" />
+                        <span className="text-xs font-black font-mono">
+                          Recording Voice: {Math.floor(voiceDuration / 60)}:{(voiceDuration % 60).toString().padStart(2, '0')}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={handleCancelVoiceRecording}
+                          className="px-3 py-1.5 rounded-xl bg-white border border-rose-300 text-xs font-bold text-rose-700 hover:bg-rose-100 cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleStopAndSendVoiceRecording}
+                          className="px-4 py-1.5 rounded-xl bg-rose-600 text-white text-xs font-black shadow-xs hover:bg-rose-700 flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <Send className="w-3.5 h-3.5" />
+                          <span>Send Voice Note</span>
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      {/* Hidden Image File Input */}
+                      <input
+                        type="file"
+                        ref={chatFileInputRef}
+                        accept="image/*"
+                        onChange={handleFileSelect}
+                        className="hidden"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => chatFileInputRef.current?.click()}
+                        className="p-3 rounded-2xl bg-neutral-100 hover:bg-neutral-200 text-neutral-600 transition cursor-pointer"
+                        title="Attach Photo or Document"
+                      >
+                        <Camera className="w-4 h-4" />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleStartVoiceRecording}
+                        className="p-3 rounded-2xl bg-neutral-100 hover:bg-neutral-200 text-neutral-600 transition cursor-pointer"
+                        title="Record Voice Note"
+                      >
+                        <Mic className="w-4 h-4" />
+                      </button>
+
+                      <input
+                        type="text"
+                        value={messageText}
+                        onChange={(e) => setMessageText(e.target.value)}
+                        placeholder={`Message ${activePopupChannel.name}...`}
+                        autoFocus
+                        className="flex-1 px-4 py-3 rounded-2xl bg-neutral-50 border border-neutral-300 text-xs sm:text-sm text-neutral-800 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:bg-white"
+                      />
+
+                      <button
+                        type="submit"
+                        disabled={!messageText.trim() && !selectedImage}
+                        className="p-3 rounded-2xl bg-neutral-900 hover:bg-neutral-800 disabled:opacity-40 text-white transition cursor-pointer shadow-sm active:scale-95"
+                        title="Send Message"
+                      >
+                        <Send className="w-4 h-4 text-amber-400" />
+                      </button>
+                    </div>
+                  )}
+                </form>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ========================================================================= */}
       {/* MODAL 1: CREATE NEW CHANNEL                                               */}
@@ -1489,7 +1538,6 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
               <button 
                 type="button"
                 onClick={() => {
-                  setOverlayPeerChat(null);
                   setShowDirectPeerModal(false);
                 }}
                 className="text-stone-400 hover:text-white p-2 rounded-xl hover:bg-stone-800 transition-colors cursor-pointer"
@@ -1873,7 +1921,6 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
               <button
                 type="button"
                 onClick={() => {
-                  setOverlayPeerChat(null);
                   setShowDirectPeerModal(false);
                 }}
                 className="px-5 py-2 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white font-bold text-xs cursor-pointer transition shadow-xs"
@@ -1881,159 +1928,6 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
                 Close Directory
               </button>
             </div>
-
-            {/* ========================================================================= */}
-            {/* DIRECT CHAT OVERLAY CARD (OVERLAYS IN A CARD ON PREVIOUS LIST OF USERS)    */}
-            {/* ========================================================================= */}
-            {overlayPeerChat && (
-              <div className="absolute inset-0 z-30 bg-stone-950/40 backdrop-blur-2xs flex flex-col p-2.5 sm:p-4 animate-in fade-in duration-200">
-                <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-stone-200/90 flex-1 flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
-                  {/* Overlay Card Header */}
-                  <div className="bg-gradient-to-r from-indigo-900 via-indigo-950 to-neutral-900 text-white p-3.5 sm:p-4 flex items-center justify-between gap-3 shrink-0">
-                    <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
-                      <button
-                        type="button"
-                        onClick={() => setOverlayPeerChat(null)}
-                        className="px-2.5 py-1 -ml-1 rounded-xl text-white/90 hover:text-white hover:bg-white/10 transition flex items-center gap-1.5 text-xs font-bold cursor-pointer shrink-0 border border-white/20"
-                        title="Return to previous list of users"
-                      >
-                        <ArrowLeft className="w-4 h-4" />
-                        <span className="hidden sm:inline">Scholars</span>
-                      </button>
-
-                      <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-black text-sm shrink-0 shadow-sm relative">
-                        {overlayPeerChat.name.charAt(0)}
-                        <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white" />
-                      </div>
-
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <h4 className="font-black text-xs sm:text-sm text-white truncate max-w-[160px] sm:max-w-[240px]">
-                            {overlayPeerChat.name}
-                          </h4>
-                          {overlayPeerChat.prefectBadge && (
-                            <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black bg-amber-400 text-amber-950 shrink-0">
-                              {overlayPeerChat.prefectBadge}
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-[10px] sm:text-[11px] text-indigo-200 truncate">
-                          {overlayPeerChat.subtext || 'Academic Direct Consultation'}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
-                      <button
-                        type="button"
-                        onClick={handleExpandToMainChat}
-                        className="px-2.5 py-1.5 rounded-xl text-indigo-200 hover:text-white hover:bg-white/10 transition text-xs font-bold flex items-center gap-1 cursor-pointer"
-                        title="Expand into full Community Hub view"
-                      >
-                        <ExternalLink className="w-3.5 h-3.5" />
-                        <span className="hidden sm:inline text-[11px]">Full Hub</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setOverlayPeerChat(null);
-                          setShowDirectPeerModal(false);
-                        }}
-                        className="p-1.5 rounded-xl text-white/70 hover:text-white hover:bg-white/10 transition cursor-pointer"
-                        title="Close"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Return Breadcrumb strip */}
-                  <div className="px-3.5 py-1.5 bg-indigo-50/90 border-b border-indigo-100 flex items-center justify-between text-xs text-indigo-950 shrink-0">
-                    <span className="font-semibold text-[11px] flex items-center gap-1.5">
-                      <ShieldCheck className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
-                      <span>1-on-1 Academic Message Overlay</span>
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setOverlayPeerChat(null)}
-                      className="text-indigo-700 hover:text-indigo-900 font-extrabold text-[11px] flex items-center gap-1 cursor-pointer underline"
-                    >
-                      ← Back to user list
-                    </button>
-                  </div>
-
-                  {/* Messages scroll area */}
-                  <div className="flex-1 min-h-0 p-3.5 sm:p-4 overflow-y-auto space-y-3 bg-stone-50/60">
-                    {chatMessages.filter(m => m.channelId === overlayPeerChat.channelId).length === 0 ? (
-                      <div className="h-full min-h-[200px] flex flex-col items-center justify-center text-center p-6 space-y-2.5">
-                        <div className="w-12 h-12 rounded-2xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold shadow-xs">
-                          <MessageSquare className="w-6 h-6" />
-                        </div>
-                        <h5 className="font-extrabold text-sm text-neutral-900">
-                          Academic Collaboration with {overlayPeerChat.name}
-                        </h5>
-                        <p className="text-xs text-neutral-500 max-w-xs leading-relaxed">
-                          Ask homework questions, coordinate study groups, or share notes. Your conversation is secure and focused on learning.
-                        </p>
-                      </div>
-                    ) : (
-                      chatMessages.filter(m => m.channelId === overlayPeerChat.channelId).map((msg) => {
-                        const isMine = msg.senderId === currentUserId;
-                        return (
-                          <div
-                            key={msg.id}
-                            className={`flex flex-col ${isMine ? 'items-end' : 'items-start'}`}
-                          >
-                            <div className="flex items-center gap-1.5 text-[10px] text-neutral-400 mb-1 px-1">
-                              <span className="font-bold text-neutral-700">{msg.senderName}</span>
-                              <span>•</span>
-                              <span>{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                            </div>
-                            <div
-                              className={`max-w-[85%] p-3.5 rounded-2xl text-xs sm:text-[13px] leading-relaxed ${
-                                isMine
-                                  ? 'bg-neutral-900 text-white rounded-tr-xs shadow-xs'
-                                  : 'bg-white border border-neutral-200 text-neutral-800 rounded-tl-xs shadow-2xs'
-                              }`}
-                            >
-                              {msg.content}
-                            </div>
-                          </div>
-                        );
-                      })
-                    )}
-                    <div ref={overlayMessagesEndRef} />
-                  </div>
-
-                  {/* Send Form */}
-                  <form
-                    onSubmit={handleSendOverlayMessage}
-                    className="p-3 bg-white border-t border-neutral-200 flex items-center gap-2 shrink-0"
-                  >
-                    <input
-                      type="text"
-                      value={overlayMessageText}
-                      onChange={(e) => setOverlayMessageText(e.target.value)}
-                      placeholder={`Type message to ${overlayPeerChat.name.split(' ')[0]}...`}
-                      className="flex-1 px-4 py-2.5 rounded-xl bg-neutral-100 border border-neutral-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      autoFocus
-                    />
-                    <button
-                      type="submit"
-                      disabled={!overlayMessageText.trim()}
-                      className={`px-4 py-2.5 rounded-xl font-bold text-xs transition flex items-center gap-1.5 cursor-pointer shrink-0 ${
-                        overlayMessageText.trim()
-                          ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-xs'
-                          : 'bg-neutral-100 text-neutral-400 cursor-not-allowed'
-                      }`}
-                    >
-                      <Send className="w-3.5 h-3.5" />
-                      <span className="hidden sm:inline">Send</span>
-                    </button>
-                  </form>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       )}
