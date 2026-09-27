@@ -34,9 +34,41 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenStatusTracker,
   onOpenTour
 }) => {
-  const { schoolInfo } = useSchool();
+  const { 
+    schoolInfo,
+    isAdminAuthenticated,
+    isProprietressAuthenticated,
+    isTutorAuthenticated,
+    isStudentAuthenticated,
+    isParentAuthenticated,
+    student,
+    tutor
+  } = useSchool();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [portalDropdownOpen, setPortalDropdownOpen] = useState(false);
+
+  const getActivePortalTarget = (): PageSection => {
+    if (isStudentAuthenticated) return 'student-portal';
+    if (isAdminAuthenticated) return 'admin-portal';
+    if (isTutorAuthenticated) return 'tutor-portal';
+    if (isParentAuthenticated) return 'parent-portal';
+    if (isProprietressAuthenticated) return 'proprietress-portal';
+    return 'portal-login';
+  };
+
+  const getPortalButtonLabel = () => {
+    if (isStudentAuthenticated) {
+      const firstName = student?.name ? student.name.split(' ')[0] : 'Scholar';
+      return `Scholar (${firstName})`;
+    }
+    if (isAdminAuthenticated) return 'Admin Console';
+    if (isTutorAuthenticated) return 'Faculty Portal';
+    if (isParentAuthenticated) return 'Parent Portal';
+    if (isProprietressAuthenticated) return 'Executive Portal';
+    return 'Portals';
+  };
+
+  const hasAnyAuth = isStudentAuthenticated || isAdminAuthenticated || isTutorAuthenticated || isParentAuthenticated || isProprietressAuthenticated;
 
   const navLinks: Array<{ label: string; section: PageSection }> = [
     { label: 'Home', section: 'home' },
@@ -136,11 +168,20 @@ export const Navbar: React.FC<NavbarProps> = ({
           <div className="relative">
             <button
               type="button"
-              onClick={() => onNavigate('portal-login')}
-              className="px-3.5 py-2 text-xs font-bold text-stone-800 bg-stone-100 hover:bg-stone-200 rounded-xl flex items-center gap-1.5 transition-colors"
+              onClick={() => onNavigate(getActivePortalTarget())}
+              className={`px-3.5 py-2 text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer ${
+                hasAnyAuth 
+                  ? 'bg-amber-100 hover:bg-amber-200 text-blue-950 border border-amber-300 shadow-2xs' 
+                  : 'text-stone-800 bg-stone-100 hover:bg-stone-200'
+              }`}
+              title={hasAnyAuth ? 'Resume your active authenticated portal' : 'Access institutional portals'}
             >
-              <Lock className="w-3.5 h-3.5 text-stone-600" />
-              <span>Portals</span>
+              {hasAnyAuth ? (
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              ) : (
+                <Lock className="w-3.5 h-3.5 text-stone-600" />
+              )}
+              <span>{getPortalButtonLabel()}</span>
             </button>
           </div>
 
@@ -192,11 +233,16 @@ export const Navbar: React.FC<NavbarProps> = ({
               type="button"
               onClick={() => {
                 setMobileMenuOpen(false);
-                onNavigate('portal-login');
+                onNavigate(getActivePortalTarget());
               }}
-              className="w-full py-2 px-3 text-xs font-bold text-stone-800 bg-stone-100 rounded-xl text-center"
+              className={`w-full py-2 px-3 text-xs font-bold rounded-xl text-center flex items-center justify-center gap-1.5 transition-colors ${
+                hasAnyAuth 
+                  ? 'bg-amber-100 text-blue-950 border border-amber-300 shadow-2xs' 
+                  : 'text-stone-800 bg-stone-100 hover:bg-stone-200'
+              }`}
             >
-              Access Portals
+              {hasAnyAuth && <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />}
+              <span>{hasAnyAuth ? getPortalButtonLabel() : 'Access Portals'}</span>
             </button>
           </div>
 

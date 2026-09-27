@@ -115,6 +115,7 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
   const [peerTab, setPeerTab] = useState<'classmates' | 'clubs' | 'tutors'>('classmates');
   const [overlayPeerChat, setOverlayPeerChat] = useState<OverlayPeerChat | null>(null);
   const [overlayMessageText, setOverlayMessageText] = useState('');
+  const [mobileChatView, setMobileChatView] = useState<'channels' | 'messages'>('channels');
   const overlayMessagesEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll overlay chat messages
@@ -557,7 +558,7 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-3xl border border-[#EAE2CE] shadow-sm overflow-hidden flex flex-col h-[820px]">
+    <div className="bg-white rounded-3xl border border-[#EAE2CE] shadow-sm overflow-hidden flex flex-col h-[min(840px,calc(100dvh-130px))] min-h-[500px]">
       
       {/* ========================================================================= */}
       {/* TOP WHATSAPP-STYLE 16-HOUR EPHEMERAL STATUS STORY STRIP                   */}
@@ -573,11 +574,13 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
         }
       />
 
-      <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden min-h-0">
         {/* ========================================================================= */}
         {/* LEFT SIDEBAR: CHANNELS & DIRECT CHATS DIRECTORY                           */}
         {/* ========================================================================= */}
-        <div className="w-full md:w-80 lg:w-96 border-r border-neutral-200 bg-neutral-50/70 flex flex-col shrink-0">
+        <div className={`w-full md:w-80 lg:w-96 border-r border-neutral-200 bg-neutral-50/70 flex-col shrink-0 min-h-0 ${
+          mobileChatView === 'channels' ? 'flex flex-1 md:flex-initial' : 'hidden md:flex'
+        }`}>
           {/* Header */}
           <div className="p-4 border-b border-neutral-200 space-y-3 bg-white">
             <div className="flex items-center justify-between">
@@ -750,7 +753,10 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
                   <button
                     key={chan.id}
                     type="button"
-                    onClick={() => setActiveChannelId(chan.id)}
+                    onClick={() => {
+                      setActiveChannelId(chan.id);
+                      setMobileChatView('messages');
+                    }}
                     className={`w-full text-left p-3 rounded-2xl transition flex items-center justify-between gap-3 cursor-pointer ${
                       isSelected 
                         ? 'bg-white text-neutral-900 shadow-sm border border-neutral-200 font-black' 
@@ -820,7 +826,9 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
         {/* ========================================================================= */}
         {/* RIGHT SIDEBAR: ACTIVE CHAT FORUM CONVERSATION                             */}
         {/* ========================================================================= */}
-        <div className="flex-1 flex flex-col bg-white overflow-hidden">
+        <div className={`flex-1 flex-col bg-white overflow-hidden min-h-0 ${
+          mobileChatView === 'messages' ? 'flex' : 'hidden md:flex'
+        }`}>
           {activeChannel ? (
             <>
               {/* Safeguarding Notice Banner: SHOWN TO ADMIN ONLY! Never allow students to know admin has access! */}
@@ -846,6 +854,16 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
               {/* Active Channel Header */}
               <div className="p-3.5 sm:p-4 border-b border-neutral-200 flex items-center justify-between gap-3 sm:gap-4 bg-white/80 backdrop-blur-xs">
                 <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                  <button
+                    type="button"
+                    onClick={() => setMobileChatView('channels')}
+                    className="md:hidden p-1.5 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-xs font-bold transition flex items-center gap-1 cursor-pointer shrink-0"
+                    title="Return to channels"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                    <span className="text-[11px] font-bold">Chats</span>
+                  </button>
+
                   <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 overflow-hidden ${
                     activeChannel.type === 'announcement' ? '' :
                     activeChannel.type === 'class' ? 'bg-blue-100 text-blue-900' :
@@ -1453,8 +1471,8 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
       {/* MODAL 2: DIRECT PEER-TO-PEER MESSAGING MODAL & CHAT OVERLAY CARD          */}
       {/* ========================================================================= */}
       {showDirectPeerModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-stone-900/60 backdrop-blur-xs overflow-y-auto">
-          <div className="bg-white rounded-3xl shadow-2xl border border-stone-200 w-full max-w-xl overflow-hidden my-4 sm:my-6 relative min-h-[580px] max-h-[85vh] flex flex-col animate-in fade-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-stone-900/60 backdrop-blur-xs overflow-y-auto">
+          <div className="bg-white rounded-3xl shadow-2xl border border-stone-200 w-full max-w-xl overflow-hidden my-2 sm:my-4 relative h-[min(90dvh,640px)] min-h-[400px] max-h-[94dvh] flex flex-col animate-in fade-in zoom-in-95 duration-150">
             {/* Modal Header */}
             <div className="bg-gradient-to-r from-indigo-900 via-indigo-950 to-neutral-900 text-white p-5 sm:p-6 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-3">
@@ -1945,7 +1963,7 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
                   </div>
 
                   {/* Messages scroll area */}
-                  <div className="flex-1 p-3.5 sm:p-4 overflow-y-auto space-y-3 bg-stone-50/60">
+                  <div className="flex-1 min-h-0 p-3.5 sm:p-4 overflow-y-auto space-y-3 bg-stone-50/60">
                     {chatMessages.filter(m => m.channelId === overlayPeerChat.channelId).length === 0 ? (
                       <div className="h-full min-h-[200px] flex flex-col items-center justify-center text-center p-6 space-y-2.5">
                         <div className="w-12 h-12 rounded-2xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold shadow-xs">

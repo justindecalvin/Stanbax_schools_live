@@ -37,8 +37,20 @@ export const PortalLoginPage: React.FC<PortalLoginPageProps> = ({
     resetPasswordWithSecurityAnswer,
     schoolInfo,
     images,
-    setActiveSection
+    setActiveSection,
+    isAdminAuthenticated,
+    isProprietressAuthenticated,
+    isTutorAuthenticated,
+    isStudentAuthenticated,
+    isParentAuthenticated,
+    student,
+    tutor,
+    parents,
+    activeParentId,
+    logoutAll
   } = useSchool();
+
+  const currentParent = parents.find(p => p.id === activeParentId);
 
   // Form input states
   const [identifier, setIdentifier] = useState('');
@@ -235,6 +247,68 @@ export const PortalLoginPage: React.FC<PortalLoginPageProps> = ({
 
           {/* Form Body */}
           <div className="p-6 sm:p-8 space-y-5">
+            {/* Active Session Detected (Auto-Resumption Banner) */}
+            {(isStudentAuthenticated || isAdminAuthenticated || isTutorAuthenticated || isParentAuthenticated || isProprietressAuthenticated) && (
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-900 to-indigo-950 text-white shadow-md border border-amber-400/50 space-y-3 animate-fade-in">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="text-xs font-black text-amber-300 uppercase tracking-wider">
+                      Active Signed-In Session
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-blue-200">Preserved Across Refresh</span>
+                </div>
+                <div>
+                  <p className="text-xs text-white">
+                    You are already authenticated as{' '}
+                    <strong className="text-amber-300">
+                      {isStudentAuthenticated ? (student?.name || 'Scholar') :
+                       isAdminAuthenticated ? 'Administrator' :
+                       isTutorAuthenticated ? (tutor?.name || 'Faculty Member') :
+                       isProprietressAuthenticated ? 'Proprietress' :
+                       (currentParent?.fullName || 'Parent / Guardian')}
+                    </strong>
+                    .
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (isStudentAuthenticated) {
+                        setActiveSection('student-portal');
+                        onLoginSuccess?.('student');
+                      } else if (isAdminAuthenticated) {
+                        setActiveSection('admin-portal');
+                        onLoginSuccess?.('admin');
+                      } else if (isTutorAuthenticated) {
+                        setActiveSection('tutor-portal');
+                        onLoginSuccess?.('tutor');
+                      } else if (isParentAuthenticated) {
+                        setActiveSection('parent-portal');
+                        onLoginSuccess?.('parent');
+                      } else if (isProprietressAuthenticated) {
+                        setActiveSection('proprietress-portal');
+                        onLoginSuccess?.('proprietress');
+                      }
+                    }}
+                    className="flex-1 py-2 px-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-blue-950 font-black text-xs shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <span>Resume My Portal</span>
+                    <ArrowLeft className="w-3.5 h-3.5 text-blue-950 rotate-180" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => logoutAll()}
+                    className="py-2 px-3 rounded-xl bg-white/10 hover:bg-white/20 text-rose-300 text-xs font-bold transition cursor-pointer border border-white/15"
+                  >
+                    Switch User
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Error Message Alert */}
             {errorMessage && (
               <div 

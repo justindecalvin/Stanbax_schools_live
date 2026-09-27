@@ -719,11 +719,11 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
           />
 
           {/* Slide-out Side Menu from Corner */}
-          <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
-            <div className="w-screen max-w-md bg-blue-950 text-white shadow-2xl border-l border-blue-800 flex flex-col">
+          <div className="fixed inset-y-0 right-0 w-full max-w-md flex z-50">
+            <div className="w-full bg-blue-950 text-white shadow-2xl border-l border-blue-800 flex flex-col h-full overflow-hidden">
               {/* Side Menu Header */}
-              <div className="p-4 sm:p-5 border-b border-blue-800/80 flex items-center justify-between bg-blue-900/60">
-                <div className="flex items-center gap-3">
+              <div className="p-4 sm:p-5 border-b border-blue-800/80 flex items-center justify-between bg-blue-900/60 shrink-0">
+                <div className="flex items-center gap-3 min-w-0">
                   <div className="w-10 h-10 rounded-xl bg-amber-400 text-blue-950 flex items-center justify-center font-black shadow-md shrink-0 overflow-hidden border border-amber-300">
                     {student.passportPhoto ? (
                       <img src={student.passportPhoto} alt={student.name} className="w-full h-full object-cover" />
@@ -731,20 +731,20 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
                       <GraduationCap className="w-6 h-6" />
                     )}
                   </div>
-                  <div>
-                    <div className="flex items-center gap-2">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <h2 className="font-black text-sm sm:text-base text-white">SCHOLAR MENU</h2>
-                      <span className="px-2 py-0.5 rounded-full bg-blue-500/30 text-amber-300 text-[10px] font-extrabold uppercase border border-amber-400/30">
+                      <span className="px-2 py-0.5 rounded-full bg-blue-500/30 text-amber-300 text-[10px] font-extrabold uppercase border border-amber-400/30 shrink-0">
                         {student.grade}
                       </span>
                     </div>
-                    <p className="text-[11px] text-blue-300">{student.name}</p>
+                    <p className="text-[11px] text-blue-300 truncate">{student.name}</p>
                   </div>
                 </div>
 
                 <button
                   onClick={() => setIsSideMenuOpen(false)}
-                  className="p-2 rounded-xl bg-blue-900/80 hover:bg-blue-800 text-blue-200 hover:text-white transition-colors cursor-pointer border border-blue-700"
+                  className="p-2 rounded-xl bg-blue-900/80 hover:bg-blue-800 text-blue-200 hover:text-white transition-colors cursor-pointer border border-blue-700 shrink-0 ml-2"
                   aria-label="Close Scholar Menu"
                 >
                   <X className="w-5 h-5" />
@@ -752,25 +752,25 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
               </div>
 
               {/* Scholar Details Card */}
-              <div className="px-5 py-3.5 bg-blue-900/30 border-b border-blue-800/60 text-xs space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-blue-300 font-bold">Registration No:</span>
-                  <span className="font-mono text-amber-300 font-bold">{student.regNumber}</span>
+              <div className="px-4 sm:px-5 py-3 bg-blue-900/30 border-b border-blue-800/60 text-xs space-y-1.5 shrink-0">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-blue-300 font-bold shrink-0">Registration No:</span>
+                  <span className="font-mono text-amber-300 font-bold text-right truncate">{student.regNumber}</span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-blue-300 font-bold">Class / Arm:</span>
-                  <span className="text-white font-bold">{student.grade}</span>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-blue-300 font-bold shrink-0">Class / Arm:</span>
+                  <span className="text-white font-bold text-right truncate">{student.grade}</span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-blue-300 font-bold">House / Dorm:</span>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-blue-300 font-bold shrink-0">House / Dorm:</span>
                   {(() => {
                     const matched = houseStandings.find(h => 
                       student.house && (h.name.toLowerCase().includes(student.house.toLowerCase()) || student.house.toLowerCase().includes(h.name.toLowerCase()))
                     ) || houseStandings[0];
                     return (
-                      <span className="font-bold flex items-center gap-1.5" style={{ color: matched?.color || '#34d399' }}>
-                        <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: matched?.color || '#34d399' }} />
-                        <span>{student.house || matched?.name || 'Blue House'}</span>
+                      <span className="font-bold flex items-center gap-1.5 text-right truncate" style={{ color: matched?.color || '#34d399' }}>
+                        <span className="w-2 h-2 rounded-full inline-block shrink-0" style={{ backgroundColor: matched?.color || '#34d399' }} />
+                        <span className="truncate">{student.house || matched?.name || 'Blue House'}</span>
                       </span>
                     );
                   })()}
@@ -778,7 +778,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
               </div>
 
               {/* Scrollable Navigation List */}
-              <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2">
+              <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-2 pb-6">
                 <div className="px-2 pb-1">
                   <span className="text-[10px] font-black uppercase tracking-wider text-blue-300">
                     Scholar Portals & Workspaces ({studentModules.length})
@@ -849,7 +849,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
               </div>
 
               {/* Side Menu Footer Actions */}
-              <div className="p-4 border-t border-blue-800 bg-blue-950 space-y-2">
+              <div className="p-4 border-t border-blue-800 bg-blue-950 space-y-2 shrink-0">
                 <button
                   onClick={() => {
                     setIsSideMenuOpen(false);

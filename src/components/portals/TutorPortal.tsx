@@ -604,28 +604,28 @@ export const TutorPortal: React.FC<TutorPortalProps> = ({ onBackToWebsite }) => 
           />
 
           {/* Slide-out Side Menu from Corner */}
-          <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
-            <div className="w-screen max-w-md bg-blue-950 text-white shadow-2xl border-l border-blue-800 flex flex-col">
+          <div className="fixed inset-y-0 right-0 w-full max-w-md flex z-50">
+            <div className="w-full bg-blue-950 text-white shadow-2xl border-l border-blue-800 flex flex-col h-full overflow-hidden">
               {/* Side Menu Header */}
-              <div className="p-4 sm:p-5 border-b border-blue-800/80 flex items-center justify-between bg-blue-900/60">
-                <div className="flex items-center gap-3">
+              <div className="p-4 sm:p-5 border-b border-blue-800/80 flex items-center justify-between bg-blue-900/60 shrink-0">
+                <div className="flex items-center gap-3 min-w-0">
                   <div className="w-10 h-10 rounded-xl bg-amber-400 text-blue-950 flex items-center justify-center font-black shadow-md shrink-0">
                     <Users className="w-6 h-6" />
                   </div>
-                  <div>
-                    <div className="flex items-center gap-2">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <h2 className="font-black text-sm sm:text-base text-white">FACULTY MENU</h2>
-                      <span className="px-2 py-0.5 rounded-full bg-blue-500/30 text-amber-300 text-[10px] font-extrabold uppercase border border-amber-400/30">
+                      <span className="px-2 py-0.5 rounded-full bg-blue-500/30 text-amber-300 text-[10px] font-extrabold uppercase border border-amber-400/30 shrink-0">
                         TRCN
                       </span>
                     </div>
-                    <p className="text-[11px] text-blue-300">{tutor.name}</p>
+                    <p className="text-[11px] text-blue-300 truncate">{tutor.name}</p>
                   </div>
                 </div>
 
                 <button
                   onClick={() => setIsSideMenuOpen(false)}
-                  className="p-2 rounded-xl bg-blue-900/80 hover:bg-blue-800 text-blue-200 hover:text-white transition-colors cursor-pointer border border-blue-700"
+                  className="p-2 rounded-xl bg-blue-900/80 hover:bg-blue-800 text-blue-200 hover:text-white transition-colors cursor-pointer border border-blue-700 shrink-0 ml-2"
                   aria-label="Close Faculty Menu"
                 >
                   <X className="w-5 h-5" />
@@ -633,25 +633,25 @@ export const TutorPortal: React.FC<TutorPortalProps> = ({ onBackToWebsite }) => 
               </div>
 
               {/* Tutor Details Card */}
-              <div className="px-5 py-3.5 bg-blue-900/30 border-b border-blue-800/60 text-xs space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-blue-300 font-bold">Department:</span>
-                  <span className="text-white font-black">{tutor.department}</span>
+              <div className="px-4 sm:px-5 py-3 bg-blue-900/30 border-b border-blue-800/60 text-xs space-y-1 shrink-0">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-blue-300 font-bold shrink-0">Department:</span>
+                  <span className="text-white font-black text-right truncate">{tutor.department}</span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-blue-300 font-bold">Role:</span>
-                  <span className="text-amber-300 font-bold">{tutor.role}</span>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-blue-300 font-bold shrink-0">Role:</span>
+                  <span className="text-amber-300 font-bold text-right truncate">{tutor.role}</span>
                 </div>
                 {permittedSubjects.length > 0 && (
-                  <div className="flex items-center justify-between pt-1">
-                    <span className="text-blue-300 font-bold">Authorized Subjects:</span>
-                    <span className="text-emerald-300 font-bold text-[11px]">{permittedSubjects.join(', ')}</span>
+                  <div className="flex items-center justify-between gap-2 pt-1">
+                    <span className="text-blue-300 font-bold shrink-0">Authorized Subjects:</span>
+                    <span className="text-emerald-300 font-bold text-[11px] text-right truncate">{permittedSubjects.join(', ')}</span>
                   </div>
                 )}
               </div>
 
               {/* Scrollable Navigation List */}
-              <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2">
+              <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-2 pb-6">
                 <div className="px-2 pb-1">
                   <span className="text-[10px] font-black uppercase tracking-wider text-blue-300">
                     Faculty Workspaces ({tutorModules.length})
@@ -722,7 +722,7 @@ export const TutorPortal: React.FC<TutorPortalProps> = ({ onBackToWebsite }) => 
               </div>
 
               {/* Side Menu Footer Actions */}
-              <div className="p-4 border-t border-blue-800 bg-blue-950 space-y-2">
+              <div className="p-4 border-t border-blue-800 bg-blue-950 space-y-2 shrink-0">
                 <button
                   onClick={() => {
                     setIsSideMenuOpen(false);

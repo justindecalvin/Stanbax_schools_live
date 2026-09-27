@@ -1796,7 +1796,11 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   });
 
   const [activeTutorId, setActiveTutorId] = useState<string>(() => {
-    return sessionStorage.getItem('stanbax_tutor_id') || DEMO_TUTOR.id;
+    try {
+      return localStorage.getItem('stanbax_tutor_id') || sessionStorage.getItem('stanbax_tutor_id') || DEMO_TUTOR.id;
+    } catch {
+      return DEMO_TUTOR.id;
+    }
   });
 
   const tutor = tutors.find(t => t.id === activeTutorId) || tutors[0] || DEMO_TUTOR;
@@ -2078,7 +2082,11 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   });
 
   const [activeStudentId, setActiveStudentId] = useState<string>(() => {
-    return sessionStorage.getItem('stanbax_student_id') || DEMO_STUDENT.id;
+    try {
+      return localStorage.getItem('stanbax_student_id') || sessionStorage.getItem('stanbax_student_id') || DEMO_STUDENT.id;
+    } catch {
+      return DEMO_STUDENT.id;
+    }
   });
 
   const student = students.find(s => s.id === activeStudentId) || students[0] || DEMO_STUDENT;
@@ -2661,19 +2669,27 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // 13. Unified Authentication (Admin, Proprietress, Faculty/Tutor, Scholar/Parent)
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
-    return sessionStorage.getItem('stanbax_admin_auth') === 'true';
+    try {
+      return localStorage.getItem('stanbax_admin_auth') === 'true' || sessionStorage.getItem('stanbax_admin_auth') === 'true';
+    } catch { return false; }
   });
 
   const [isProprietressAuthenticated, setIsProprietressAuthenticated] = useState<boolean>(() => {
-    return sessionStorage.getItem('stanbax_proprietress_auth') === 'true';
+    try {
+      return localStorage.getItem('stanbax_proprietress_auth') === 'true' || sessionStorage.getItem('stanbax_proprietress_auth') === 'true';
+    } catch { return false; }
   });
 
   const [isTutorAuthenticated, setIsTutorAuthenticated] = useState<boolean>(() => {
-    return sessionStorage.getItem('stanbax_tutor_auth') === 'true';
+    try {
+      return localStorage.getItem('stanbax_tutor_auth') === 'true' || sessionStorage.getItem('stanbax_tutor_auth') === 'true';
+    } catch { return false; }
   });
 
   const [isStudentAuthenticated, setIsStudentAuthenticated] = useState<boolean>(() => {
-    return sessionStorage.getItem('stanbax_student_auth') === 'true';
+    try {
+      return localStorage.getItem('stanbax_student_auth') === 'true' || sessionStorage.getItem('stanbax_student_auth') === 'true';
+    } catch { return false; }
   });
 
   // Default credentials come from Vite env vars injected at build time
@@ -2725,10 +2741,14 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   const [isParentAuthenticated, setIsParentAuthenticated] = useState<boolean>(() => {
-    return sessionStorage.getItem('stanbax_parent_auth') === 'true';
+    try {
+      return localStorage.getItem('stanbax_parent_auth') === 'true' || sessionStorage.getItem('stanbax_parent_auth') === 'true';
+    } catch { return false; }
   });
   const [activeParentId, setActiveParentId] = useState<string>(() => {
-    return sessionStorage.getItem('stanbax_parent_id') || (DEFAULT_PARENTS[0]?.id || 'parent-1');
+    try {
+      return localStorage.getItem('stanbax_parent_id') || sessionStorage.getItem('stanbax_parent_id') || (DEFAULT_PARENTS[0]?.id || 'parent-1');
+    } catch { return DEFAULT_PARENTS[0]?.id || 'parent-1'; }
   });
 
   const authenticatedRole: 'admin' | 'proprietress' | 'tutor' | 'student' | 'parent' | null = isAdminAuthenticated
@@ -2778,35 +2798,53 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         switch (role) {
           case 'admin':
             setIsAdminAuthenticated(true);
+            localStorage.setItem('stanbax_admin_auth', 'true');
             sessionStorage.setItem('stanbax_admin_auth', 'true');
+            localStorage.setItem('stanbax_active_section', 'admin-portal');
+            sessionStorage.setItem('stanbax_active_section', 'admin-portal');
             break;
           case 'proprietress':
             setIsProprietressAuthenticated(true);
+            localStorage.setItem('stanbax_proprietress_auth', 'true');
             sessionStorage.setItem('stanbax_proprietress_auth', 'true');
+            localStorage.setItem('stanbax_active_section', 'proprietress-portal');
+            sessionStorage.setItem('stanbax_active_section', 'proprietress-portal');
             break;
           case 'tutor':
             setIsTutorAuthenticated(true);
             if (res.refId) {
               setActiveTutorId(res.refId);
+              localStorage.setItem('stanbax_tutor_id', res.refId);
               sessionStorage.setItem('stanbax_tutor_id', res.refId);
             }
+            localStorage.setItem('stanbax_tutor_auth', 'true');
             sessionStorage.setItem('stanbax_tutor_auth', 'true');
+            localStorage.setItem('stanbax_active_section', 'tutor-portal');
+            sessionStorage.setItem('stanbax_active_section', 'tutor-portal');
             break;
           case 'student':
             setIsStudentAuthenticated(true);
             if (res.refId) {
               setActiveStudentId(res.refId);
+              localStorage.setItem('stanbax_student_id', res.refId);
               sessionStorage.setItem('stanbax_student_id', res.refId);
             }
+            localStorage.setItem('stanbax_student_auth', 'true');
             sessionStorage.setItem('stanbax_student_auth', 'true');
+            localStorage.setItem('stanbax_active_section', 'student-portal');
+            sessionStorage.setItem('stanbax_active_section', 'student-portal');
             break;
           case 'parent':
             setIsParentAuthenticated(true);
             if (res.refId) {
               setActiveParentId(res.refId);
+              localStorage.setItem('stanbax_parent_id', res.refId);
               sessionStorage.setItem('stanbax_parent_id', res.refId);
             }
+            localStorage.setItem('stanbax_parent_auth', 'true');
             sessionStorage.setItem('stanbax_parent_auth', 'true');
+            localStorage.setItem('stanbax_active_section', 'parent-portal');
+            sessionStorage.setItem('stanbax_active_section', 'parent-portal');
             break;
         }
         // Hydrate + reload into the portal (never returns in practice).
@@ -2825,7 +2863,10 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (cleanId === 'admin' || cleanId === 'administrator' || cleanId === 'admin@stanbaxschools.edu.ng' || cleanId === 'principal') {
       if (isAdminPasswordValid(cleanPass)) {
         setIsAdminAuthenticated(true);
+        localStorage.setItem('stanbax_admin_auth', 'true');
         sessionStorage.setItem('stanbax_admin_auth', 'true');
+        localStorage.setItem('stanbax_active_section', 'admin-portal');
+        sessionStorage.setItem('stanbax_active_section', 'admin-portal');
         return { success: true, role: 'admin', targetSection: 'admin-portal' };
       } else {
         return { success: false, message: 'Incorrect administrator password.' };
@@ -2836,7 +2877,10 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (cleanId === 'proprietress' || cleanId === 'headmistress' || cleanId === 'proprietress@stanbaxschools.edu.ng' || cleanId === 'mrs.bello') {
       if (isProprietressPasswordValid(cleanPass)) {
         setIsProprietressAuthenticated(true);
+        localStorage.setItem('stanbax_proprietress_auth', 'true');
         sessionStorage.setItem('stanbax_proprietress_auth', 'true');
+        localStorage.setItem('stanbax_active_section', 'proprietress-portal');
+        sessionStorage.setItem('stanbax_active_section', 'proprietress-portal');
         return { success: true, role: 'proprietress', targetSection: 'proprietress-portal' };
       } else {
         return { success: false, message: 'Incorrect proprietress password.' };
@@ -2857,8 +2901,12 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (cleanPass === expectedPass) {
         setIsTutorAuthenticated(true);
         setActiveTutorId(matchedTutor.id);
+        localStorage.setItem('stanbax_tutor_auth', 'true');
+        localStorage.setItem('stanbax_tutor_id', matchedTutor.id);
         sessionStorage.setItem('stanbax_tutor_auth', 'true');
         sessionStorage.setItem('stanbax_tutor_id', matchedTutor.id);
+        localStorage.setItem('stanbax_active_section', 'tutor-portal');
+        sessionStorage.setItem('stanbax_active_section', 'tutor-portal');
         return { success: true, role: 'tutor', targetSection: 'tutor-portal' };
       } else {
         return { success: false, message: 'Incorrect faculty tutor password.' };
@@ -2885,8 +2933,12 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (cleanPass === expectedPass) {
         setIsParentAuthenticated(true);
         setActiveParentId(matchedParent.id);
+        localStorage.setItem('stanbax_parent_auth', 'true');
+        localStorage.setItem('stanbax_parent_id', matchedParent.id);
         sessionStorage.setItem('stanbax_parent_auth', 'true');
         sessionStorage.setItem('stanbax_parent_id', matchedParent.id);
+        localStorage.setItem('stanbax_active_section', 'parent-portal');
+        sessionStorage.setItem('stanbax_active_section', 'parent-portal');
         return { success: true, role: 'parent', targetSection: 'parent-portal' };
       } else {
         return { success: false, message: 'Incorrect parent portal password.' };
@@ -2908,8 +2960,12 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (cleanPass === expectedPass) {
         setIsStudentAuthenticated(true);
         setActiveStudentId(matchedStudent.id);
+        localStorage.setItem('stanbax_student_auth', 'true');
+        localStorage.setItem('stanbax_student_id', matchedStudent.id);
         sessionStorage.setItem('stanbax_student_auth', 'true');
         sessionStorage.setItem('stanbax_student_id', matchedStudent.id);
+        localStorage.setItem('stanbax_active_section', 'student-portal');
+        sessionStorage.setItem('stanbax_active_section', 'student-portal');
         return { 
           success: true, 
           role: 'student', 
@@ -2936,14 +2992,20 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (!res.unreachable) {
         if (!res.ok || res.role !== 'admin') return false;
         setIsAdminAuthenticated(true);
+        localStorage.setItem('stanbax_admin_auth', 'true');
         sessionStorage.setItem('stanbax_admin_auth', 'true');
+        localStorage.setItem('stanbax_active_section', 'admin-portal');
+        sessionStorage.setItem('stanbax_active_section', 'admin-portal');
         await completeRemoteLogin(res.token!, 'admin-portal');
         return true;
       }
     }
     if (isAdminPasswordValid(pass)) {
       setIsAdminAuthenticated(true);
+      localStorage.setItem('stanbax_admin_auth', 'true');
       sessionStorage.setItem('stanbax_admin_auth', 'true');
+      localStorage.setItem('stanbax_active_section', 'admin-portal');
+      sessionStorage.setItem('stanbax_active_section', 'admin-portal');
       return true;
     }
     return false;
@@ -2951,7 +3013,11 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const logoutAdmin = () => {
     setIsAdminAuthenticated(false);
+    localStorage.removeItem('stanbax_admin_auth');
     sessionStorage.removeItem('stanbax_admin_auth');
+    localStorage.removeItem('stanbax_active_section');
+    sessionStorage.removeItem('stanbax_active_section');
+    setActiveSection('home');
   };
 
   const loginProprietress = async (user: string, pass: string): Promise<boolean> => {
@@ -2963,14 +3029,20 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (!res.unreachable) {
         if (!res.ok || res.role !== 'proprietress') return false;
         setIsProprietressAuthenticated(true);
+        localStorage.setItem('stanbax_proprietress_auth', 'true');
         sessionStorage.setItem('stanbax_proprietress_auth', 'true');
+        localStorage.setItem('stanbax_active_section', 'proprietress-portal');
+        sessionStorage.setItem('stanbax_active_section', 'proprietress-portal');
         await completeRemoteLogin(res.token!, 'proprietress-portal');
         return true;
       }
     }
     if (isProprietressPasswordValid(pass)) {
       setIsProprietressAuthenticated(true);
+      localStorage.setItem('stanbax_proprietress_auth', 'true');
       sessionStorage.setItem('stanbax_proprietress_auth', 'true');
+      localStorage.setItem('stanbax_active_section', 'proprietress-portal');
+      sessionStorage.setItem('stanbax_active_section', 'proprietress-portal');
       return true;
     }
     return false;
@@ -2978,7 +3050,11 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const logoutProprietress = () => {
     setIsProprietressAuthenticated(false);
+    localStorage.removeItem('stanbax_proprietress_auth');
     sessionStorage.removeItem('stanbax_proprietress_auth');
+    localStorage.removeItem('stanbax_active_section');
+    sessionStorage.removeItem('stanbax_active_section');
+    setActiveSection('home');
   };
 
   const loginTutor = async (identifier: string, pass: string): Promise<{ success: boolean; message?: string; tutor?: TutorProfile }> => {
@@ -3005,14 +3081,14 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
         const remoteTutor = res.refId ? tutors.find(t => t.id === res.refId) : matchedTutor;
         setIsTutorAuthenticated(true);
-        if (res.refId) {
-          setActiveTutorId(res.refId);
-          sessionStorage.setItem('stanbax_tutor_id', res.refId);
-        } else if (matchedTutor) {
-          setActiveTutorId(matchedTutor.id);
-          sessionStorage.setItem('stanbax_tutor_id', matchedTutor.id);
-        }
+        const tutorId = res.refId || (matchedTutor ? matchedTutor.id : 'tut-1');
+        setActiveTutorId(tutorId);
+        localStorage.setItem('stanbax_tutor_id', tutorId);
+        sessionStorage.setItem('stanbax_tutor_id', tutorId);
+        localStorage.setItem('stanbax_tutor_auth', 'true');
         sessionStorage.setItem('stanbax_tutor_auth', 'true');
+        localStorage.setItem('stanbax_active_section', 'tutor-portal');
+        sessionStorage.setItem('stanbax_active_section', 'tutor-portal');
         await completeRemoteLogin(res.token!, 'tutor-portal');
         return { success: true, tutor: remoteTutor };
       }
@@ -3032,15 +3108,24 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     setIsTutorAuthenticated(true);
     setActiveTutorId(matchedTutor.id);
+    localStorage.setItem('stanbax_tutor_auth', 'true');
+    localStorage.setItem('stanbax_tutor_id', matchedTutor.id);
     sessionStorage.setItem('stanbax_tutor_auth', 'true');
     sessionStorage.setItem('stanbax_tutor_id', matchedTutor.id);
+    localStorage.setItem('stanbax_active_section', 'tutor-portal');
+    sessionStorage.setItem('stanbax_active_section', 'tutor-portal');
     return { success: true, tutor: matchedTutor };
   };
 
   const logoutTutor = () => {
     setIsTutorAuthenticated(false);
+    localStorage.removeItem('stanbax_tutor_auth');
+    localStorage.removeItem('stanbax_tutor_id');
     sessionStorage.removeItem('stanbax_tutor_auth');
     sessionStorage.removeItem('stanbax_tutor_id');
+    localStorage.removeItem('stanbax_active_section');
+    sessionStorage.removeItem('stanbax_active_section');
+    setActiveSection('home');
   };
 
   const loginStudent = async (identifier: string, pin: string): Promise<{ success: boolean; message?: string; student?: StudentProfile }> => {
@@ -3072,8 +3157,12 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         const sid = res.refId || matchedStudent!.id;
         setIsStudentAuthenticated(true);
         setActiveStudentId(sid);
+        localStorage.setItem('stanbax_student_auth', 'true');
+        localStorage.setItem('stanbax_student_id', sid);
         sessionStorage.setItem('stanbax_student_auth', 'true');
         sessionStorage.setItem('stanbax_student_id', sid);
+        localStorage.setItem('stanbax_active_section', 'student-portal');
+        sessionStorage.setItem('stanbax_active_section', 'student-portal');
         await completeRemoteLogin(res.token!, 'student-portal');
         return { success: true, student: remoteStudent || matchedStudent };
       }
@@ -3093,15 +3182,24 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     setIsStudentAuthenticated(true);
     setActiveStudentId(matchedStudent.id);
+    localStorage.setItem('stanbax_student_auth', 'true');
+    localStorage.setItem('stanbax_student_id', matchedStudent.id);
     sessionStorage.setItem('stanbax_student_auth', 'true');
     sessionStorage.setItem('stanbax_student_id', matchedStudent.id);
+    localStorage.setItem('stanbax_active_section', 'student-portal');
+    sessionStorage.setItem('stanbax_active_section', 'student-portal');
     return { success: true, student: matchedStudent };
   };
 
   const logoutStudent = () => {
     setIsStudentAuthenticated(false);
+    localStorage.removeItem('stanbax_student_auth');
+    localStorage.removeItem('stanbax_student_id');
     sessionStorage.removeItem('stanbax_student_auth');
     sessionStorage.removeItem('stanbax_student_id');
+    localStorage.removeItem('stanbax_active_section');
+    sessionStorage.removeItem('stanbax_active_section');
+    setActiveSection('home');
   };
 
   const loginParent = async (phoneOrEmail: string, pass: string): Promise<{ success: boolean; message?: string; parent?: ParentProfile }> => {
@@ -3142,8 +3240,12 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         const pid = res.refId || matchedParent!.id;
         setIsParentAuthenticated(true);
         setActiveParentId(pid);
+        localStorage.setItem('stanbax_parent_auth', 'true');
+        localStorage.setItem('stanbax_parent_id', pid);
         sessionStorage.setItem('stanbax_parent_auth', 'true');
         sessionStorage.setItem('stanbax_parent_id', pid);
+        localStorage.setItem('stanbax_active_section', 'parent-portal');
+        sessionStorage.setItem('stanbax_active_section', 'parent-portal');
         await completeRemoteLogin(res.token!, 'parent-portal');
         return { success: true, parent: remoteParent || matchedParent };
       }
@@ -3160,15 +3262,24 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     setIsParentAuthenticated(true);
     setActiveParentId(matchedParent.id);
+    localStorage.setItem('stanbax_parent_auth', 'true');
+    localStorage.setItem('stanbax_parent_id', matchedParent.id);
     sessionStorage.setItem('stanbax_parent_auth', 'true');
     sessionStorage.setItem('stanbax_parent_id', matchedParent.id);
+    localStorage.setItem('stanbax_active_section', 'parent-portal');
+    sessionStorage.setItem('stanbax_active_section', 'parent-portal');
     return { success: true, parent: matchedParent };
   };
 
   const logoutParent = () => {
     setIsParentAuthenticated(false);
+    localStorage.removeItem('stanbax_parent_auth');
+    localStorage.removeItem('stanbax_parent_id');
     sessionStorage.removeItem('stanbax_parent_auth');
     sessionStorage.removeItem('stanbax_parent_id');
+    localStorage.removeItem('stanbax_active_section');
+    sessionStorage.removeItem('stanbax_active_section');
+    setActiveSection('home');
   };
 
   const logoutAll = () => {
@@ -3178,6 +3289,11 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     logoutTutor();
     logoutStudent();
     logoutParent();
+    try {
+      localStorage.removeItem('stanbax_active_section');
+      sessionStorage.removeItem('stanbax_active_section');
+    } catch {}
+    setActiveSection('home');
   };
 
   // 13B. Alumni Management
@@ -4264,19 +4380,63 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     };
   };
 
-  // 15. Active Section View
-  const [activeSection, setActiveSection] = useState<PageSection>(() => {
-    // After a remote-verified login the app reloads to hydrate private data;
-    // this resumes the portal it was heading to.
+  // 15. Active Section View with Refresh & Multi-Session Persistence
+  const [activeSection, setActiveSectionState] = useState<PageSection>(() => {
     try {
+      // 1. Check if remote verification asked to resume a section
       const resume = sessionStorage.getItem('stanbax_resume_section');
       if (resume) {
         sessionStorage.removeItem('stanbax_resume_section');
         return resume as PageSection;
       }
+
+      // 2. Check saved section in localStorage / sessionStorage
+      const savedSection = localStorage.getItem('stanbax_active_section') || sessionStorage.getItem('stanbax_active_section');
+
+      // 3. Check role authentication states
+      const hasAdmin = localStorage.getItem('stanbax_admin_auth') === 'true' || sessionStorage.getItem('stanbax_admin_auth') === 'true';
+      const hasProprietress = localStorage.getItem('stanbax_proprietress_auth') === 'true' || sessionStorage.getItem('stanbax_proprietress_auth') === 'true';
+      const hasTutor = localStorage.getItem('stanbax_tutor_auth') === 'true' || sessionStorage.getItem('stanbax_tutor_auth') === 'true';
+      const hasStudent = localStorage.getItem('stanbax_student_auth') === 'true' || sessionStorage.getItem('stanbax_student_auth') === 'true';
+      const hasParent = localStorage.getItem('stanbax_parent_auth') === 'true' || sessionStorage.getItem('stanbax_parent_auth') === 'true';
+
+      if (savedSection) {
+        if (savedSection === 'admin-portal' && hasAdmin) return 'admin-portal';
+        if (savedSection === 'proprietress-portal' && hasProprietress) return 'proprietress-portal';
+        if (savedSection === 'tutor-portal' && hasTutor) return 'tutor-portal';
+        if (savedSection === 'student-portal' && hasStudent) return 'student-portal';
+        if (savedSection === 'parent-portal' && hasParent) return 'parent-portal';
+
+        // If saved section is a portal but user lost auth for it, fallback to any active authenticated portal or home
+        if (savedSection.includes('portal') && !savedSection.includes('login')) {
+          if (hasStudent) return 'student-portal';
+          if (hasAdmin) return 'admin-portal';
+          if (hasTutor) return 'tutor-portal';
+          if (hasParent) return 'parent-portal';
+          if (hasProprietress) return 'proprietress-portal';
+          return 'home';
+        }
+
+        return savedSection as PageSection;
+      }
+
+      // 4. If no section was explicitly saved, but user is authenticated, keep them in their portal!
+      if (hasStudent) return 'student-portal';
+      if (hasAdmin) return 'admin-portal';
+      if (hasTutor) return 'tutor-portal';
+      if (hasParent) return 'parent-portal';
+      if (hasProprietress) return 'proprietress-portal';
     } catch { /* ignore */ }
     return 'home';
   });
+
+  const setActiveSection = (section: PageSection) => {
+    setActiveSectionState(section);
+    try {
+      localStorage.setItem('stanbax_active_section', section);
+      sessionStorage.setItem('stanbax_active_section', section);
+    } catch { /* ignore */ }
+  };
 
   // 20. CBT Practice & Examination Engine
   const [cbtExams, setCbtExams] = useState<CbtExam[]>(() => {
