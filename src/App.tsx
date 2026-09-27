@@ -22,6 +22,7 @@ import { UserTourModal } from './components/UserTourModal';
 import { CampusGallery } from './components/CampusGallery';
 import { SchoolNewsBlogSection } from './components/SchoolNewsBlogSection';
 import { Compass, X } from 'lucide-react';
+import { FloatingChatWidget } from './components/chat/FloatingChatWidget';
 
 // Dedicated Subpages & Portals
 import { ProprietressPage } from './components/ProprietressPage';
@@ -81,6 +82,7 @@ const MainAppContent: React.FC = () => {
     return (
       <div className="min-h-screen bg-[#FDFBF7] text-neutral-900 font-['Nunito',sans-serif]">
         <AdminPortal onBackToWebsite={() => handleNavigate('home')} />
+        <FloatingChatWidget />
       </div>
     );
   }
@@ -89,6 +91,7 @@ const MainAppContent: React.FC = () => {
     return (
       <div className="min-h-screen bg-[#FDFBF7] text-neutral-900 font-['Nunito',sans-serif]">
         <ProprietressPortal onBackToWebsite={() => handleNavigate('home')} />
+        <FloatingChatWidget />
       </div>
     );
   }
@@ -97,6 +100,7 @@ const MainAppContent: React.FC = () => {
     return (
       <div className="min-h-screen bg-[#FDFBF7] text-neutral-900 font-['Nunito',sans-serif]">
         <TutorPortal onBackToWebsite={() => handleNavigate('home')} />
+        <FloatingChatWidget />
       </div>
     );
   }
@@ -105,6 +109,7 @@ const MainAppContent: React.FC = () => {
     return (
       <div className="min-h-screen bg-[#FDFBF7] text-neutral-900 font-['Nunito',sans-serif]">
         <StudentPortal onBackToWebsite={() => handleNavigate('home')} />
+        <FloatingChatWidget />
       </div>
     );
   }
@@ -113,6 +118,7 @@ const MainAppContent: React.FC = () => {
     return (
       <div className="min-h-screen bg-[#FDFBF7] text-neutral-900 font-['Nunito',sans-serif]">
         <ParentPortal onBackToWebsite={() => handleNavigate('home')} />
+        <FloatingChatWidget />
       </div>
     );
   }
@@ -130,6 +136,7 @@ const MainAppContent: React.FC = () => {
             else if (role === 'parent') setActiveSection('parent-portal');
           }}
         />
+        <FloatingChatWidget />
       </div>
     );
   }
@@ -158,6 +165,7 @@ const MainAppContent: React.FC = () => {
           onOpenStatusTracker={() => setIsTrackerOpen(true)}
         />
         <WhatsAppButton />
+        <FloatingChatWidget />
       </div>
     );
   }
@@ -243,6 +251,7 @@ const MainAppContent: React.FC = () => {
 
       {/* Floating Utilities */}
       <WhatsAppButton />
+      <FloatingChatWidget />
 
       {/* Floating Tour Launcher & First-time Welcome Prompt */}
       <div className="fixed bottom-6 left-6 z-40 flex flex-col items-start gap-2">

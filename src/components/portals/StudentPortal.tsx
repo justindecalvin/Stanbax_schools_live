@@ -75,8 +75,11 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
     dismissTokenPrompt,
     houseStandings,
     pressClubPresidentStudentId,
-    pressClubEditorStudentIds
+    pressClubEditorStudentIds,
+    getTotalUnreadCount
   } = useSchool();
+
+  const studentChatUnread = getTotalUnreadCount(student.id);
 
   // Automatic class ranking calculation
   const isAutoRankingOn = assessmentConfig.autoRankingEnabled !== false;
@@ -499,8 +502,8 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onBackToWebsite })
     { 
       id: 'chat' as const, 
       label: 'Scholar & Faculty Chat Hub', 
-      badge: 'Class & Clubs',
-      badgeColor: 'bg-red-500/20 text-red-300 border-red-500/30',
+      badge: studentChatUnread > 0 ? `${studentChatUnread} New` : 'Class & Clubs',
+      badgeColor: studentChatUnread > 0 ? 'bg-rose-500 text-white border-rose-400 font-black animate-pulse' : 'bg-red-500/20 text-red-300 border-red-500/30',
       icon: MessageSquare,
       description: 'Interact with peers, class forums, extracurricular societies & tutors'
     },

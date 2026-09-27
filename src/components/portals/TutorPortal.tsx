@@ -60,8 +60,11 @@ export const TutorPortal: React.FC<TutorPortalProps> = ({ onBackToWebsite }) => 
     termResumptionConfig,
     submitDailyAttendance,
     getClassAttendanceSummary,
-    getStudentAttendanceSummary
+    getStudentAttendanceSummary,
+    getTotalUnreadCount
   } = useSchool();
+
+  const tutorChatUnread = tutor ? getTotalUnreadCount(tutor.id) : 0;
 
   // If faculty is not authenticated, delegate to unified PortalLoginPage
   if (!isTutorAuthenticated) {
@@ -474,8 +477,8 @@ export const TutorPortal: React.FC<TutorPortalProps> = ({ onBackToWebsite }) => 
     { 
       id: 'chat' as const, 
       label: 'Staff Room & Community Chat', 
-      badge: 'Interactive Hub',
-      badgeColor: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
+      badge: tutorChatUnread > 0 ? `${tutorChatUnread} New` : 'Interactive Hub',
+      badgeColor: tutorChatUnread > 0 ? 'bg-rose-500 text-white border-rose-400 font-black animate-pulse' : 'bg-blue-500/20 text-blue-300 border-blue-500/30',
       icon: MessageSquare,
       description: 'Collaborate with faculty colleagues, interact with student class groups & communicate with parents'
     },

@@ -1005,9 +1005,14 @@ export interface SchoolChatMessage {
     name: string;
     url: string;
     type?: string;
+    size?: string;
   }>;
   flaggedByAdmin?: boolean;
   deletedByAdmin?: boolean;
+  isPinned?: boolean;
+  pinnedBy?: string;
+  pinnedAt?: string;
+  reactions?: { [emoji: string]: string[] }; // emoji -> array of user names who reacted
   audioVoiceNote?: {
     url: string;
     durationSeconds: number;

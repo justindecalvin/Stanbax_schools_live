@@ -31,7 +31,14 @@ import {
   Maximize2,
   ArrowLeft,
   ExternalLink,
-  Globe
+  Globe,
+  Pin,
+  Paperclip,
+  Smile,
+  FileText,
+  ChevronUp,
+  ChevronDown,
+  Check
 } from '../RealIcons';
 
 import { SchoolLogo } from '../SchoolLogo';
@@ -48,13 +55,19 @@ interface SchoolChatSystemProps {
   currentUserId: string;
   currentUserName: string;
   currentUserSubtext?: string;
+  initialPopupChannelId?: string | null;
+  onClosePopup?: () => void;
+  hideStories?: boolean;
 }
 
 export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
   currentUserRole,
   currentUserId,
   currentUserName,
-  currentUserSubtext
+  currentUserSubtext,
+  initialPopupChannelId,
+  onClosePopup,
+  hideStories
 }) => {
   const { 
     chatChannels, 
@@ -66,6 +79,11 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
     deleteChatMessage, 
     flagChatMessage,
     resetChatToDefault,
+    toggleChatReaction,
+    togglePinChatMessage,
+    markChannelAsRead,
+    getChannelUnreadCount,
+    getTotalUnreadCount,
     students,
     tutors,
     parents,
@@ -101,7 +119,20 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
   const [newChanReadOnly, setNewChanReadOnly] = useState(false);
 
   // Direct Chat & Pop-Up Overlay State
-  const [activePopupChannelId, setActivePopupChannelId] = useState<string | null>(null);
+  const [activePopupChannelId, setActivePopupChannelId] = useState<string | null>(initialPopupChannelId || null);
+
+  useEffect(() => {
+    if (initialPopupChannelId !== undefined) {
+      setActivePopupChannelId(initialPopupChannelId);
+    }
+  }, [initialPopupChannelId]);
+
+  // Mark active channel as read whenever opened
+  useEffect(() => {
+    if (activePopupChannelId) {
+      markChannelAsRead(activePopupChannelId, currentUserId);
+    }
+  }, [activePopupChannelId, currentUserId]);
 
   const [showDirectPeerModal, setShowDirectPeerModal] = useState(false);
   const [peerSearchTerm, setPeerSearchTerm] = useState('');
@@ -109,15 +140,26 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
 
   // Media Attachments & Voice Note State
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [selectedDocument, setSelectedDocument] = useState<{ name: string; url: string; size: string; type: string } | null>(null);
   const [isRecordingVoice, setIsRecordingVoice] = useState(false);
   const [voiceDuration, setVoiceDuration] = useState(0);
   const [playingVoiceMsgId, setPlayingVoiceMsgId] = useState<string | null>(null);
+  const [voicePlaybackRate, setVoicePlaybackRate] = useState<number>(1);
   const [expandedImageModalUrl, setExpandedImageModalUrl] = useState<string | null>(null);
+
+  // In-Conversation Search State
+  const [inChatSearchOpen, setInChatSearchOpen] = useState(false);
+  const [inChatSearchQuery, setInChatSearchQuery] = useState('');
+  const [inChatSearchIndex, setInChatSearchIndex] = useState(0);
+
+  // Reaction picker hover/tap state
+  const [reactionPickerMsgId, setReactionPickerMsgId] = useState<string | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const voiceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const chatFileInputRef = useRef<HTMLInputElement>(null);
+  const chatDocInputRef = useRef<HTMLInputElement>(null);
   const activeAudioRef = useRef<HTMLAudioElement | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -284,6 +326,71 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
     e.target.value = '';
   };
 
+  const handleDocSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 15 * 1024 * 1024) {
+      alert('Document size exceeds the 15MB upload limit.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const sizeFormatted = file.size > 1024 * 1024 
+        ? `${(file.size / (1024 * 1024)).toFixed(1)} MB` 
+        : `${Math.round(file.size / 1024)} KB`;
+
+      setSelectedDocument({
+        name: file.name,
+        url: reader.result as string,
+        size: sizeFormatted,
+        type: file.type || 'application/octet-stream'
+      });
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handleTogglePlaybackRate = () => {
+    const nextRate = voicePlaybackRate === 1 ? 1.5 : voicePlaybackRate === 1.5 ? 2 : 1;
+    setVoicePlaybackRate(nextRate);
+    if (activeAudioRef.current) {
+      activeAudioRef.current.playbackRate = nextRate;
+    }
+  };
+
+  // In-Conversation Search Matches & Navigation
+  const matchingMessages = React.useMemo(() => {
+    if (!inChatSearchQuery.trim()) return [];
+    const q = inChatSearchQuery.toLowerCase().trim();
+    return activeMessages.filter(m => m.content && m.content.toLowerCase().includes(q));
+  }, [inChatSearchQuery, activeMessages]);
+
+  const handleNextSearchMatch = () => {
+    if (matchingMessages.length === 0) return;
+    const nextIdx = (inChatSearchIndex + 1) % matchingMessages.length;
+    setInChatSearchIndex(nextIdx);
+    const targetMsg = matchingMessages[nextIdx];
+    if (targetMsg) {
+      const el = document.getElementById(`chat-msg-${targetMsg.id}`);
+      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  };
+
+  const handlePrevSearchMatch = () => {
+    if (matchingMessages.length === 0) return;
+    const prevIdx = (inChatSearchIndex - 1 + matchingMessages.length) % matchingMessages.length;
+    setInChatSearchIndex(prevIdx);
+    const targetMsg = matchingMessages[prevIdx];
+    if (targetMsg) {
+      const el = document.getElementById(`chat-msg-${targetMsg.id}`);
+      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  };
+
+  // Pinned Announcement Message in current active channel
+  const pinnedMessage = activeMessages.find(m => m.isPinned && !m.deletedByAdmin);
+  const canPinMessages = isAdmin || isTutor || Boolean(currentStudent?.prefectBadge) || Boolean(currentStudent?.prefectRole);
+
   const handleStartVoiceRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -372,6 +479,7 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
     }
 
     const audio = new Audio(audioUrl);
+    audio.playbackRate = voicePlaybackRate;
     activeAudioRef.current = audio;
     setPlayingVoiceMsgId(msgId);
 
@@ -389,12 +497,19 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
-    if ((!messageText.trim() && !selectedImage) || !activeChannel) return;
+    if ((!messageText.trim() && !selectedImage && !selectedDocument) || !activeChannel) return;
 
     if (activeChannel.isReadOnly && !isAdmin) {
       alert('This channel is currently read-only. Only school administrators may publish messages here.');
       return;
     }
+
+    const attachmentsList = selectedDocument ? [{
+      name: selectedDocument.name,
+      url: selectedDocument.url,
+      size: selectedDocument.size,
+      type: selectedDocument.type
+    }] : undefined;
 
     sendChatMessage({
       channelId: activeChannel.id,
@@ -406,15 +521,17 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
         isTutor ? 'Faculty Educator' :
         isParent ? 'Guardian' : 'Scholar'
       ),
-      content: messageText.trim() || '📷 Photo Attachment',
+      content: messageText.trim() || (selectedDocument ? `📎 Document: ${selectedDocument.name}` : '📷 Photo Attachment'),
       imageAttachment: selectedImage ? {
         url: selectedImage,
         caption: messageText.trim()
-      } : undefined
+      } : undefined,
+      attachments: attachmentsList
     });
 
     setMessageText('');
     setSelectedImage(null);
+    setSelectedDocument(null);
   };
 
   const handleCreateChannel = (e: React.FormEvent) => {
@@ -506,22 +623,36 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
     return msg.senderBadge;
   };
 
+  const renderHighlightedContent = (text: string, query: string) => {
+    if (!query.trim()) return text;
+    const parts = text.split(new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'));
+    return parts.map((part, i) => 
+      part.toLowerCase() === query.toLowerCase() ? (
+        <mark key={i} className="bg-amber-300 text-neutral-950 font-black rounded-xs px-1 shadow-2xs">
+          {part}
+        </mark>
+      ) : part
+    );
+  };
+
   return (
     <div className="bg-white rounded-3xl border border-[#EAE2CE] shadow-sm overflow-hidden flex flex-col min-h-[500px]">
       
       {/* ========================================================================= */}
       {/* TOP WHATSAPP-STYLE 16-HOUR EPHEMERAL STATUS STORY STRIP                   */}
       {/* ========================================================================= */}
-      <EphemeralStatusManager
-        currentUserId={currentUserId}
-        currentUserName={currentUserName}
-        currentUserRole={currentUserRole}
-        currentUserSubtext={currentUserSubtext}
-        currentUserBadge={
-          currentStudent?.prefectBadge || 
-          (currentStudent?.prefectRole ? `🏅 ${currentStudent.prefectRole}` : undefined)
-        }
-      />
+      {!hideStories && (
+        <EphemeralStatusManager
+          currentUserId={currentUserId}
+          currentUserName={currentUserName}
+          currentUserRole={currentUserRole}
+          currentUserSubtext={currentUserSubtext}
+          currentUserBadge={
+            currentStudent?.prefectBadge || 
+            (currentStudent?.prefectRole ? `🏅 ${currentStudent.prefectRole}` : undefined)
+          }
+        />
+      )}
 
       {/* ========================================================================= */}
       {/* CHAT LIST HUB (CLEAN DIRECTORY OF ALL DISCUSSIONS & CHATS)                */}
@@ -756,10 +887,14 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
                 }
               }
 
+              // Get channel unread count for current user
+              const unreadCount = getChannelUnreadCount(chan.id, currentUserId);
+
               return (
                 <div
                   key={chan.id}
                   onClick={() => {
+                    markChannelAsRead(chan.id, currentUserId);
                     setActiveChannelId(chan.id);
                     setActivePopupChannelId(chan.id);
                   }}
@@ -809,11 +944,18 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
 
                   <div className="flex items-center gap-2.5 shrink-0">
                     <div className="flex flex-col items-end gap-1">
-                      {lastMsgTime && (
-                        <span className="text-[10px] sm:text-[11px] font-bold text-neutral-400">
-                          {lastMsgTime}
-                        </span>
-                      )}
+                      <div className="flex items-center gap-1.5">
+                        {unreadCount > 0 && (
+                          <span className="px-2 py-0.2 rounded-full text-[10px] font-black bg-rose-600 text-white shadow-2xs animate-pulse">
+                            {unreadCount} new
+                          </span>
+                        )}
+                        {lastMsgTime && (
+                          <span className="text-[10px] sm:text-[11px] font-bold text-neutral-400">
+                            {lastMsgTime}
+                          </span>
+                        )}
+                      </div>
                       <span className={`text-[9px] sm:text-[10px] px-2 py-0.5 rounded-md uppercase font-extrabold ${
                         isDirect
                           ? isAdmin ? 'bg-amber-100 text-amber-900 border border-amber-300' : 'bg-indigo-100 text-indigo-700 border border-indigo-200'
@@ -987,8 +1129,28 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
                     </div>
                   </div>
 
-                  {/* Header Action Buttons (Admin Leadership Controls & Close) */}
-                  <div className="flex items-center gap-2 shrink-0">
+                  {/* Header Action Buttons (In-Chat Search, Leadership & Close) */}
+                  <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                    {/* In-Conversation Search Button */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setInChatSearchOpen(!inChatSearchOpen);
+                        if (inChatSearchOpen) {
+                          setInChatSearchQuery('');
+                          setInChatSearchIndex(0);
+                        }
+                      }}
+                      className={`p-1.5 sm:p-2 rounded-xl transition cursor-pointer flex items-center gap-1 ${
+                        inChatSearchOpen 
+                          ? 'bg-indigo-600 text-white shadow-xs' 
+                          : 'text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100'
+                      }`}
+                      title="Search messages in this discussion (Ctrl+F)"
+                    >
+                      <Search className="w-4 h-4 sm:w-5 sm:h-5" />
+                    </button>
+
                     {/* Class Leadership button (Admin Only) */}
                     {isAdmin && chan.type === 'class' && activeClassObj && (
                       <button
@@ -1018,7 +1180,10 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
                     {/* Close Pop-Up Overlay */}
                     <button
                       type="button"
-                      onClick={() => setActivePopupChannelId(null)}
+                      onClick={() => {
+                        setActivePopupChannelId(null);
+                        if (onClosePopup) onClosePopup();
+                      }}
                       className="p-1.5 sm:p-2 rounded-xl text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100 transition cursor-pointer"
                       title="Close Chat"
                     >
@@ -1028,6 +1193,106 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
                 </div>
               );
             })()}
+
+            {/* In-Conversation Search Toolbar */}
+            {inChatSearchOpen && (
+              <div className="bg-neutral-100/90 backdrop-blur-xs border-b border-neutral-200 px-3 sm:px-4 py-2 flex items-center justify-between gap-2 text-xs shrink-0 animate-in fade-in duration-150">
+                <div className="flex items-center gap-2 flex-1 max-w-md">
+                  <Search className="w-3.5 h-3.5 text-neutral-500 shrink-0" />
+                  <input
+                    type="text"
+                    value={inChatSearchQuery}
+                    onChange={(e) => {
+                      setInChatSearchQuery(e.target.value);
+                      setInChatSearchIndex(0);
+                    }}
+                    placeholder="Search in this conversation..."
+                    autoFocus
+                    className="w-full bg-white px-3 py-1.5 rounded-xl border border-neutral-300 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-neutral-400"
+                  />
+                </div>
+
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span className="text-[11px] font-bold text-neutral-600 px-1">
+                    {matchingMessages.length > 0 
+                      ? `${inChatSearchIndex + 1} of ${matchingMessages.length}` 
+                      : (inChatSearchQuery ? 'No matches' : 'Type to search')}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handlePrevSearchMatch}
+                    disabled={matchingMessages.length === 0}
+                    className="p-1.5 rounded-lg bg-white border border-neutral-200 hover:bg-neutral-50 disabled:opacity-40 text-neutral-700 cursor-pointer shadow-2xs"
+                    title="Previous match (Up)"
+                  >
+                    <ChevronUp className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleNextSearchMatch}
+                    disabled={matchingMessages.length === 0}
+                    className="p-1.5 rounded-lg bg-white border border-neutral-200 hover:bg-neutral-50 disabled:opacity-40 text-neutral-700 cursor-pointer shadow-2xs"
+                    title="Next match (Down)"
+                  >
+                    <ChevronDown className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setInChatSearchOpen(false);
+                      setInChatSearchQuery('');
+                      setInChatSearchIndex(0);
+                    }}
+                    className="p-1.5 rounded-lg hover:bg-neutral-200 text-neutral-500 cursor-pointer"
+                    title="Close in-chat search"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Pinned Message Announcement Banner */}
+            {pinnedMessage && (
+              <div className="bg-gradient-to-r from-amber-50 via-amber-100/50 to-orange-50 border-b border-amber-300/80 px-4 py-2.5 flex items-center justify-between gap-3 text-xs shrink-0 shadow-2xs">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-7 h-7 rounded-lg bg-amber-500 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
+                    <Pin className="w-3.5 h-3.5 fill-current" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="font-black text-amber-950 text-xs">Pinned Announcement</span>
+                      <span className="text-[10px] text-amber-800 font-bold">• by {pinnedMessage.pinnedBy || pinnedMessage.senderName}</span>
+                    </div>
+                    <p className="text-[11px] text-neutral-700 truncate font-medium mt-0.5">
+                      {pinnedMessage.content || 'Attached media announcement'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      document.getElementById(`chat-msg-${pinnedMessage.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }}
+                    className="px-2.5 py-1 rounded-lg bg-white border border-amber-300 hover:bg-amber-100 text-amber-950 text-[11px] font-bold shadow-2xs cursor-pointer"
+                  >
+                    Jump to Msg
+                  </button>
+                  {canPinMessages && (
+                    <button
+                      type="button"
+                      onClick={() => togglePinChatMessage(pinnedMessage.id, currentUserName)}
+                      className="p-1 text-amber-800 hover:text-amber-950 rounded-lg hover:bg-amber-200/50 cursor-pointer"
+                      title="Unpin this announcement"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Messages Scroll Area */}
             <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 bg-neutral-50/40">
@@ -1053,7 +1318,8 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
                   return (
                     <div 
                       key={msg.id}
-                      className={`flex gap-3 max-w-2xl ${isMine ? 'ml-auto flex-row-reverse' : ''}`}
+                      id={`chat-msg-${msg.id}`}
+                      className={`flex gap-3 max-w-2xl transition-all duration-200 ${isMine ? 'ml-auto flex-row-reverse' : ''}`}
                     >
                       {/* Avatar */}
                       <div 
@@ -1080,7 +1346,7 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
                       </div>
 
                       {/* Message Bubble Container */}
-                      <div className={`space-y-1 ${isMine ? 'items-end' : ''}`}>
+                      <div className={`space-y-1.5 ${isMine ? 'items-end' : ''}`}>
                         {/* Meta header */}
                         <div className={`flex items-center gap-1.5 flex-wrap text-[11px] ${isMine ? 'justify-end' : ''}`}>
                           <span 
@@ -1116,6 +1382,13 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
                               'bg-purple-100 text-purple-900 border border-purple-300'
                             }`}>
                               {senderBadge}
+                            </span>
+                          )}
+
+                          {/* Pinned Marker Badge */}
+                          {msg.isPinned && (
+                            <span className="px-2 py-0.2 rounded-full text-[9px] font-black bg-amber-400 text-amber-950 flex items-center gap-1 shadow-2xs">
+                              <Pin className="w-2.5 h-2.5 fill-current" /> Pinned
                             </span>
                           )}
 
@@ -1164,6 +1437,39 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
                                 </div>
                               )}
 
+                              {/* Document Files Attachment */}
+                              {msg.attachments && msg.attachments.length > 0 && (
+                                <div className="space-y-1.5 pt-1">
+                                  {msg.attachments.map((att, idx) => (
+                                    <a
+                                      key={idx}
+                                      href={att.url}
+                                      download={att.name}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className={`p-2.5 rounded-2xl flex items-center justify-between gap-3 border transition ${
+                                        isMine 
+                                          ? 'bg-white/10 hover:bg-white/20 border-white/20 text-white' 
+                                          : 'bg-neutral-50 hover:bg-neutral-100 border-neutral-200 text-neutral-800'
+                                      }`}
+                                    >
+                                      <div className="flex items-center gap-2.5 min-w-0">
+                                        <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-600 flex items-center justify-center font-bold text-xs shrink-0">
+                                          <FileText className="w-4 h-4" />
+                                        </div>
+                                        <div className="min-w-0 text-left">
+                                          <p className="text-xs font-bold truncate">{att.name}</p>
+                                          <p className="text-[10px] opacity-70">{att.size || 'Document file'}</p>
+                                        </div>
+                                      </div>
+                                      <span className="p-1.5 rounded-lg bg-neutral-200/60 hover:bg-neutral-200 text-neutral-700 text-xs shrink-0 font-bold">
+                                        Download
+                                      </span>
+                                    </a>
+                                  ))}
+                                </div>
+                              )}
+
                               {/* Voice Note Player */}
                               {msg.audioVoiceNote && (
                                 <div className={`p-2.5 rounded-2xl flex items-center gap-3 ${isMine ? 'bg-white/10 text-white' : 'bg-neutral-100 text-neutral-800'}`}>
@@ -1196,44 +1502,113 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
                                     ))}
                                   </div>
 
-                                  <div className="text-[11px] font-mono font-bold shrink-0">
-                                    {Math.floor(msg.audioVoiceNote.durationSeconds / 60)}:{(msg.audioVoiceNote.durationSeconds % 60).toString().padStart(2, '0')}
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    <div className="text-[11px] font-mono font-bold">
+                                      {Math.floor(msg.audioVoiceNote.durationSeconds / 60)}:{(msg.audioVoiceNote.durationSeconds % 60).toString().padStart(2, '0')}
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={handleTogglePlaybackRate}
+                                      className={`px-1.5 py-0.5 rounded-md text-[10px] font-black font-mono uppercase cursor-pointer transition ${
+                                        isMine ? 'bg-white/20 hover:bg-white/30 text-white' : 'bg-neutral-200 hover:bg-neutral-300 text-neutral-800'
+                                      }`}
+                                      title="Toggle voice playback speed"
+                                    >
+                                      {voicePlaybackRate}x
+                                    </button>
                                   </div>
                                 </div>
                               )}
 
                               {msg.content && (!msg.audioVoiceNote || !msg.content.startsWith('🎤')) && (!msg.imageAttachment || msg.content !== '📷 Photo Attachment') && (
-                                <p className="whitespace-pre-wrap">{msg.content}</p>
+                                <p className="whitespace-pre-wrap">{renderHighlightedContent(msg.content, inChatSearchQuery)}</p>
                               )}
                             </div>
                           )}
 
-                          {/* Admin moderation quick actions */}
-                          {isAdmin && !msg.deletedByAdmin && (
-                            <div className="hidden group-hover:flex items-center gap-1.5 absolute -top-3 right-2 bg-white px-2 py-0.5 rounded-full border border-neutral-300 shadow-sm text-[10px]">
+                          {/* Message Action Menu (Quick Emoji Reactions, Pinning & Moderation) */}
+                          <div className="hidden group-hover:flex items-center gap-1 absolute -top-3.5 right-2 bg-white px-2 py-0.5 rounded-full border border-neutral-200 shadow-md text-xs z-10 animate-in fade-in">
+                            {/* Emoji Reaction palette */}
+                            {['👍', '❤️', '👏', '😂', '🔥', '🎓'].map((emoji) => (
+                              <button
+                                key={emoji}
+                                type="button"
+                                onClick={() => toggleChatReaction(msg.id, emoji, currentUserName)}
+                                className="hover:scale-130 transition-transform p-0.5 cursor-pointer text-xs"
+                                title={`React with ${emoji}`}
+                              >
+                                {emoji}
+                              </button>
+                            ))}
+
+                            {/* Pin message button (Admins, Tutors & Prefects) */}
+                            {canPinMessages && (
                               <button
                                 type="button"
-                                onClick={() => flagChatMessage(msg.id, !msg.flaggedByAdmin)}
-                                className={`p-1 hover:text-amber-600 cursor-pointer ${msg.flaggedByAdmin ? 'text-amber-600' : 'text-neutral-400'}`}
-                                title={msg.flaggedByAdmin ? 'Unflag message' : 'Flag message'}
+                                onClick={() => togglePinChatMessage(msg.id, currentUserName)}
+                                className={`p-1 hover:text-amber-600 transition cursor-pointer ml-1 ${
+                                  msg.isPinned ? 'text-amber-600' : 'text-neutral-400'
+                                }`}
+                                title={msg.isPinned ? 'Unpin announcement' : 'Pin message as channel announcement'}
                               >
-                                <Flag className="w-3 h-3" />
+                                <Pin className="w-3 h-3 fill-current" />
                               </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  if (confirm('Delete this message as administrator?')) {
-                                    deleteChatMessage(msg.id);
-                                  }
-                                }}
-                                className="p-1 hover:text-red-600 text-neutral-400 cursor-pointer"
-                                title="Delete Message"
-                              >
-                                <Trash2 className="w-3 h-3" />
-                              </button>
-                            </div>
-                          )}
+                            )}
+
+                            {/* Admin moderation quick actions */}
+                            {isAdmin && !msg.deletedByAdmin && (
+                              <>
+                                <span className="w-px h-3 bg-neutral-200 mx-0.5" />
+                                <button
+                                  type="button"
+                                  onClick={() => flagChatMessage(msg.id, !msg.flaggedByAdmin)}
+                                  className={`p-1 hover:text-amber-600 cursor-pointer ${msg.flaggedByAdmin ? 'text-amber-600' : 'text-neutral-400'}`}
+                                  title={msg.flaggedByAdmin ? 'Unflag message' : 'Flag message'}
+                                >
+                                  <Flag className="w-3 h-3" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (confirm('Delete this message as administrator?')) {
+                                      deleteChatMessage(msg.id);
+                                    }
+                                  }}
+                                  className="p-1 hover:text-red-600 text-neutral-400 cursor-pointer"
+                                  title="Delete Message"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </button>
+                              </>
+                            )}
+                          </div>
                         </div>
+
+                        {/* Reaction Badges Display */}
+                        {msg.reactions && Object.keys(msg.reactions).length > 0 && (
+                          <div className={`flex items-center gap-1.5 flex-wrap pt-0.5 ${isMine ? 'justify-end' : ''}`}>
+                            {Object.entries(msg.reactions).map(([emoji, users]) => {
+                              if (!users || users.length === 0) return null;
+                              const hasMyReaction = users.includes(currentUserName);
+                              return (
+                                <button
+                                  key={emoji}
+                                  type="button"
+                                  onClick={() => toggleChatReaction(msg.id, emoji, currentUserName)}
+                                  className={`px-2 py-0.5 rounded-full text-xs flex items-center gap-1 transition cursor-pointer border ${
+                                    hasMyReaction 
+                                      ? 'bg-amber-100 text-amber-950 border-amber-300 font-black shadow-2xs' 
+                                      : 'bg-white/95 hover:bg-neutral-100 text-neutral-700 border-neutral-200 shadow-2xs'
+                                  }`}
+                                  title={`${users.join(', ')} reacted with ${emoji}`}
+                                >
+                                  <span>{emoji}</span>
+                                  <span className="text-[10px] font-bold">{users.length}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
                     </div>
                   );
@@ -1260,6 +1635,27 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
                         type="button"
                         onClick={() => setSelectedImage(null)}
                         className="p-1 hover:bg-neutral-200 rounded-lg text-neutral-500 cursor-pointer"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Selected Document Preview Chip */}
+                  {selectedDocument && (
+                    <div className="flex items-center gap-2 p-2 bg-amber-50 border border-amber-200 rounded-2xl max-w-sm">
+                      <div className="w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center font-bold text-xs shrink-0">
+                        <FileText className="w-4 h-4" />
+                      </div>
+                      <div className="flex-1 min-w-0 text-left">
+                        <p className="text-xs font-bold text-neutral-900 truncate">{selectedDocument.name}</p>
+                        <p className="text-[10px] text-amber-800 font-semibold">{selectedDocument.size}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedDocument(null)}
+                        className="p-1 hover:bg-amber-100 rounded-lg text-amber-800 cursor-pointer"
+                        title="Remove document"
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -1307,9 +1703,26 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
                         type="button"
                         onClick={() => chatFileInputRef.current?.click()}
                         className="p-3 rounded-2xl bg-neutral-100 hover:bg-neutral-200 text-neutral-600 transition cursor-pointer"
-                        title="Attach Photo or Document"
+                        title="Attach Photo"
                       >
                         <Camera className="w-4 h-4" />
+                      </button>
+
+                      {/* Hidden Document File Input */}
+                      <input
+                        type="file"
+                        ref={chatDocInputRef}
+                        accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip"
+                        onChange={handleDocSelect}
+                        className="hidden"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => chatDocInputRef.current?.click()}
+                        className="p-3 rounded-2xl bg-neutral-100 hover:bg-neutral-200 text-neutral-600 transition cursor-pointer"
+                        title="Attach Document or PDF"
+                      >
+                        <Paperclip className="w-4 h-4" />
                       </button>
 
                       <button
@@ -1332,7 +1745,7 @@ export const SchoolChatSystem: React.FC<SchoolChatSystemProps> = ({
 
                       <button
                         type="submit"
-                        disabled={!messageText.trim() && !selectedImage}
+                        disabled={!messageText.trim() && !selectedImage && !selectedDocument}
                         className="p-3 rounded-2xl bg-neutral-900 hover:bg-neutral-800 disabled:opacity-40 text-white transition cursor-pointer shadow-sm active:scale-95"
                         title="Send Message"
                       >

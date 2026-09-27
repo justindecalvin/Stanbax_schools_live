@@ -540,6 +540,15 @@ interface SchoolContextType {
   deleteChatMessage: (id: string) => void;
   flagChatMessage: (id: string, flagged?: boolean) => void;
   resetChatToDefault: () => void;
+  toggleChatReaction: (messageId: string, emoji: string, userName: string) => void;
+  togglePinChatMessage: (messageId: string, pinnedBy?: string) => void;
+  markChannelAsRead: (channelId: string, userId: string) => void;
+  getChannelUnreadCount: (channelId: string, userId: string) => number;
+  getTotalUnreadCount: (userId: string, authorizedChannelIds?: string[]) => number;
+  isFloatingChatOpen: boolean;
+  setIsFloatingChatOpen: (open: boolean) => void;
+  activeFloatingChatChannelId: string | null;
+  setActiveFloatingChatChannelId: (channelId: string | null) => void;
 
   // 29. Campus Gallery Photos (Facilities & Events)
   galleryPhotos: GalleryPhoto[];
@@ -5392,6 +5401,107 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     } catch {}
   };
 
+  const toggleChatReaction = (messageId: string, emoji: string, userName: string) => {
+    setChatMessages(prev => {
+      const updated = prev.map(m => {
+        if (m.id !== messageId) return m;
+        const currentReactions = { ...(m.reactions || {}) };
+        const usersForEmoji = currentReactions[emoji] || [];
+        const exists = usersForEmoji.includes(userName);
+        if (exists) {
+          const filtered = usersForEmoji.filter(u => u !== userName);
+          if (filtered.length === 0) {
+            delete currentReactions[emoji];
+          } else {
+            currentReactions[emoji] = filtered;
+          }
+        } else {
+          currentReactions[emoji] = [...usersForEmoji, userName];
+        }
+        return { ...m, reactions: currentReactions };
+      });
+      try { localStorage.setItem('stanbax_chat_messages', JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+  };
+
+  const togglePinChatMessage = (messageId: string, pinnedBy?: string) => {
+    setChatMessages(prev => {
+      const target = prev.find(m => m.id === messageId);
+      if (!target) return prev;
+      const willPin = !target.isPinned;
+      const updated = prev.map(m => {
+        if (m.id === messageId) {
+          return {
+            ...m,
+            isPinned: willPin,
+            pinnedBy: willPin ? (pinnedBy || 'Staff Administrator') : undefined,
+            pinnedAt: willPin ? new Date().toISOString() : undefined
+          };
+        }
+        // If pinning a message in this channel, unpin any other message in the channel so there's one highlighted pinned banner
+        if (willPin && m.channelId === target.channelId && m.isPinned) {
+          return { ...m, isPinned: false };
+        }
+        return m;
+      });
+      try { localStorage.setItem('stanbax_chat_messages', JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+  };
+
+  // Last read timestamps per user & channel for live unread badges
+  const [lastReadTimestamps, setLastReadTimestamps] = useState<{ [userKey: string]: { [channelId: string]: number } }>(() => {
+    try {
+      const saved = localStorage.getItem('stanbax_chat_read_timestamps');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    // Seed sensible initial last read to show 1-2 demo unread messages for initial excitement
+    const initialSeed: { [channelId: string]: number } = {};
+    const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+    initialSeed['chan-gen-announcement'] = oneDayAgo;
+    return { default: initialSeed, 'demo-student': initialSeed };
+  });
+
+  const markChannelAsRead = (channelId: string, userId: string) => {
+    setLastReadTimestamps(prev => {
+      const userKey = userId || 'default';
+      const userObj = { ...(prev[userKey] || {}) };
+      userObj[channelId] = Date.now();
+      const updated = { ...prev, [userKey]: userObj };
+      try { localStorage.setItem('stanbax_chat_read_timestamps', JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+  };
+
+  const getChannelUnreadCount = (channelId: string, userId: string): number => {
+    const userKey = userId || 'default';
+    const userReads = lastReadTimestamps[userKey] || {};
+    const lastRead = userReads[channelId] ?? (Date.now() - 48 * 60 * 60 * 1000); // default to 48 hours ago if never read
+    
+    return chatMessages.filter(m => {
+      if (m.channelId !== channelId) return false;
+      if (m.senderId === userId) return false;
+      if (m.deletedByAdmin) return false;
+      const msgTime = new Date(m.timestamp).getTime();
+      return msgTime > lastRead;
+    }).length;
+  };
+
+  const getTotalUnreadCount = (userId: string, authorizedChannelIds?: string[]): number => {
+    const validChannels = authorizedChannelIds && authorizedChannelIds.length > 0 
+      ? chatChannels.filter(c => authorizedChannelIds.includes(c.id))
+      : chatChannels;
+
+    return validChannels.reduce((sum, chan) => {
+      return sum + getChannelUnreadCount(chan.id, userId);
+    }, 0);
+  };
+
+  // Global floating chat drawer & popup state
+  const [isFloatingChatOpen, setIsFloatingChatOpen] = useState(false);
+  const [activeFloatingChatChannelId, setActiveFloatingChatChannelId] = useState<string | null>(null);
+
   // 29. Campus Gallery Photos (Facilities & Events)
   const [galleryPhotos, setGalleryPhotos] = useState<GalleryPhoto[]>(() => {
     try {
@@ -6100,6 +6210,15 @@ export const SchoolProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         deleteChatMessage,
         flagChatMessage,
         resetChatToDefault,
+        toggleChatReaction,
+        togglePinChatMessage,
+        markChannelAsRead,
+        getChannelUnreadCount,
+        getTotalUnreadCount,
+        isFloatingChatOpen,
+        setIsFloatingChatOpen,
+        activeFloatingChatChannelId,
+        setActiveFloatingChatChannelId,
         // 29. Campus Gallery Photos (Facilities & Events)
         galleryPhotos,
         addGalleryPhoto,
